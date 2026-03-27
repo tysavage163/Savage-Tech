@@ -1,0 +1,15 @@
+{
+  "name": "savage-tech",
+  "version": "1.0.0",
+  "description": "High performance WhatsApp Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "pino": "^8.0.0",
+    "qrcode-terminal": "^0.12.0",
+    "fs-extra": "latest"
+  }
+}

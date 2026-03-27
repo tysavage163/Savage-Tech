@@ -1,0 +1,17 @@
+module.exports = {
+    name: 'cypher',
+    async execute(sock, m, args) {
+        const text = args.join(" ");
+        if (!text) return sock.sendMessage(m.key.remoteJid, { text: "❌ Usage: .cypher <your message>" });
+
+        // Cypher X Encoding Logic (Base64)
+        const encrypted = Buffer.from(text).toString('base64');
+        
+        const response = `*--- SAVAGE TECH CYPHER X ---*\n\n` +
+                         `🔓 Original: ${text}\n` +
+                         `🔐 Encoded: ${encrypted}\n\n` +
+                         `*Status: Secure*`;
+
+        await sock.sendMessage(m.key.remoteJid, { text: response });
+    }
+};

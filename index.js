@@ -25,13 +25,13 @@ async function startSavage() {
     
     if (fs.existsSync(commandPath)) {
         const files = fs.readdirSync(commandPath).filter(f => f.endsWith('.js'));
-        for (const file of files) {
+        for (const file of files) { // Fixed: matches the 'files' variable above
             const command = require(`./commands/${file}`);
             if (command.name) {
                 commands.set(command.name, command);
             }
         }
-        console.log(`🚀 SAVAGE TECH: ${commands.size} Commands Loaded Successfully!`);
+        console.log(`🚀 SAVAGE TECH: ${commands.size} Commands Loaded!`);
     }
 
     // --- Connection & QR Handler ---
@@ -39,7 +39,7 @@ async function startSavage() {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-            console.log('\n--- BECK, SCAN THIS QR CODE ---');
+            console.log('\n--- SCAN THE QR CODE BELOW ---');
             qrcode.generate(qr, { small: true });
         }
 

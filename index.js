@@ -19,7 +19,7 @@ async function startSavage() {
         printQRInTerminal: false
     });
 
-    // --- Direct Command Loader ---
+    // --- Fixed Command Loader ---
     const commands = new Map();
     const commandPath = './commands';
     

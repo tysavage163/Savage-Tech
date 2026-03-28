@@ -19,7 +19,7 @@ async function startSavage() {
         printQRInTerminal: false
     });
 
-    // --- Fixed Command Loader ---
+    // --- Direct Command Loader ---
     const commands = new Map();
     const commandPath = './commands';
     
@@ -31,7 +31,7 @@ async function startSavage() {
                 commands.set(command.name, command);
             }
         }
-        console.log(`🚀 SAVAGE TECH: ${commands.size} Commands Loaded!`);
+        console.log(`🚀 SAVAGE TECH: ${commands.size} Commands Loaded Successfully!`);
     }
 
     // --- Connection & QR Handler ---
@@ -46,7 +46,7 @@ async function startSavage() {
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) {
-                console.log('🔄 Connection lost. Retrying...');
+                console.log('🔄 Connection lost. Retrying in 5 seconds...');
                 setTimeout(() => startSavage(), 5000);
             }
         } else if (connection === 'open') {
@@ -62,7 +62,7 @@ async function startSavage() {
         if (!m.message || m.key.fromMe) return;
 
         const text = m.message.conversation || m.message.extendedTextMessage?.text || "";
-        const prefix = '!';
+        const prefix = '!'; 
 
         if (!text.startsWith(prefix)) return;
 

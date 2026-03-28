@@ -39,7 +39,7 @@ async function startSavage() {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-            console.log('--- BECK, SCAN THIS QR CODE ---');
+            console.log('\n--- BECK, SCAN THIS QR CODE ---');
             qrcode.generate(qr, { small: true });
         }
 
@@ -56,7 +56,6 @@ async function startSavage() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // --- Message Handler ---
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const m = messages[0];
         if (!m.message || m.key.fromMe) return;

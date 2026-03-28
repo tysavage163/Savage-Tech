@@ -2,7 +2,5 @@
     "@whiskeysockets/baileys": "latest",
     "axios": "^1.6.0",
     "pino": "^8.0.0",
-    "qrcode-terminal": "^0.12.0",
-    "fs": "0.0.1-security",
-    "path": "^0.12.7"
+    "qrcode-terminal": "^0.12.0"
   }

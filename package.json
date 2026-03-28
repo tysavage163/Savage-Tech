@@ -1,6 +1,15 @@
-"dependencies": {
+{
+  "name": "savage-tech",
+  "version": "1.0.0",
+  "description": "WhatsApp Bot by Beck Spencer",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
     "@whiskeysockets/baileys": "latest",
     "axios": "^1.6.0",
     "pino": "^8.0.0",
     "qrcode-terminal": "^0.12.0"
   }
+}

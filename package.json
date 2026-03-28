@@ -1,15 +1,8 @@
-{
-  "name": "savage-tech",
-  "version": "1.0.0",
-  "description": "A high-performance WhatsApp bot featuring Cypher X encryption",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
+"dependencies": {
     "@whiskeysockets/baileys": "latest",
     "axios": "^1.6.0",
     "pino": "^8.0.0",
-    "qrcode-terminal": "^0.12.0"
+    "qrcode-terminal": "^0.12.0",
+    "fs": "0.0.1-security",
+    "path": "^0.12.7"
   }
-}

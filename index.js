@@ -64,3 +64,8 @@ async function startSavage() {
 }
 
 startSavage();
+// Keep-Alive Heartbeat for Codespaces
+    setInterval(() => {
+        console.log('💓 Heartbeat: Savage-Tech is still breathing...');
+        sock.sendPresenceUpdate('available'); // Tells WhatsApp you are online
+    }, 60000); // Runs every 60 seconds

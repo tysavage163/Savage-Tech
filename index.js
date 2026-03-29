@@ -9,9 +9,11 @@ const pino = require('pino');
 const qrcode = require('qrcode-terminal');
 
 async function startSavage() {
+    // 1. Setup Auth
     const { state, saveCreds } = await useMultiFileAuthState('session_auth');
     const { version } = await fetchLatestBaileysVersion();
     
+    // 2. Initialize Socket
     const sock = makeWASocket({
         version,
         auth: state,
@@ -19,13 +21,13 @@ async function startSavage() {
         printQRInTerminal: false
     });
 
-    // --- Fixed Command Loader ---
+    // 3. Fixed Command Loader
     const commands = new Map();
     const commandPath = './commands';
     
     if (fs.existsSync(commandPath)) {
         const files = fs.readdirSync(commandPath).filter(f => f.endsWith('.js'));
-        for (const file of files) { // Fixed: matches the 'files' variable above
+        for (const file of files) { 
             const command = require(`./commands/${file}`);
             if (command.name) {
                 commands.set(command.name, command);
@@ -34,12 +36,12 @@ async function startSavage() {
         console.log(`🚀 SAVAGE TECH: ${commands.size} Commands Loaded!`);
     }
 
-    // --- Connection & QR Handler ---
+    // 4. Connection & QR Handler
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
         if (qr) {
-            console.log('\n--- SCAN THE QR CODE BELOW ---');
+            console.log('\n--- SCAN THIS QR CODE WITH WHATSAPP ---');
             qrcode.generate(qr, { small: true });
         }
 
@@ -56,6 +58,7 @@ async function startSavage() {
 
     sock.ev.on('creds.update', saveCreds);
 
+    // 5. Message Handler
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const m = messages[0];
         if (!m.message || m.key.fromMe) return;

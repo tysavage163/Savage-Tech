@@ -1,19 +1,12 @@
-const { 
-    default: makeWASocket, 
-    useMultiFileAuthState, 
-    DisconnectReason,
-    fetchLatestBaileysVersion
-} = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const pino = require('pino');
 const qrcode = require('qrcode-terminal');
 
 async function startSavage() {
-    // 1. Setup Auth
     const { state, saveCreds } = await useMultiFileAuthState('session_auth');
     const { version } = await fetchLatestBaileysVersion();
     
-    // 2. Initialize Socket
     const sock = makeWASocket({
         version,
         auth: state,
@@ -21,7 +14,6 @@ async function startSavage() {
         printQRInTerminal: false
     });
 
-    // 3. Fixed Command Loader
     const commands = new Map();
     const commandPath = './commands';
     
@@ -36,46 +28,36 @@ async function startSavage() {
         console.log(`🚀 SAVAGE TECH: ${commands.size} Commands Loaded!`);
     }
 
-    // 4. Connection & QR Handler
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
-
         if (qr) {
-            console.log('\n--- SCAN THIS QR CODE WITH WHATSAPP ---');
+            console.log('\n--- SCAN THIS QR CODE ---');
             qrcode.generate(qr, { small: true });
         }
-
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) {
-                console.log('🔄 Connection lost. Retrying in 5 seconds...');
-                setTimeout(() => startSavage(), 5000);
-            }
+            if (shouldReconnect) setTimeout(() => startSavage(), 5000);
         } else if (connection === 'open') {
-            console.log('✅ SAVAGE-TECH IS LIVE! Connected to WhatsApp.');
+            console.log('✅ SAVAGE-TECH IS LIVE!');
         }
     });
 
     sock.ev.on('creds.update', saveCreds);
 
-    // 5. Message Handler
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const m = messages[0];
         if (!m.message || m.key.fromMe) return;
-
         const text = m.message.conversation || m.message.extendedTextMessage?.text || "";
-        const prefix = '!'; 
+        if (!text.startsWith('!')) return;
 
-        if (!text.startsWith(prefix)) return;
-
-        const args = text.slice(prefix.length).trim().split(/ +/);
+        const args = text.slice(1).trim().split(/ +/);
         const commandName = args.shift().toLowerCase();
 
         if (commands.has(commandName)) {
             try {
                 await commands.get(commandName).execute(sock, m, args);
             } catch (err) {
-                console.error("Command Error:", err);
+                console.error(err);
             }
         }
     });

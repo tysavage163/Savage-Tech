@@ -46,7 +46,7 @@ async function startSavage() {
 
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const m = messages[0];
-        if (!m.message || m.key.fromMe) return;
+        if (!m.message) return;
         const text = m.message.conversation || m.message.extendedTextMessage?.text || "";
         if (!text.startsWith('!')) return;
 

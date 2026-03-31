@@ -10,7 +10,7 @@ async function startSavage() {
     const sock = makeWASocket({
         version,
         auth: state,
-        logger: pino({ level: 'silent' }),
+        logger: require('pino')({ level: 'info' }),
         printQRInTerminal: false
     });
 

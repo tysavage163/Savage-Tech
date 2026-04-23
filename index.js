@@ -1,21 +1,18 @@
 const { 
     default: makeWASocket, 
     useMultiFileAuthState, 
-    delay, 
-    makeCacheableSignalKeyStore, 
     DisconnectReason,
-    fetchLatestBaileysVersion
+    fetchLatestBaileysVersion,
+    makeCacheableSignalKeyStore,
+    jidNormalizedUser
 } = require("@whiskeysockets/baileys");
 const pino = require("pino");
-const readline = require("readline");
 const fs = require("fs");
+const readline = require("readline");
 
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const question = (text) => new Promise((resolve) => rl.question(text, resolve));
-
-// --- CONFIGURATION ---
-const prefix = "!"; // Your default prefix
-const ownerNumber = "254XXXXXXXXX"; // Change to your number
+// --- GLOBAL CONFIGURATION ---
+let prefix = "!"; 
+let sudoNumbers = ["254XXXXXXXXX"]; // Add your number here
 
 async function startSavage() {
     const { state, saveCreds } = await useMultiFileAuthState('session');
@@ -27,68 +24,88 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
         },
-        printQRInTerminal: false, // 🛡️ NO QR CODE
+        printQRInTerminal: false, // 🛡️ NO QR - Perfect for Panels
         logger: pino({ level: "fatal" }),
-        browser: ["Ubuntu", "Chrome", "20.0.04"]
+        browser: ["Savage-Tech", "Chrome", "3.0.0"]
     });
 
-    // 🛰️ INTERACTIVE PHONE PAIRING
+    // 🛰️ UNIVERSAL PAIRING LOGIC
     if (!sock.authState.creds.registered) {
-        console.log("\n--- SAVAGE-TECH PANEL DEPLOYMENT ---");
-        const phoneNumber = await question('📞 Enter phone number (e.g. 254123456789): ');
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        const question = (text) => new Promise((resolve) => rl.question(text, resolve));
+        
+        console.log("\n📡 INITIALIZING UNIVERSAL DEPLOYMENT...");
+        const phoneNumber = await question('📞 Enter Phone Number (e.g. 254123456789): ');
         const cleanedNumber = phoneNumber.replace(/[^0-9]/g, '');
+        rl.close(); 
 
         setTimeout(async () => {
             try {
                 let code = await sock.requestPairingCode(cleanedNumber);
                 code = code?.match(/.{1,4}/g)?.join("-") || code;
-                console.log(`\n🚀 YOUR PAIRING CODE: ${code}\n`);
+                console.log(`\n✅ YOUR PAIRING CODE: ${code}\n`);
             } catch (err) {
                 console.error("Pairing Error:", err);
             }
         }, 3000);
     }
 
-    // 💾 SAVE CREDS
     sock.ev.on('creds.update', saveCreds);
 
-    // ✉️ MESSAGE HANDLER (Commands Logic)
-    sock.ev.on('messages.upsert', async (chatUpdate) => {
+    // ✉️ MESSAGE HANDLER (Supports !addsudo, !setprefix, etc.)
+    sock.ev.on('messages.upsert', async (m) => {
+        const mek = m.messages[0];
+        if (!mek.message || mek.key.fromMe) return;
+
+        const sender = jidNormalizedUser(mek.key.remoteJid);
+        const body = (mek.message.conversation || mek.message.extendedTextMessage?.text || "").trim();
+        
+        if (!body.startsWith(prefix)) return;
+
+        const args = body.slice(prefix.length).trim().split(/ +/);
+        const commandName = args.shift().toLowerCase();
+        const isSudo = sudoNumbers.includes(sender.split('@')[0]);
+
+        // --- COMMAND EXECUTION LOGIC ---
         try {
-            const mek = chatUpdate.messages[0];
-            if (!mek.message) return;
-            const content = JSON.stringify(mek.message);
-            const type = Object.keys(mek.message)[0];
-            const body = (type === 'conversation') ? mek.message.conversation : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : '';
+            // 1. Check commands folder
+            const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+            for (const file of commandFiles) {
+                const cmd = require(`./commands/${file}`);
+                if (cmd.name === commandName) {
+                    // Check if command is Sudo-only
+                    if (cmd.isSudo && !isSudo) {
+                        return sock.sendMessage(sender, { text: "❌ This command is for Sudoers only." });
+                    }
+                    return cmd.execute(sock, mek, args, { prefix, sudoNumbers });
+                }
+            }
+
+            // 2. Built-in Core Commands (Fallbacks)
+            if (commandName === 'setprefix' && isSudo) {
+                prefix = args[0] || prefix;
+                await sock.sendMessage(sender, { text: `✅ Prefix updated to: ${prefix}` });
+            }
             
-            const isCmd = body.startsWith(prefix);
-            const command = isCmd ? body.slice(prefix.length).trim().split(' ').shift().toLowerCase() : '';
-
-            // Example Command: !update
-            if (command === 'update') {
-                await sock.sendMessage(mek.key.remoteJid, { text: 'Checking for Savage-Tech updates...' });
-                // Add your git pull logic here
+            if (commandName === 'addsudo' && isSudo) {
+                const newSudo = args[0]?.replace(/[^0-9]/g, '');
+                if (newSudo) {
+                    sudoNumbers.push(newSudo);
+                    await sock.sendMessage(sender, { text: `✅ ${newSudo} added to Sudo list.` });
+                }
             }
 
-            // Example Command: !setprefix
-            if (command === 'setprefix') {
-                const newPrefix = body.slice(prefix.length + 10);
-                await sock.sendMessage(mek.key.remoteJid, { text: `Prefix changed to: ${newPrefix}` });
-            }
-
-        } catch (err) {
-            console.log(err);
+        } catch (e) {
+            console.error("Execution Error:", e);
         }
     });
 
-    // 🔄 CONNECTION UPDATES
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) startSavage();
+            if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) startSavage();
         } else if (connection === 'open') {
-            console.log('✅ Savage-Tech is Online!');
+            console.log('🚀 SAVAGE-TECH IS ONLINE AND READY.');
         }
     });
 }

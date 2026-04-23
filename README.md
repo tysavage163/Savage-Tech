@@ -48,3 +48,14 @@ Initialize your connection to the ecosystem.
 * `index.js` - The Core Engine
 * `package.json` - Dependency Manifest
 * `commands/` - Modular Command Logic
+---
+
+<p align="center">
+  <b>SAVAGE-TECH V1</b> <br>
+  <i>Created by <b>Spencer</b> with undivided attention.</i>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/STRATEGIC-INDEPENDENCE-black?style=flat-square" />
+  <img src="https://img.shields.io/badge/ZERO-FOOTPRINT-black?style=flat-square" />
+</p>

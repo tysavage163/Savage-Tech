@@ -77,7 +77,8 @@ async function startSavage() {
     // --- MESSAGE HANDLER ---
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages[0];
-        if (!msg.message || msg.key.fromMe) return;
+        if (!msg.message) return;
+
 
         const from = msg.key.remoteJid;
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();

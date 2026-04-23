@@ -51,35 +51,48 @@ async function startSavage() {
         }
     });
 
-    // --- AUTOMATIC COMMAND LOADER ---
+    // --- COMMAND LOADER ---
+    const commands = new Map();
+    const loadCommands = () => {
+        const commandsPath = path.join(__dirname, 'commands');
+        if (fs.existsSync(commandsPath)) {
+            const files = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
+            for (const file of files) {
+                try {
+                    const command = require(path.join(commandsPath, file));
+                    if (command.name) {
+                        commands.set(command.name, command);
+                        console.log(`✅ Loaded command: ${command.name}`);
+                    }
+                } catch (e) {
+                    console.log(`❌ Failed to load ${file}:`, e.message);
+                }
+            }
+        }
+        console.log(`📊 Total Commands Loaded: ${commands.size}`);
+    };
+
+    loadCommands();
+
+    // --- MESSAGE HANDLER ---
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages[0];
         if (!msg.message || msg.key.fromMe) return;
 
         const from = msg.key.remoteJid;
-        const text = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
+        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         const prefix = ".";
 
         if (text.startsWith(prefix)) {
             const args = text.slice(prefix.length).trim().split(/\s+/);
             const commandName = args.shift().toLowerCase();
 
-            // Pointing to your 'commands' folder
-            const commandsPath = path.join(__dirname, 'commands'); 
-            
-            if (fs.existsSync(commandsPath)) {
-                const files = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
-                for (const file of files) {
-                    const command = require(path.join(commandsPath, file));
-                    // Check if the command name matches what the user typed
-                    if (command.name === commandName) {
-                        try {
-                            await command.execute(sock, msg, args);
-                        } catch (e) {
-                            console.error(`Error in ${commandName}:`, e);
-                        }
-                        return;
-                    }
+            const command = commands.get(commandName);
+            if (command) {
+                try {
+                    await command.execute(sock, msg, args);
+                } catch (e) {
+                    console.error(`Error in ${commandName}:`, e);
                 }
             }
         }

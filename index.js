@@ -1,101 +1,101 @@
-const {
-    default: makeWASocket,
-    useMultiFileAuthState,
-    DisconnectReason,
-    fetchLatestBaileysVersion,
-    makeCacheableSignalKeyStore
+const { 
+    default: makeWASocket, 
+    useMultiFileAuthState, 
+    DisconnectReason, 
+    fetchLatestBaileysVersion 
 } = require("@whiskeysockets/baileys");
-const pino = require("pino");
-const { Boom } = require("@hapi/boom");
-const readline = require("readline");
 const fs = require('fs');
-const path = require('path');
+const P = require('pino');
 
-const question = (text) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    return new Promise((resolve) => rl.question(text, (answer) => { rl.close(); resolve(answer); }));
-};
+// 1. GLOBAL SYSTEM SETTINGS
+global.prefix = ".";            // Default prefix (Changeable via .setprefix)
+global.isPublic = true;         // Default mode (Toggleable via .mode)
+global.warnDatabase = {};       // Memory storage for group warnings
+const supremeDeveloper = '254798841125@s.whatsapp.net'; // Beck Spencer
 
 async function startSavage() {
-    const { state, saveCreds } = await useMultiFileAuthState('session');
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
         version,
-        auth: {
-            creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
-        },
-        printQRInTerminal: false,
-        logger: pino({ level: "fatal" }),
-        browser: ["Ubuntu", "Chrome", "20.0.04"],
+        logger: P({ level: 'silent' }),
+        printQRInTerminal: true,
+        auth: state,
+        browser: ["Savage-Tech", "Chrome", "3.0.0"],
+        syncFullHistory: false
     });
 
-    // --- PAIRING LOGIC ---
-    if (!sock.authState.creds.registered) {
-        console.log("🚀 SAVAGE-TECH: STARTING PAIRING MODE");
-        const phoneNumber = await question('Enter your number (e.g. 254798841125):\n> ');
-        const code = await sock.requestPairingCode(phoneNumber.trim());
-        console.log(`\n🔥 YOUR PAIRING CODE: ${code}\n`);
-    }
+    sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on("creds.update", saveCreds);
-
-    sock.ev.on("connection.update", (update) => {
+    // --- 📡 CONNECTION MONITOR ---
+    sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
-        if (connection === "close") {
-            const shouldReconnect = (new Boom(lastDisconnect?.error)?.output.statusCode !== DisconnectReason.loggedOut);
-            if (shouldReconnect) startSavage();
-        } else if (connection === "open") {
-            console.log("✅ SAVAGE-TECH IS LIVE!");
+        if (connection === 'close') {
+            const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            if (shouldReconnect) {
+                console.log('🔄 CONNECTION LOST: REBOOTING INTERFACE...');
+                startSavage();
+            }
+        } else if (connection === 'open') {
+            console.log('┎──────────────────────────╼');
+            console.log('┃ ✅ SAVAGE-TECH ONLINE');
+            console.log(`┃ 🛰️  PREFIX: ${global.prefix}`);
+            console.log('┖──────────────────────────╼');
         }
     });
 
-    // --- COMMAND LOADER ---
-    const commands = new Map();
-    const loadCommands = () => {
-        const commandsPath = path.join(__dirname, 'commands');
-        if (fs.existsSync(commandsPath)) {
-            const files = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
-            for (const file of files) {
-                try {
-                    const command = require(path.join(commandsPath, file));
-                    if (command.name) {
-                        commands.set(command.name, command);
-                        console.log(`✅ Loaded command: ${command.name}`);
-                    }
-                } catch (e) {
-                    console.log(`❌ Failed to load ${file}:`, e.message);
-                }
+    // --- 📥 MESSAGE PROCESSING ENGINE ---
+    sock.ev.on('messages.upsert', async (chatUpdate) => {
+        try {
+            const msg = chatUpdate.messages[0];
+            if (!msg.message) return; // Process everything, including self-sent messages
+
+            const from = msg.key.remoteJid;
+            const body = (
+                msg.message.conversation || 
+                msg.message.extendedTextMessage?.text || 
+                msg.message.imageMessage?.caption || 
+                msg.message.videoMessage?.caption || 
+                ""
+            ).trim();
+
+            // 🛠️ DYNAMIC PREFIX CHECK
+            const isCmd = body.startsWith(global.prefix);
+            if (!isCmd) return;
+
+            // PARSE COMMAND & ARGS
+            const command = body.slice(global.prefix.length).trim().split(/ +/).shift().toLowerCase();
+            const args = body.trim().split(/ +/).slice(1);
+
+            // 🆔 IDENTITY DETECTION
+            const sender = msg.key.participant || msg.key.remoteJid;
+            const localOwner = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+            
+            // AUTHORIZATION CHECK (The "Boss" Logic)
+            // msg.key.fromMe allows you to use it on the paired phone
+            const isBoss = (sender === supremeDeveloper || sender === localOwner || msg.key.fromMe);
+
+            // 🛡️ THE CYPHER X FIREWALL
+            if (!global.isPublic && !isBoss) {
+                return; // Silent block for unauthorized users when in Private mode
             }
-        }
-        console.log(`📊 Total Commands Loaded: ${commands.size}`);
-    };
 
-    loadCommands();
-
-    // --- MESSAGE HANDLER ---
-    sock.ev.on("messages.upsert", async (m) => {
-        const msg = m.messages[0];
-        if (!msg.message) return;
-
-
-        const from = msg.key.remoteJid;
-        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
-        const prefix = ".";
-
-        if (text.startsWith(prefix)) {
-            const args = text.slice(prefix.length).trim().split(/\s+/);
-            const commandName = args.shift().toLowerCase();
-
-            const command = commands.get(commandName);
-            if (command) {
-                try {
-                    await command.execute(sock, msg, args);
-                } catch (e) {
-                    console.error(`Error in ${commandName}:`, e);
-                }
+            // 🚀 COMMAND EXECUTION HANDLER
+            const path = `./commands/${command}.js`;
+            if (fs.existsSync(path)) {
+                // Delete cache to allow instant updates without restarting (for development)
+                delete require.cache[require.resolve(path)];
+                const cmdFile = require(path);
+                
+                // Execute the command file
+                await cmdFile.execute(sock, msg, args);
             }
+
+        } catch (err) {
+            console.error("┎───────── RUNTIME ERROR ────────╼");
+            console.error(err);
+            console.error("┖────────────────────────────────╼");
         }
     });
 }

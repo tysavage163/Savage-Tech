@@ -1,49 +1,36 @@
 module.exports = {
     name: 'alive',
-    async execute(sock, m, args) {
-        // SAVAGE AURA QUOTES - Handpicked for Undivided Attention
-        const savageQuotes = [
-            "“I don’t compete for a spot. I am the spot.”",
-            "“Move in silence. Only speak when it’s time to say Checkmate.”",
-            "“They whispered to her, 'You cannot withstand the storm.' She whispered back, 'I am the storm.'”",
-            "“Don’t mistake my silence for weakness. No one plans a murder out loud.”",
-            "“Be a shark. Sharks never stop moving, even when they sleep.”",
-            "“If you want to reach the top, you have to be okay with being misunderstood by those at the bottom.”",
-            "“I’m not heartless. I’ve just learned to use my heart less.”",
-            "“History is written by the victors. I’m currently holding the pen.”",
-            "“ Lions don't lose sleep over the opinion of sheep.”",
-            "“Obsession is what the lazy call dedication.”"
+    async execute(sock, msg, args) {
+        const from = msg.key.remoteJid;
+        
+        // Cold Savage Quotes
+        const quotes = [
+            "Be a wolf. The sheep are boring.",
+            "Silence is the best response to a fool.",
+            "I don't have a backup plan, because I'm not going to fail.",
+            "History is written by the victors. I'm busy writing.",
+            "Don't study me. You won't graduate.",
+            "My circle is small because I'm into quality, not quantity.",
+            "I'm not heartless, I just learned how to use my heart less.",
+            "Stay low, stay quiet, keep 'em guessing.",
+            "Success is the loudest noise I make.",
+            "Winners focus on winning. Losers focus on winners."
         ];
 
-        // Logic to pick a quote and get current time
-        const quote = savageQuotes[Math.floor(Math.random() * savageQuotes.length)];
-        const time = new Date().toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' });
-        const date = new Date().toLocaleDateString();
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
-        // High-End Flashy Formatting
-        const statusHeader = `┏━━━〔 *SAVAGE-TECH V1* 〕━━━┓\n┃ ⚡ *SYSTEM STATUS:* ONLINE\n┗━━━━━━━━━━━━━━━━━━━━┛`;
-        
-        const mainBody = `\n🔥 *AURA CHECK:* \n_${quote}_\n\n` +
-                         `👤 *COMMANDER:* Beck Spencer\n` +
-                         `📅 *DATE:* ${date}\n` +
-                         `🕒 *TIME:* ${time}\n` +
-                         `🛰️ *NETWORK:* Stable\n` +
-                         `🛠️ *PREFIX:* !\n\n` +
-                         `> *“The world is yours, if you’re savage enough to take it.”*`;
+        const statusText = `
+*SAVAGE-TECH V1 IS LIVE* ⚡
 
-        await sock.sendMessage(m.key.remoteJid, { 
-            text: statusHeader + mainBody,
-            contextInfo: {
-                externalAdReply: {
-                    title: "SAVAGE-TECH : UNDIVIDED ATTENTION",
-                    body: "Version 1.0.5 | Secure Connection",
-                    // You can put a high-res image link here
-                    thumbnailUrl: "https://i.ibb.co/vz6mD8p/savage.jpg", 
-                    sourceUrl: "https://github.com/Savage-Tech",
-                    mediaType: 1,
-                    renderLargerThumbnail: true
-                }
-            }
-        }, { quoted: m });
+"${randomQuote}"
+
+*Speed:* 0.001ms
+*Status:* Online
+*Host:* Termux (Android)`;
+
+        await sock.sendMessage(from, { 
+            image: { url: 'https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/e91b4f95-67b1-4819-b737-b033df5d7e3b.jpg' }, 
+            caption: statusText 
+        }, { quoted: msg });
     }
 };

@@ -3,18 +3,14 @@ const {
     useMultiFileAuthState, 
     DisconnectReason, 
     makeCacheableSignalKeyStore,
-    jidNormalizedUser
+    jidNormalizedUser,
+    makeInMemoryStore // Universal import
 } = require("@whiskeysockets/baileys");
-
-// Versatile import for makeInMemoryStore to prevent TypeErrors
-const Baileys = require("@whiskeysockets/baileys");
-const makeInMemoryStore = Baileys.makeInMemoryStore || require("@whiskeysockets/baileys/lib/Store").makeInMemoryStore;
-
 const pino = require("pino");
 const readline = require("readline");
 const fs = require("fs");
 
-// --- CORE ENGINE SETTINGS ---
+// --- ENGINE START ---
 const store = makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) });
 let prefix = "!"; 
 
@@ -38,10 +34,9 @@ async function startSavage() {
         }
     });
 
-    // Binds the store to the socket to enable Antidelete tracking
     store.bind(sock.ev);
 
-    // 📡 PAIRING CODE INTERFACE
+    // 📡 PAIRING LOGIC
     if (!sock.authState.creds.registered) {
         const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
         const phoneNumber = await new Promise(resolve => rl.question('\n📞 Enter Phone Number: ', resolve));
@@ -52,7 +47,7 @@ async function startSavage() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // ✉️ MESSAGE & COMMAND HANDLER (Handles warn, setprefix, etc.)
+    // ✉️ COMMAND HANDLER (Antidelete, Warn, Setprefix, etc.)
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         const mek = chatUpdate.messages[0];
         if (!mek.message || mek.key.fromMe) return;
@@ -66,7 +61,6 @@ async function startSavage() {
             const isOwner = sender.includes(sock.authState.creds.me.id.split(':')[0]);
 
             try {
-                // Scans the 'commands' folder for .js files
                 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
                 for (const file of commandFiles) {
                     const cmd = require(`./commands/${file}`);
@@ -74,33 +68,31 @@ async function startSavage() {
                         return cmd.execute(sock, mek, args, { prefix, isOwner });
                     }
                 }
-            } catch (e) { console.error("Command execution error:", e); }
+            } catch (e) { console.error(e); }
         }
     });
 
-    // 🗑️ ANTIDELETE MODULE
+    // 🗑️ ANTIDELETE ENGINE
     sock.ev.on('messages.delete', async (item) => {
         try {
             const key = item.keys[0];
             const cachedMsg = await store.loadMessage(key.remoteJid, key.id);
             if (!cachedMsg) return;
 
-            const content = cachedMsg.message.conversation || cachedMsg.message.extendedTextMessage?.text || "Media Message";
+            const content = cachedMsg.message.conversation || cachedMsg.message.extendedTextMessage?.text || "Media/System Message";
             const sender = jidNormalizedUser(key.participant || key.remoteJid);
 
             await sock.sendMessage(key.remoteJid, { 
-                text: `🗑️ *ANTIDELETE*\n\n👤 *User:* @${sender.split('@')[0]}\n💬 *Msg:* ${content}`,
+                text: `🗑️ *ANTIDELETE*\n\n👤 *From:* @${sender.split('@')[0]}\n💬 *Message:* ${content}`,
                 mentions: [sender]
             });
-        } catch (e) { console.log("Antidelete error:", e); }
+        } catch (e) { console.log(e); }
     });
 
-    // 🔄 CONNECTION UPDATES
     sock.ev.on('connection.update', (up) => {
         const { connection, lastDisconnect } = up;
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) startSavage();
+            if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) startSavage();
         } else if (connection === 'open') {
             console.log('✅ SAVAGE-TECH IS FULLY ONLINE');
         }

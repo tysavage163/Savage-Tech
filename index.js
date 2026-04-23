@@ -3,14 +3,20 @@ const {
     useMultiFileAuthState, 
     DisconnectReason, 
     makeCacheableSignalKeyStore,
-    jidNormalizedUser,
-    makeInMemoryStore // Core import
+    jidNormalizedUser
 } = require("@whiskeysockets/baileys");
+
+// --- STABLE IMPORT LOGIC ---
+const Baileys = require("@whiskeysockets/baileys");
+const makeInMemoryStore = Baileys.makeInMemoryStore || 
+                         (Baileys.default && Baileys.default.makeInMemoryStore) || 
+                         require("@whiskeysockets/baileys/lib/Store").makeInMemoryStore;
+
 const pino = require("pino");
 const readline = require("readline");
 const fs = require("fs");
 
-// Initialize Memory for Antidelete
+// Initialize Memory Store for Antidelete
 const store = makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) });
 let prefix = "!"; 
 
@@ -22,7 +28,7 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
         },
-        printQRInTerminal: false, // Set to true if you prefer scanning a QR
+        printQRInTerminal: false,
         logger: pino({ level: "fatal" }),
         browser: ["Ubuntu", "Chrome", "20.0.04"],
         getMessage: async (key) => {
@@ -36,7 +42,7 @@ async function startSavage() {
 
     store.bind(sock.ev);
 
-    // PAIRING LOGIC
+    // 📡 PAIRING LOGIC
     if (!sock.authState.creds.registered) {
         const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
         const phoneNumber = await new Promise(resolve => rl.question('\n📞 Enter Phone Number: ', resolve));
@@ -47,7 +53,7 @@ async function startSavage() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // COMMAND HANDLER
+    // ✉️ COMMAND HANDLER (Supports !warn, !setprefix, etc.)
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         const mek = chatUpdate.messages[0];
         if (!mek.message || mek.key.fromMe) return;
@@ -61,6 +67,7 @@ async function startSavage() {
             const isOwner = sender.includes(sock.authState.creds.me.id.split(':')[0]);
 
             try {
+                if (!fs.existsSync('./commands')) fs.mkdirSync('./commands');
                 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
                 for (const file of commandFiles) {
                     const cmd = require(`./commands/${file}`);
@@ -72,18 +79,18 @@ async function startSavage() {
         }
     });
 
-    // ANTIDELETE HANDLER
+    // 🗑️ ANTIDELETE ENGINE
     sock.ev.on('messages.delete', async (item) => {
         try {
             const key = item.keys[0];
             const cachedMsg = await store.loadMessage(key.remoteJid, key.id);
             if (!cachedMsg) return;
 
-            const content = cachedMsg.message.conversation || cachedMsg.message.extendedTextMessage?.text || "Media/System Message";
+            const content = cachedMsg.message.conversation || cachedMsg.message.extendedTextMessage?.text || "Media Message";
             const sender = jidNormalizedUser(key.participant || key.remoteJid);
 
             await sock.sendMessage(key.remoteJid, { 
-                text: `🗑️ *ANTIDELETE*\n\n👤 *From:* @${sender.split('@')[0]}\n💬 *Msg:* ${content}`,
+                text: `🗑️ *ANTIDELETE*\n\n👤 *User:* @${sender.split('@')[0]}\n💬 *Msg:* ${content}`,
                 mentions: [sender]
             });
         } catch (e) { console.log("Antidelete Error:", e); }

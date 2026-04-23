@@ -2,35 +2,51 @@ module.exports = {
     name: 'kick',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        
-        // Ensure it's a group
         if (!from.endsWith('@g.us')) return;
 
-        // Get tagged users
+        const metadata = await sock.groupMetadata(from);
+        const participants = metadata.participants;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const ownerNumber = '254798841125@s.whatsapp.net';
+
+        // 1. Permission Check: Is the sender an Admin or the Owner?
+        const isSenderAdmin = participants.find(p => p.id === sender)?.admin !== null;
+        const isOwner = sender === ownerNumber;
+        if (!isSenderAdmin && !isOwner) {
+            return sock.sendMessage(from, { text: "❌ *Access Denied.* You lack the clearance to initiate an execution." });
+        }
+
+        // Target Logic (Tag or Reply)
+        const quotedMessage = msg.message.extendedTextMessage?.contextInfo?.participant;
         const mentioned = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
-        if (mentioned.length === 0) return sock.sendMessage(from, { text: 'Tag the victim.' });
+        const targets = mentioned.length > 0 ? mentioned : (quotedMessage ? [quotedMessage] : []);
 
-        // Cold Departure Quotes
-        const coldLines = [
-            "Access revoked. You weren't worth the bandwidth.",
-            "The trash has been taken out. 🚮",
-            "This isn't a charity. Goodbye.",
-            "You were a guest, now you're a memory.",
-            "Error 404: Your relevance not found. 👋",
-            "Survival of the fittest. You didn't make the cut.",
-            "Don't look back. You aren't going that way.",
-            "One less distraction. Proceeding with quality.",
-            "Door's closed. Keep walking.",
-            "Target eliminated. Cleaning the chat... 🧼"
+        if (targets.length === 0) return sock.sendMessage(from, { text: 'Tag the victim or reply to their message.' });
+
+        // 2. ULTIMATE PROTECTION: No one kicks Spencer
+        if (targets.includes(ownerNumber)) {
+            return sock.sendMessage(from, { text: "⚠️ *System Alert:* Critical error. You cannot terminate the Architect." });
+        }
+
+        // 🛰️ SAVAGE QUOTES
+        const kickQuotes = [
+            "Target eliminated. Perfection requires pruning.",
+            "You were a glitch in the system. Deleted.",
+            "The hierarchy has no room for the weak.",
+            "Execution successful. Don't look back.",
+            "Spencer's bot doesn't tolerate noise. Goodbye.",
+            "Connection severed. Your presence was an error.",
+            "Access revoked permanently. The system is clean now."
         ];
-
-        const savageLine = coldLines[Math.floor(Math.random() * coldLines.length)];
+        const quote = kickQuotes[Math.floor(Math.random() * kickQuotes.length)];
 
         try {
-            await sock.groupParticipantsUpdate(from, mentioned, "remove");
-            await sock.sendMessage(from, { text: `*SYSTEM UPDATE:* \n\n"${savageLine}"` });
+            await sock.groupParticipantsUpdate(from, targets, "remove");
+            await sock.sendMessage(from, { 
+                text: `👤 *ELIMINATION COMPLETE*\n\n"${quote}"` 
+            });
         } catch (e) {
-            await sock.sendMessage(from, { text: "Error: I need Admin powers to do that." });
+            await sock.sendMessage(from, { text: "Action failed. I likely lack Admin rights to execute this command." });
         }
     }
 };

@@ -1,23 +1,36 @@
 module.exports = {
     name: 'promote',
-    description: 'Promote a member to admin',
-    async execute(sock, m) {
-        // Check if the bot is admin first
-        const groupMetadata = await sock.groupMetadata(m.key.remoteJid);
-        const participants = groupMetadata.participants;
-        const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-        const isBotAdmin = participants.find(p => p.id === botId)?.admin;
+    async execute(sock, msg, args) {
+        const from = msg.key.remoteJid;
+        
+        // Ensure it's a group
+        if (!from.endsWith('@g.us')) return;
 
-        if (!isBotAdmin) return sock.sendMessage(m.key.remoteJid, { text: '❌ I need Admin powers to promote others!' });
+        // Get tagged users
+        const mentioned = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
+        if (mentioned.length === 0) return sock.sendMessage(from, { text: 'Tag the individual worthy of power.' });
 
-        // Get the person to promote (tagged or replied to)
-        const user = m.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0] || 
-                     m.message.extendedTextMessage?.contextInfo?.participant;
+        // Cold Elite Quotes
+        const eliteLines = [
+            "Welcome to the inner circle. Don't make me regret it.",
+            "Power handed over. Handle it with precision.",
+            "You've been elevated. Don't look down.",
+            "The hierarchy has shifted. Use your new rank wisely.",
+            "Welcome to the elite. Few make it this far.",
+            "Rank updated. You now have a seat at the table.",
+            "Promotion granted. Loyalty is expected, not requested.",
+            "Access levels increased. Welcome to the top.",
+            "The crown is heavy. Let's see if you can carry it.",
+            "Authority assigned. Make it count."
+        ];
 
-        if (!user) return sock.sendMessage(m.key.remoteJid, { text: 'Tag the person you want to promote, Beck.' });
+        const savageLine = eliteLines[Math.floor(Math.random() * eliteLines.length)];
 
-        // Execute promotion
-        await sock.groupParticipantsUpdate(m.key.remoteJid, [user], "promote");
-        await sock.sendMessage(m.key.remoteJid, { text: 'User has been promoted to Admin. 👑' });
+        try {
+            await sock.groupParticipantsUpdate(from, mentioned, "promote");
+            await sock.sendMessage(from, { text: `*AUTHORITY UPDATE:* \n\n"${savageLine}"` });
+        } catch (e) {
+            await sock.sendMessage(from, { text: "Error: I require Admin status to grant power." });
+        }
     }
 };

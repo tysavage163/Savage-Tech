@@ -2,35 +2,46 @@ module.exports = {
     name: 'promote',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        
-        // Ensure it's a group
         if (!from.endsWith('@g.us')) return;
 
-        // Get tagged users
+        const metadata = await sock.groupMetadata(from);
+        const participants = metadata.participants;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const ownerNumber = '254798841125@s.whatsapp.net';
+
+        // 1. Permission Check: Is the sender an Admin or the Owner?
+        const isSenderAdmin = participants.find(p => p.id === sender)?.admin !== null;
+        const isOwner = sender === ownerNumber;
+        if (!isSenderAdmin && !isOwner) {
+            return sock.sendMessage(from, { text: "❌ *Access Denied.* You don't have the clearance to distribute power." });
+        }
+
+        // Target Logic (Tag or Reply)
+        const quotedMessage = msg.message.extendedTextMessage?.contextInfo?.participant;
         const mentioned = msg.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
-        if (mentioned.length === 0) return sock.sendMessage(from, { text: 'Tag the individual worthy of power.' });
+        const targets = mentioned.length > 0 ? mentioned : (quotedMessage ? [quotedMessage] : []);
 
-        // Cold Elite Quotes
-        const eliteLines = [
-            "Welcome to the inner circle. Don't make me regret it.",
-            "Power handed over. Handle it with precision.",
-            "You've been elevated. Don't look down.",
-            "The hierarchy has shifted. Use your new rank wisely.",
-            "Welcome to the elite. Few make it this far.",
-            "Rank updated. You now have a seat at the table.",
-            "Promotion granted. Loyalty is expected, not requested.",
-            "Access levels increased. Welcome to the top.",
-            "The crown is heavy. Let's see if you can carry it.",
-            "Authority assigned. Make it count."
+        if (targets.length === 0) return sock.sendMessage(from, { text: 'Tag the individual or reply to their message to grant authority.' });
+
+        // 🛰️ PROMOTION QUOTES (Sci-Fi X Style)
+        const promoteQuotes = [
+            "Welcome to the inner circle. Spencer is watching.",
+            "Power granted. Use it with Spencer's precision.",
+            "Elevation complete. You've been upgraded to Admin status.",
+            "New authority recognized. Don't disappoint the Architect.",
+            "You now hold the keys. Perfection is the only standard.",
+            "System access expanded. Rank: Administrator.",
+            "The hierarchy has been recalibrated. Lead with cold logic."
         ];
-
-        const savageLine = eliteLines[Math.floor(Math.random() * eliteLines.length)];
+        const quote = promoteQuotes[Math.floor(Math.random() * promoteQuotes.length)];
 
         try {
-            await sock.groupParticipantsUpdate(from, mentioned, "promote");
-            await sock.sendMessage(from, { text: `*AUTHORITY UPDATE:* \n\n"${savageLine}"` });
+            await sock.groupParticipantsUpdate(from, targets, "promote");
+            await sock.sendMessage(from, { 
+                text: `✨ *AUTHORITY GRANTED*\n\n"${quote}"` 
+            });
         } catch (e) {
-            await sock.sendMessage(from, { text: "Error: I require Admin status to grant power." });
+            await sock.sendMessage(from, { text: "Promotion failed. Ensure I have the required Admin privileges." });
         }
     }
 };

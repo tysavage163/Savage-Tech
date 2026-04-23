@@ -1,24 +1,31 @@
 module.exports = {
-    name: 'kick',
-    description: 'Remove a member from the group',
-    async execute(sock, m) {
-        // Get the group info
-        const metadata = await sock.groupMetadata(m.key.remoteJid);
-        const participants = metadata.participants;
+    name: 'admin',
+    async execute(sock, msg, args) {
+        const from = msg.key.remoteJid;
         
-        // Check if the Bot is an Admin
-        const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-        const botAdmin = participants.find(p => p.id === botId)?.admin;
-        if (!botAdmin) return sock.sendMessage(m.key.remoteJid, { text: '❌ I need Admin powers to kick people!' });
+        // Cold quote for the power-hungry
+        const savageLine = "Authority isn't given, it's taken. Here are your weapons.";
 
-        // Get the person to kick (either by tagging them or replying to their message)
-        const victim = m.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0] || 
-                       m.message.extendedTextMessage?.contextInfo?.participant;
+        const text = `
+*───「 SAVAGE-ADMIN 」───*
+"${savageLine}"
 
-        if (!victim) return sock.sendMessage(m.key.remoteJid, { text: 'Tag the person you want to remove, Beck.' });
+*⚔️ POWER TOOLS:*
+• .kick
+• .promote
+• .demote
+• .hidetag
+• .tagall
+• .setgdesc
+• .block
+• .unblock
+• .cls (Clear Session)
 
-        // The "Savage" Kick
-        await sock.groupParticipantsUpdate(m.key.remoteJid, [victim], "remove");
-        await sock.sendMessage(m.key.remoteJid, { text: 'Target eliminated. 🚮' });
+_Use with precision. Power is a double-edged sword._`;
+
+        await sock.sendMessage(from, { 
+            image: { url: 'https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/e91b4f95-67b1-4819-b737-b033df5d7e3b.jpg' }, 
+            caption: text 
+        }, { quoted: msg });
     }
 };

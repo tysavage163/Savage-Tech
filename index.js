@@ -1,128 +1,94 @@
 const { 
     default: makeWASocket, 
     useMultiFileAuthState, 
-    DisconnectReason, 
-    fetchLatestBaileysVersion,
-    proto 
+    delay, 
+    makeCacheableSignalKeyStore, 
+    DisconnectReason,
+    fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys");
-const fs = require('fs');
-const P = require('pino');
+const pino = require("pino");
+const readline = require("readline");
+const fs = require("fs");
 
-// 1. GLOBAL SYSTEM SETTINGS
-global.prefix = ".";            // ALWAYS starts as "." on every reboot
-global.isPublic = true;         
-global.antiDelete = "chat";     // Options: 'chat', 'private', 'off'
-global.warnDatabase = {};       
-global.msgStore = {};           
-const supremeDeveloper = '254798841125@s.whatsapp.net'; // Spencer
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+const question = (text) => new Promise((resolve) => rl.question(text, resolve));
+
+// --- CONFIGURATION ---
+const prefix = "!"; // Your default prefix
+const ownerNumber = "254XXXXXXXXX"; // Change to your number
 
 async function startSavage() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+    const { state, saveCreds } = await useMultiFileAuthState('session');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
         version,
-        logger: P({ level: 'silent' }),
-        printQRInTerminal: true,
-        auth: state,
-        browser: ["Savage-Tech", "Chrome", "3.0.0"],
-        syncFullHistory: false
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
+        },
+        printQRInTerminal: false, // 🛡️ NO QR CODE
+        logger: pino({ level: "fatal" }),
+        browser: ["Ubuntu", "Chrome", "20.0.04"]
     });
 
+    // 🛰️ INTERACTIVE PHONE PAIRING
+    if (!sock.authState.creds.registered) {
+        console.log("\n--- SAVAGE-TECH PANEL DEPLOYMENT ---");
+        const phoneNumber = await question('📞 Enter phone number (e.g. 254123456789): ');
+        const cleanedNumber = phoneNumber.replace(/[^0-9]/g, '');
+
+        setTimeout(async () => {
+            try {
+                let code = await sock.requestPairingCode(cleanedNumber);
+                code = code?.match(/.{1,4}/g)?.join("-") || code;
+                console.log(`\n🚀 YOUR PAIRING CODE: ${code}\n`);
+            } catch (err) {
+                console.error("Pairing Error:", err);
+            }
+        }, 3000);
+    }
+
+    // 💾 SAVE CREDS
     sock.ev.on('creds.update', saveCreds);
 
-    // --- 📡 CONNECTION MONITOR ---
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
-        if (connection === 'close') {
-            const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) {
-                console.log('🔄 CONNECTION LOST: REBOOTING...');
-                startSavage();
+    // ✉️ MESSAGE HANDLER (Commands Logic)
+    sock.ev.on('messages.upsert', async (chatUpdate) => {
+        try {
+            const mek = chatUpdate.messages[0];
+            if (!mek.message) return;
+            const content = JSON.stringify(mek.message);
+            const type = Object.keys(mek.message)[0];
+            const body = (type === 'conversation') ? mek.message.conversation : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : '';
+            
+            const isCmd = body.startsWith(prefix);
+            const command = isCmd ? body.slice(prefix.length).trim().split(' ').shift().toLowerCase() : '';
+
+            // Example Command: !update
+            if (command === 'update') {
+                await sock.sendMessage(mek.key.remoteJid, { text: 'Checking for Savage-Tech updates...' });
+                // Add your git pull logic here
             }
-        } else if (connection === 'open') {
-            console.log('┎──────────────────────────╼');
-            console.log('┃ ✅ SAVAGE-TECH ONLINE');
-            console.log(`┃ ⚡ DEFAULT PREFIX: ${global.prefix}`);
-            console.log(`┃ 🕵️  ANTI-DELETE: ${global.antiDelete.toUpperCase()}`);
-            console.log('┖──────────────────────────╼');
+
+            // Example Command: !setprefix
+            if (command === 'setprefix') {
+                const newPrefix = body.slice(prefix.length + 10);
+                await sock.sendMessage(mek.key.remoteJid, { text: `Prefix changed to: ${newPrefix}` });
+            }
+
+        } catch (err) {
+            console.log(err);
         }
     });
 
-    // --- 📥 MESSAGE PROCESSING ENGINE ---
-    sock.ev.on('messages.upsert', async (chatUpdate) => {
-        try {
-            const msg = chatUpdate.messages[0];
-            if (!msg.message) return; 
-
-            // 🧠 CACHE MESSAGE (For Anti-Delete)
-            const msgId = msg.key.id;
-            global.msgStore[msgId] = msg;
-            if (Object.keys(global.msgStore).length > 500) delete global.msgStore[Object.keys(global.msgStore)[0]];
-
-            const from = msg.key.remoteJid;
-            const body = (
-                msg.message.conversation || 
-                msg.message.extendedTextMessage?.text || 
-                msg.message.imageMessage?.caption || 
-                msg.message.videoMessage?.caption || ""
-            ).trim();
-
-            // 🛠️ DYNAMIC PREFIX CHECK
-            const isCmd = body.startsWith(global.prefix);
-            if (!isCmd) return;
-
-            const command = body.slice(global.prefix.length).trim().split(/ +/).shift().toLowerCase();
-            const args = body.trim().split(/ +/).slice(1);
-
-            const sender = msg.key.participant || msg.key.remoteJid;
-            const localOwner = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-            
-            // BOSS CHECK (You / Host / Same Phone)
-            const isBoss = (sender === supremeDeveloper || sender === localOwner || msg.key.fromMe);
-
-            if (!global.isPublic && !isBoss) return;
-
-            // 🚀 COMMAND HANDLER
-            const path = `./commands/${command}.js`;
-            if (fs.existsSync(path)) {
-                delete require.cache[require.resolve(path)]; 
-                const cmdFile = require(path);
-                await cmdFile.execute(sock, msg, args);
-            }
-        } catch (err) { console.error("Runtime Error:", err); }
-    });
-
-    // --- 🗑️ ANTI-DELETE (TRI-STATE PROTOCOL) ---
-    sock.ev.on('messages.update', async (updates) => {
-        for (const update of updates) {
-            if (update.update.protocolMessage?.type === proto.Message.ProtocolMessage.Type.REVOKE) {
-                if (!global.antiDelete || global.antiDelete === 'off') return;
-
-                const deletedMsgId = update.update.protocolMessage.key.id;
-                const savedMsg = global.msgStore[deletedMsgId];
-
-                if (savedMsg) {
-                    const from = savedMsg.key.remoteJid;
-                    const sender = savedMsg.key.participant || savedMsg.key.remoteJid;
-                    const localOwner = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-                    
-                    const report = `*🕵️ SAVAGE-TECH: DELETED DATA RECOVERED*`;
-
-                    // OPTION: CHAT (Public)
-                    if (global.antiDelete === 'chat') {
-                        await sock.sendMessage(from, { text: report, mentions: [sender] });
-                        await sock.sendMessage(from, { forward: savedMsg }, { quoted: savedMsg });
-                    }
-
-                    // OPTION: PRIVATE (Host)
-                    if (global.antiDelete === 'private' && from !== localOwner) {
-                        const hostReport = `🛰️ *SAVAGE-TECH LOG:* Deletion in [${from.split('@')[0]}] by @${sender.split('@')[0]}`;
-                        await sock.sendMessage(localOwner, { text: hostReport, mentions: [sender] });
-                        await sock.sendMessage(localOwner, { forward: savedMsg });
-                    }
-                }
-            }
+    // 🔄 CONNECTION UPDATES
+    sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update;
+        if (connection === 'close') {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            if (shouldReconnect) startSavage();
+        } else if (connection === 'open') {
+            console.log('✅ Savage-Tech is Online!');
         }
     });
 }

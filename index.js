@@ -10,6 +10,7 @@ const pino = require("pino");
 const readline = require("readline");
 const fs = require("fs");
 
+// --- CORE ENGINE ---
 const store = makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) });
 let prefix = "!"; 
 
@@ -35,6 +36,7 @@ async function startSavage() {
 
     store.bind(sock.ev);
 
+    // 📡 PAIRING HANDSHAKE
     if (!sock.authState.creds.registered) {
         const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
         const phoneNumber = await new Promise(resolve => rl.question('\n📞 Enter Phone Number: ', resolve));
@@ -45,6 +47,6 @@ async function startSavage() {
 
     sock.ev.on('creds.update', saveCreds);
 
+    // ✉️ MESSAGE & COMMAND PROCESSING
     sock.ev.on('messages.upsert', async (chatUpdate) => {
-        const mek = chatUpdate.messages[0];
-        if (!mek.message || mek.key.from
+        const mek = chatUpdate.messages

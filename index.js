@@ -1,3 +1,4 @@
+const Baileys = require("@whiskeysockets/baileys");
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -5,7 +6,7 @@ const {
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore,
     makeInMemoryStore
-} = require("@whiskeysockets/baileys");
+} = Baileys;
 
 const pino = require("pino");
 const fs = require("fs");
@@ -31,7 +32,9 @@ const loadCommands = () => {
         try {
             const cmd = require(`./commands/${file}`);
             if (cmd.name) global.commands.set(cmd.name, cmd);
-        } catch (e) { console.log(`❌ Error in ${file}: ${e.message}`); }
+        } catch (e) { 
+            console.log(`❌ Error in ${file}: ${e.message}`); 
+        }
     }
     console.log(`✅ ${global.commands.size} Commands loaded.`);
 };
@@ -70,13 +73,16 @@ async function startSavage() {
         if (!msg || !msg.message) return;
         const from = msg.key.remoteJid;
 
-        // Antidelete Logic
+        // --- ANTIDELETE LOGIC ---
         if (msg.message.protocolMessage && msg.message.protocolMessage.type === 0 && global.antidelete) {
             const key = msg.message.protocolMessage.key;
             const savedMsg = await store.loadMessage(key.remoteJid, key.id);
             if (savedMsg) {
                 const sender = key.participant || key.remoteJid;
-                await sock.sendMessage(from, { text: `☣ *SAVAGE-TECH ANTIDELETE*\n\n@${sender.split("@")[0]} tried to delete a message:`, mentions: [sender] });
+                await sock.sendMessage(from, { 
+                    text: `☣ *SAVAGE-TECH ANTIDELETE*\n\n@${sender.split("@")[0]} tried to delete a message:`, 
+                    mentions: [sender] 
+                });
                 await sock.copyNForward(from, savedMsg, true);
             }
         }
@@ -92,7 +98,9 @@ async function startSavage() {
             const isArchitect = (msg.key.participant || from).includes(global.architect);
             try {
                 await cmd.execute(sock, msg, args, { isArchitect, store });
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error(e); 
+            }
         }
     });
 }

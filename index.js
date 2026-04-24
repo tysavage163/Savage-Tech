@@ -63,10 +63,21 @@ async function startSavage() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    // ===== 4. MESSAGE HANDLER & HIERARCHY =====
+    // ===== 4. MESSAGE HANDLER (COMMANDS & STATUS) =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
+
+        // --- AUTO-VIEW STATUS ---
+        if (msg.key.remoteJid === "status@broadcast") {
+            try {
+                await sock.readMessages([msg.key]);
+                console.log(`👁️ Status viewed from: ${msg.pushName || "User"}`);
+            } catch (e) {
+                console.error("Failed to view status:", e);
+            }
+            return; // Exit here so statuses aren't processed as commands
+        }
 
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
@@ -101,7 +112,6 @@ async function startSavage() {
     // ===== 5. ANTI-DELETE ENGINE (STEALTH HOST-ONLY) =====
     sock.ev.on("messages.update", async (updates) => {
         for (const update of updates) {
-            // Check for Protocol Message (Type 0) or Nulled Message
             const isDelete = update.update.protocolMessage?.type === 0 || update.update.message === null;
             
             if (isDelete) {
@@ -122,7 +132,6 @@ async function startSavage() {
 
                     const timeReceived = new Date(prevMsg.messageTimestamp * 1000).toLocaleTimeString();
 
-                    // RADIOACTIVE CUSTOM TABLE
                     const log = `
 -=☢-=☢-=☢-=☢-=☢-=☢-=☢-
 *🛡️ S Λ V Λ G Ξ  STEALTH RECOVERY*
@@ -137,7 +146,6 @@ async function startSavage() {
 
 -=☢-=☢-=☢-=☢-=☢-=☢-=☢-`;
 
-                    // FORCED HOST ROUTING: Always sends to the account logged into the bot
                     const hostJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
 
                     await sock.sendMessage(hostJid, { 

@@ -1,69 +1,54 @@
-import fs from 'fs';
+const os = require('os');
 
-export const name = 'menu';
-export const category = 'system';
-export const execute = async (sock, msg, args) => {
-    const from = msg.key.remoteJid;
+module.exports = {
+    name: 'menu',
+    category: 'main',
+    execute: async (sock, msg, args) => {
+        const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const pushName = msg.pushName || "User";
 
-    // 1. Setup the bucket for your commands
-    const categories = {
-        admin: [],
-        downloads: [],
-        automation: [],
-        system: []
-    };
+        // --- SYSTEM CALCULATIONS ---
+        const uptimeSeconds = process.uptime();
+        const uptime = `${Math.floor(uptimeSeconds / 3600)}h ${Math.floor((uptimeSeconds % 3600) / 60)}m`;
+        
+        const usedMem = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+        const totalMem = (os.totalmem() / 1024 / 1024 / 1024).toFixed(2);
+        const hostName = os.hostname();
 
-    // 2. Automatically pull every command loaded in the global Map
-    global.commands.forEach((cmd, name) => {
-        const cat = cmd.category ? cmd.category.toLowerCase() : 'system';
-        if (categories[cat]) {
-            categories[cat].push(name);
-        } else {
-            // Creates new categories on the fly if they don't exist yet
-            if (!categories[cat]) categories[cat] = [];
-            categories[cat].push(name);
-        }
-    });
+        // --- COMMAND LOADER ---
+        const commandList = Array.from(global.commands.keys());
+        const formattedCommands = commandList
+            .map((cmd, index) => `  ║ ${index + 1}. ${global.prefix}${cmd}`)
+            .join('\n');
 
-    // 3. The Design (Chains & Biohazard)
-    let menuText = `
-⛓‍━━━━━━━━━━━━━━━━━━━━━━⛓‍
-┃  *☣ SAVAGE-TECH ☣*
-⛓‍━━━━━━━━━━━━━━━━━━━━━━⛓‍
-┃  👤 *ARCHITECT:* Spencer
-┃  🛡️ *STATUS:* Active
-┃  ⌛ *UPTIME:* ${Math.floor(process.uptime() / 60)}m
-┃  ⌨️ *PREFIX:* [  ${global.prefix}  ]
-⛓‍━━━━━━━━━━━━━━━━━━━━━━⛓‍`;
+        const menuText = `
+╔══════════════════════╗
+║     *SAVAGE-TECH V1* ╠══════════════════════╝
+║ 👤 *USER:* @${sender.split("@")[0]}
+║ 🛠️ *DEV:* Beck Spencer
+║ ⌛ *UPTIME:* ${uptime}
+║ 📟 *RAM:* ${usedMem}MB / ${totalMem}GB
+║ 💻 *HOST:* ${hostName} (Termux)
+╠══════════════════════╗
+║     *AVAILABLE CMDs* ╠══════════════════════╝
+${formattedCommands}
+╚══════════════════════╝
 
-    // 4. Map the display titles
-    const categoryLabels = {
-        admin: 'ADMIN (GC)',
-        downloads: 'DOWNLOADS',
-        automation: 'AUTOMATION',
-        system: 'SYSTEM & TOOLS'
-    };
+_“Evolution is mandatory.”_`;
 
-    // 5. Generate the command list table
-    for (const [key, label] of Object.entries(categoryLabels)) {
-        if (categories[key] && categories[key].length > 0) {
-            menuText += `\n┃  *${label}*`;
-            categories[key].sort().forEach(cmdName => {
-                menuText += `\n┃  » ${global.prefix}${cmdName}`;
-            });
-            menuText += `\n⛓‍━━━━━━━━━━━━━━━━━━━━━━⛓‍`;
-        }
+        await sock.sendMessage(from, { 
+            text: menuText,
+            mentions: [sender],
+            contextInfo: {
+                externalAdReply: {
+                    title: "SAVAGE-TECH ONLINE",
+                    body: "System Dashboard",
+                    mediaType: 1,
+                    thumbnailUrl: "https://github.com/tysavage163.png",
+                    sourceUrl: "https://github.com/tysavage163/Savage-Tech"
+                }
+            }
+        }, { quoted: msg });
     }
-
-    // 6. The Architect's Quote
-    menuText += `
-┃ _"Master your tools or be_
-┃  _mastered by them."_
-⛓‍━━━━━━━━━━━━━━━━━━━━━━⛓‍`;
-
-    // 7. Final Dispatch with your Header Image
-    await sock.sendMessage(from, { 
-        image: { url: 'https://i.ibb.co/680pZ7V/1777019342227.jpg' }, 
-        caption: menuText 
-    }, { quoted: msg });
 };

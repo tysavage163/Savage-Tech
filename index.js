@@ -6,20 +6,23 @@ const {
     jidNormalizedUser
 } = require("@whiskeysockets/baileys");
 
-// --- UNIVERSAL IMPORT FIX ---
+// --- THE UNIVERSAL SAFETY NET ---
 const Baileys = require("@whiskeysockets/baileys");
-const makeInMemoryStore = Baileys.makeInMemoryStore || 
-    (Baileys.default && Baileys.default.makeInMemoryStore) || 
-    require("@whiskeysockets/baileys/lib/Store").makeInMemoryStore;
+let makeInMemoryStore;
+try {
+    makeInMemoryStore = Baileys.makeInMemoryStore || 
+                       (Baileys.default && Baileys.default.makeInMemoryStore) || 
+                       require("@whiskeysockets/baileys/lib/Store").makeInMemoryStore;
+} catch (e) {
+    // If all else fails, use a dummy store to prevent the crash
+    makeInMemoryStore = () => ({ bind: () => {}, loadMessage: () => {} });
+}
 
 const pino = require("pino");
 const readline = require("readline");
 const fs = require("fs");
 
-const store = makeInMemoryStore({ 
-    logger: pino().child({ level: 'silent', stream: 'store' }) 
-});
-
+const store = makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) });
 let prefix = "!"; 
 
 const question = (text) => {
@@ -49,7 +52,6 @@ async function startSavage() {
 
     store.bind(sock.ev);
 
-    // PAIRING LOGIC
     if (!sock.authState.creds.registered) {
         console.log("\n🚀 PAIRING MODE (PHONE NUMBER)");
         const phoneNumber = await question("📞 Enter number (e.g. 2547XXXXXXXX): ");
@@ -69,17 +71,13 @@ async function startSavage() {
             const key = item.keys[0];
             const cachedMsg = await store.loadMessage(key.remoteJid, key.id);
             if (!cachedMsg) return;
-
-            const content = cachedMsg.message.conversation || 
-                            cachedMsg.message.extendedTextMessage?.text || 
-                            "Media Content (Image/Video/Voice)";
+            const content = cachedMsg.message.conversation || cachedMsg.message.extendedTextMessage?.text || "Media Content";
             const sender = jidNormalizedUser(key.participant || key.remoteJid);
-
             await sock.sendMessage(key.remoteJid, { 
-                text: `🗑️ *ANTIDELETE ALERT*\n\n👤 *User:* @${sender.split('@')[0]}\n💬 *Msg:* ${content}`,
+                text: `🗑️ *ANTIDELETE ALERT*\n👤 @${sender.split('@')[0]}\n💬 ${content}`,
                 mentions: [sender]
             });
-        } catch (e) { console.error("Antidelete Error:", e); }
+        } catch (e) { console.error(e); }
     });
 
     sock.ev.on("connection.update", (update) => {
@@ -91,19 +89,15 @@ async function startSavage() {
         }
     });
 
-    // 📩 COMMAND HANDLER
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         const mek = chatUpdate.messages?.[0];
         if (!mek || !mek.message || mek.key.fromMe) return;
-
         const body = (mek.message.conversation || mek.message.extendedTextMessage?.text || "").trim();
         const sender = jidNormalizedUser(mek.key.participant || mek.key.remoteJid);
-
         if (body.startsWith(prefix)) {
             const args = body.slice(prefix.length).trim().split(/ +/);
             const command = args.shift().toLowerCase();
             const isOwner = sender.includes(sock.authState.creds.me?.id.split(':')[0]);
-
             try {
                 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
                 for (const file of commandFiles) {
@@ -115,5 +109,4 @@ async function startSavage() {
         }
     });
 }
-
 startSavage();

@@ -6,7 +6,6 @@ const {
     jidNormalizedUser
 } = require("@whiskeysockets/baileys");
 
-// --- THE UNIVERSAL SAFETY NET ---
 const Baileys = require("@whiskeysockets/baileys");
 let makeInMemoryStore;
 try {
@@ -14,7 +13,6 @@ try {
                        (Baileys.default && Baileys.default.makeInMemoryStore) || 
                        require("@whiskeysockets/baileys/lib/Store").makeInMemoryStore;
 } catch (e) {
-    // If all else fails, use a dummy store to prevent the crash
     makeInMemoryStore = () => ({ bind: () => {}, loadMessage: () => {} });
 }
 
@@ -52,32 +50,42 @@ async function startSavage() {
 
     store.bind(sock.ev);
 
+    // 🚀 SMART PAIRING LOGIC
     if (!sock.authState.creds.registered) {
-        console.log("\n🚀 PAIRING MODE (PHONE NUMBER)");
+        console.log("\n🚀 PAIRING MODE ACTIVE");
         const phoneNumber = await question("📞 Enter number (e.g. 2547XXXXXXXX): ");
-        setTimeout(async () => {
-            try {
-                const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
-                console.log(`\n🔥 PAIRING CODE: ${code.match(/.{1,4}/g).join("-")}\n`);
-            } catch (err) { console.error("Pairing error:", err); }
-        }, 3000);
+        
+        // Wait for connection to be stable before asking for code
+        sock.ev.on('connection.update', async (update) => {
+            const { connection } = update;
+            if (connection === 'open' || connection === 'connecting') {
+                try {
+                    // Small extra delay to ensure server readiness
+                    await new Promise(r => setTimeout(r, 5000));
+                    let code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
+                    console.log(`\n🔥 YOUR CODE: ${code?.match(/.{1,4}/g)?.join("-") || code}\n`);
+                } catch (err) {
+                    // If it fails, it will retry on next update
+                }
+            }
+        });
     }
 
     sock.ev.on('creds.update', saveCreds);
 
-    // 🗑️ ANTIDELETE ENGINE
+    // 🗑️ ANTIDELETE
     sock.ev.on('messages.delete', async (item) => {
         try {
             const key = item.keys[0];
             const cachedMsg = await store.loadMessage(key.remoteJid, key.id);
             if (!cachedMsg) return;
-            const content = cachedMsg.message.conversation || cachedMsg.message.extendedTextMessage?.text || "Media Content";
+            const content = cachedMsg.message.conversation || cachedMsg.message.extendedTextMessage?.text || "Media Message";
             const sender = jidNormalizedUser(key.participant || key.remoteJid);
             await sock.sendMessage(key.remoteJid, { 
                 text: `🗑️ *ANTIDELETE ALERT*\n👤 @${sender.split('@')[0]}\n💬 ${content}`,
                 mentions: [sender]
             });
-        } catch (e) { console.error(e); }
+        } catch (e) { }
     });
 
     sock.ev.on("connection.update", (update) => {
@@ -85,7 +93,7 @@ async function startSavage() {
         if (connection === "close") {
             if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) startSavage();
         } else if (connection === "open") {
-            console.log("✅ SAVAGE-TECH CONNECTED & ANTIDELETE ACTIVE");
+            console.log("✅ SAVAGE-TECH IS ONLINE");
         }
     });
 
@@ -101,11 +109,10 @@ async function startSavage() {
             try {
                 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
                 for (const file of commandFiles) {
-                    delete require.cache[require.resolve(`./commands/${file}`)];
                     const cmd = require(`./commands/${file}`);
                     if (cmd.name === command) return cmd.execute(sock, mek, args, { prefix, isOwner });
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { }
         }
     });
 }

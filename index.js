@@ -14,7 +14,6 @@ const messagesCache = new Map();
 global.commands = new Map();
 global.prefix = ".";
 
-// BLOCKING QUESTION FUNCTION
 const question = (text) => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     return new Promise((resolve) => rl.question(text, (ans) => {
@@ -46,33 +45,31 @@ async function startSavage() {
         },
         printQRInTerminal: false,
         logger: pino({ level: "fatal" }),
-        browser: ["Ubuntu", "Chrome", "20.0.04"]
+        // Using a more stable browser string
+        browser: ["Mac OS", "Chrome", "110.0.5481.178"]
     });
 
-    // ONLY TRIGGER IF NOT LOGGED IN
     if (!sock.authState.creds.registered) {
-        console.log("\n⚠️ PAUSE: ENTERING SETUP MODE");
-        
-        // This 'question' blocks the bot from looping while you type
+        console.log("\n⚠️ PAUSE: SETUP MODE ACTIVE");
         const phoneNumber = await question("📞 Enter your phone number (e.g., 2547XXXXXXXX): ");
         
         if (phoneNumber) {
-            console.log(`⏳ Connecting to WhatsApp for ${phoneNumber}...`);
-            // Wait for socket to be ready
-            await new Promise(r => setTimeout(r, 5000)); 
+            console.log(`⏳ Opening handshake with WhatsApp...`);
+            // Slightly longer delay to allow the network to stabilize
+            await new Promise(r => setTimeout(r, 7000)); 
+            
             try {
                 const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
                 console.log(`\n🔥 YOUR PAIRING CODE: ${code}\n`);
             } catch (err) {
-                console.log("❌ Error: Connection timed out. Try 'node .' again.");
-                process.exit(1);
+                console.log("❌ Connection timed out. Let's try one more time...");
+                process.exit(1); 
             }
         }
     }
 
     sock.ev.on('creds.update', saveCreds);
 
-    // ANTI-DELETE & COMMANDS
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
         if (!msg.message || msg.key.fromMe) return;
@@ -100,7 +97,7 @@ async function startSavage() {
     });
 
     sock.ev.on("connection.update", (up) => {
-        if (up.connection === "open") console.log("✅ BOT ONLINE");
+        if (up.connection === "open") console.log("✅ SAVAGE-TECH ONLINE");
         if (up.connection === "close") {
             if (up.lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
                 startSavage();

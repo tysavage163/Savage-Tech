@@ -14,11 +14,12 @@ const messagesCache = new Map();
 global.commands = new Map();
 global.prefix = ".";
 
+// BLOCKING QUESTION FUNCTION
 const question = (text) => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     return new Promise((resolve) => rl.question(text, (ans) => {
         rl.close();
-        resolve(ans);
+        resolve(ans.trim());
     }));
 };
 
@@ -29,10 +30,7 @@ function loadCommands() {
     for (const file of commandFiles) {
         try {
             const command = require(`./commands/${file}`);
-            if (command.name) {
-                global.commands.set(command.name, command);
-                console.log(`✅ Loaded: ${command.name}`);
-            }
+            if (command.name) global.commands.set(command.name, command);
         } catch (err) { }
     }
 }
@@ -51,28 +49,25 @@ async function startSavage() {
         browser: ["Ubuntu", "Chrome", "20.0.04"]
     });
 
-    // 🔒 THE SAFETY LOCK: Only ask for code when connection is ready
+    // ONLY TRIGGER IF NOT LOGGED IN
     if (!sock.authState.creds.registered) {
-        console.log("\n⏳ Waiting for server connection...");
+        console.log("\n⚠️ PAUSE: ENTERING SETUP MODE");
         
-        // Wait for the socket to emit a 'connecting' or 'open' state
-        sock.ev.on('connection.update', async (update) => {
-            const { connection } = update;
-            if (connection === 'connecting' || connection === 'open') {
-                // Give it 5 extra seconds to be absolutely sure
-                await new Promise(r => setTimeout(r, 5000));
-                
-                if (!sock.authState.creds.registered) {
-                    const phoneNumber = await question("\n📞 Enter number (2547XXXXXXXX): ");
-                    try {
-                        const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
-                        console.log(`\n🔥 YOUR PAIRING CODE: ${code}\n`);
-                    } catch (err) {
-                        console.log("❌ Request failed. Please restart the bot.");
-                    }
-                }
+        // This 'question' blocks the bot from looping while you type
+        const phoneNumber = await question("📞 Enter your phone number (e.g., 2547XXXXXXXX): ");
+        
+        if (phoneNumber) {
+            console.log(`⏳ Connecting to WhatsApp for ${phoneNumber}...`);
+            // Wait for socket to be ready
+            await new Promise(r => setTimeout(r, 5000)); 
+            try {
+                const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
+                console.log(`\n🔥 YOUR PAIRING CODE: ${code}\n`);
+            } catch (err) {
+                console.log("❌ Error: Connection timed out. Try 'node .' again.");
+                process.exit(1);
             }
-        });
+        }
     }
 
     sock.ev.on('creds.update', saveCreds);
@@ -88,8 +83,8 @@ async function startSavage() {
         const body = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         if (body.startsWith(global.prefix)) {
             const args = body.slice(global.prefix.length).trim().split(/ +/);
-            const command = global.commands.get(args.shift().toLowerCase());
-            if (command) command.execute(sock, msg, args, from);
+            const cmd = global.commands.get(args.shift().toLowerCase());
+            if (cmd) cmd.execute(sock, msg, args, from);
         }
     });
 
@@ -98,15 +93,19 @@ async function startSavage() {
             const key = item.keys[0];
             const cached = messagesCache.get(key.remoteJid)?.get(key.id);
             if (cached) {
-                const content = cached.message.conversation || cached.message.extendedTextMessage?.text || "Media Message";
+                const content = cached.message.conversation || cached.message.extendedTextMessage?.text || "Media Content";
                 await sock.sendMessage(key.remoteJid, { text: `🗑️ *ANTIDELETE*\n\n💬 ${content}` });
             }
         } catch (e) { }
     });
 
     sock.ev.on("connection.update", (up) => {
-        if (up.connection === "open") console.log("✅ SAVAGE-TECH IS ONLINE");
-        if (up.connection === "close") startSavage();
+        if (up.connection === "open") console.log("✅ BOT ONLINE");
+        if (up.connection === "close") {
+            if (up.lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
+                startSavage();
+            }
+        }
     });
 }
 

@@ -6,21 +6,12 @@ const {
 } = require("@whiskeysockets/baileys");
 
 const pino = require("pino");
-const readline = require("readline");
 const fs = require("fs");
 const path = require("path");
 
 const messagesCache = new Map();
 global.commands = new Map();
 global.prefix = ".";
-
-const question = (text) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    return new Promise((resolve) => rl.question(text, (ans) => {
-        rl.close();
-        resolve(ans.trim());
-    }));
-};
 
 function loadCommands() {
     const commandsFolder = path.join(__dirname, "commands");
@@ -43,30 +34,11 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
         },
-        printQRInTerminal: false,
+        // --- QR CODE ENABLED ---
+        printQRInTerminal: true, 
         logger: pino({ level: "fatal" }),
-        // Using a high-compatibility mobile string
-        browser: ["Chrome (Android)", "Chrome", "110.0.5481.153"]
+        browser: ["Savage-Tech", "Safari", "1.0.0"]
     });
-
-    if (!sock.authState.creds.registered) {
-        console.log("\n⚡️ FINAL ATTEMPT MODE");
-        const phoneNumber = await question("📞 Number: ");
-        
-        if (phoneNumber) {
-            console.log(`⏳ Requesting code for ${phoneNumber}...`);
-            // Minimal 3-second wait for network stabilization
-            await new Promise(r => setTimeout(r, 3000)); 
-            
-            try {
-                const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
-                console.log(`\n✅ YOUR CODE IS: ${code}\n`);
-            } catch (err) {
-                console.log("❌ Handshake failed. Please toggle Airplane Mode and try once more.");
-                process.exit(1); 
-            }
-        }
-    }
 
     sock.ev.on('creds.update', saveCreds);
 
@@ -90,8 +62,12 @@ async function startSavage() {
     });
 
     sock.ev.on("connection.update", (up) => {
-        if (up.connection === "open") console.log("✅ BOT CONNECTED");
-        if (up.connection === "close") startSavage();
+        const { connection, lastDisconnect } = up;
+        if (connection === "open") console.log("✅ BOT CONNECTED SUCCESSFULLY");
+        if (connection === "close") {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            if (shouldReconnect) startSavage();
+        }
     });
 }
 

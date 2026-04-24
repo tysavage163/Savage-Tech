@@ -45,27 +45,24 @@ async function startSavage() {
         },
         printQRInTerminal: false,
         logger: pino({ level: "fatal" }),
-        // Forced high-compatibility browser string
-        browser: ["Chrome (Linux)", "Chrome", "110.0.5481.178"],
-        syncFullHistory: false,
-        markOnlineOnConnect: true,
-        connectTimeoutMs: 60000
+        // Using a high-compatibility mobile string
+        browser: ["Chrome (Android)", "Chrome", "110.0.5481.153"]
     });
 
     if (!sock.authState.creds.registered) {
-        console.log("\n⚡️ PRIORITY CONNECTION MODE");
+        console.log("\n⚡️ FINAL ATTEMPT MODE");
         const phoneNumber = await question("📞 Number: ");
         
         if (phoneNumber) {
-            console.log(`⏳ Initializing Priority Handshake...`);
-            // Brief wait for the socket to stabilize
-            await new Promise(r => setTimeout(r, 5000)); 
+            console.log(`⏳ Requesting code for ${phoneNumber}...`);
+            // Minimal 3-second wait for network stabilization
+            await new Promise(r => setTimeout(r, 3000)); 
             
             try {
                 const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
-                console.log(`\n✅ SUCCESS! YOUR CODE IS: ${code}\n`);
+                console.log(`\n✅ YOUR CODE IS: ${code}\n`);
             } catch (err) {
-                console.log("❌ Connection lost. Re-running the script is necessary.");
+                console.log("❌ Handshake failed. Please toggle Airplane Mode and try once more.");
                 process.exit(1); 
             }
         }
@@ -79,28 +76,21 @@ async function startSavage() {
         const from = msg.key.remoteJid;
         if (!messagesCache.has(from)) messagesCache.set(from, new Map());
         messagesCache.get(from).set(msg.key.id, msg);
-
-        const body = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
-        if (body.startsWith(global.prefix)) {
-            const args = body.slice(global.prefix.length).trim().split(/ +/);
-            const cmd = global.commands.get(args.shift().toLowerCase());
-            if (cmd) cmd.execute(sock, msg, args, from);
-        }
     });
 
     sock.ev.on('messages.delete', async (item) => {
         try {
             const key = item.keys[0];
             const cached = messagesCache.get(key.remoteJid)?.get(key.id);
-            if (cached) {
-                const content = cached.message.conversation || cached.message.extendedTextMessage?.text || "Media Content";
+            if (cached && cached.message) {
+                const content = cached.message.conversation || cached.message.extendedTextMessage?.text || "Media Message";
                 await sock.sendMessage(key.remoteJid, { text: `🗑️ *ANTIDELETE*\n\n💬 ${content}` });
             }
         } catch (e) { }
     });
 
     sock.ev.on("connection.update", (up) => {
-        if (up.connection === "open") console.log("✅ BOT ACTIVE");
+        if (up.connection === "open") console.log("✅ BOT CONNECTED");
         if (up.connection === "close") startSavage();
     });
 }

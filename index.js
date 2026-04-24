@@ -10,6 +10,7 @@ const readline = require("readline");
 const fs = require("fs");
 const path = require("path");
 
+// Global Storage
 const messagesCache = new Map();
 global.commands = new Map();
 global.prefix = ".";
@@ -26,6 +27,8 @@ function loadCommands() {
     const commandsFolder = path.join(__dirname, "commands");
     if (!fs.existsSync(commandsFolder)) fs.mkdirSync(commandsFolder);
     const commandFiles = fs.readdirSync(commandsFolder).filter(file => file.endsWith('.js'));
+    
+    global.commands.clear(); // Clear old commands on reload
     for (const file of commandFiles) {
         try {
             const command = require(`./commands/${file}`);
@@ -40,7 +43,7 @@ function loadCommands() {
 }
 
 async function startSavage() {
-    console.log("🚀 Starting bot...");
+    console.log("🚀 Starting Savage-Tech...");
     loadCommands();
     
     const { state, saveCreds } = await useMultiFileAuthState('session');
@@ -57,60 +60,38 @@ async function startSavage() {
 
     global.sock = sock;
 
-    // FIXED: Wait for connection to be ready before pairing
-    let isReady = false;
-    
-    sock.ev.on("connection.update", (up) => {
-        if (up.connection === "open") {
-            console.log("✅ Connection ready!");
-            isReady = true;
-        }
-    });
-
-    // Handle pairing with proper timing
+    // --- PAIRING LOGIC ---
     if (!sock.authState.creds.registered) {
-        // Wait for socket to initialize
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wait for socket to warm up
+        await new Promise(resolve => setTimeout(resolve, 3000));
         
-        const phoneNumber = await question("\n📞 Enter phone number (e.g., 254765956776): ");
+        const phoneNumber = await question("\n📞 Enter number (e.g. 254765956776): ");
         console.log("⏳ Requesting pairing code...");
         
         try {
             const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
             console.log(`\n🔥 YOUR PAIRING CODE: ${code}\n`);
-            console.log("📱 How to use:");
-            console.log("1. Open WhatsApp on your phone");
-            console.log("2. Go to Settings → Linked Devices");
-            console.log("3. Tap 'Link a Device'");
-            console.log("4. Enter this code (NOT your phone number)\n");
         } catch (err) {
-            console.log("❌ Pairing error:", err.message);
-            console.log("🔄 Retrying in 5 seconds...");
-            setTimeout(() => startSavage(), 5000);
+            console.log("❌ Pairing error. Restarting...");
+            setTimeout(() => startSavage(), 2000);
             return;
         }
     }
 
     sock.ev.on('creds.update', saveCreds);
 
-    // Store messages for anti-delete
+    // --- MESSAGE HANDLER & CACHE ---
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
-        if (msg.key && msg.key.id && msg.key.remoteJid && !msg.key.fromMe) {
-            if (!messagesCache.has(msg.key.remoteJid)) {
-                messagesCache.set(msg.key.remoteJid, new Map());
-            }
-            messagesCache.get(msg.key.remoteJid).set(msg.key.id, msg);
-        }
-        
-        // Command handler
         if (!msg.message || msg.key.fromMe) return;
-        
+
+        // Cache message for Anti-Delete
         const from = msg.key.remoteJid;
-        const body = msg.message.conversation || 
-                    msg.message.extendedTextMessage?.text || 
-                    "";
-        
+        if (!messagesCache.has(from)) messagesCache.set(from, new Map());
+        messagesCache.get(from).set(msg.key.id, msg);
+
+        // Command handler logic
+        const body = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         if (body.startsWith(global.prefix)) {
             const args = body.slice(global.prefix.length).trim().split(/ +/);
             const commandName = args.shift().toLowerCase();
@@ -120,44 +101,40 @@ async function startSavage() {
                 try {
                     await command.execute(sock, msg, args, from);
                 } catch (err) {
-                    console.error(`Error in ${commandName}:`, err);
-                    await sock.sendMessage(from, { text: "❌ Command error!" });
+                    console.error(err);
                 }
             }
         }
     });
 
-    // ANTI-DELETE
+    // --- ANTI-DELETE ENGINE ---
     sock.ev.on('messages.delete', async (item) => {
         try {
-            const key = item.keys[0];
+            // Safety check for keys
+            const key = item.keys ? item.keys[0] : item; 
             const chatCache = messagesCache.get(key.remoteJid);
             const cachedMsg = chatCache?.get(key.id);
             
-            if (cachedMsg?.message) {
-                let content = "Media Message";
+            if (cachedMsg) {
                 const msg = cachedMsg.message;
-                content = msg.conversation || 
-                         msg.extendedTextMessage?.text ||
-                         msg.imageMessage?.caption ||
-                         msg.videoMessage?.caption ||
-                         "Media Message";
+                const content = msg.conversation || msg.extendedTextMessage?.text || "Media Message";
                 
                 await sock.sendMessage(key.remoteJid, { 
-                    text: `🗑️ *ANTI-DELETE*\n\n💬 ${content.substring(0, 500)}` 
+                    text: `🗑️ *ANTIDELETE*\n\n💬 ${content}` 
                 });
             }
-        } catch (e) {}
+        } catch (e) { console.log("Anti-Delete Error:", e.message); }
     });
 
+    // --- CONNECTION HANDLER ---
     sock.ev.on("connection.update", (up) => {
-        if (up.connection === "open") {
+        const { connection, lastDisconnect } = up;
+        if (connection === "open") {
             console.log("✅ BOT ONLINE!");
-            console.log(`📌 Current prefix: ${global.prefix}`);
         }
-        if (up.connection === "close") {
-            console.log("⚠️ Connection lost. Restarting in 5 seconds...");
-            setTimeout(() => startSavage(), 5000);
+        if (connection === "close") {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            if (shouldReconnect) startSavage();
         }
     });
 }

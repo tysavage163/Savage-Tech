@@ -52,21 +52,25 @@ async function startSavage() {
     });
 
     store.bind(sock.ev);
-    sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", (update) => {
-        const { connection, qr } = update;
+        const { connection, qr, lastDisconnect } = update;
         if (qr) qrcode.generate(qr, { small: true });
         if (connection === "open") console.log("\n🚀 SAVAGE-TECH ONLINE!");
-        if (connection === "close") startSavage();
+        if (connection === "close") {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            if (shouldReconnect) startSavage();
+        }
     });
+
+    sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages[0];
         if (!msg || !msg.message) return;
         const from = msg.key.remoteJid;
 
-        // --- 🛡️ ANTIDELETE ---
+        // Antidelete Logic
         if (msg.message.protocolMessage && msg.message.protocolMessage.type === 0 && global.antidelete) {
             const key = msg.message.protocolMessage.key;
             const savedMsg = await store.loadMessage(key.remoteJid, key.id);
@@ -77,7 +81,6 @@ async function startSavage() {
             }
         }
 
-        // --- ⌨️ COMMANDS ---
         const text = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         if (!text.startsWith(global.prefix)) return;
 

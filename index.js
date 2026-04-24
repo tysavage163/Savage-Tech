@@ -10,27 +10,30 @@ const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 
-// Settings - FIXED: Changed to global so commands can see them
+// ===== 1. SETTINGS & HIERARCHY =====
 global.prefix = "."; 
+global.architect = "254798841125"; // YOU: The God Mode
 global.commands = new Map();
-const messageStore = new Map(); 
+const messageStore = new Map(); // Memory for Antidelete
 
-// ===== 1. LOAD COMMANDS ONCE =====
+// ===== 2. COMMAND LOADER =====
 const loadCommands = () => {
     if (!fs.existsSync("./commands")) fs.mkdirSync("./commands");
     const files = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
     for (const file of files) {
         try {
             const cmd = require(`./commands/${file}`);
-            if (cmd.name) global.commands.set(cmd.name, cmd); // Fixed to global
+            if (cmd.name) global.commands.set(cmd.name, cmd);
         } catch (e) {
             console.log(`❌ Error loading ${file}: ${e.message}`);
         }
     }
-    console.log(`✅ ${global.commands.size} Commands loaded into the body.`);
+    console.log(`✅ ${global.commands.size} Commands loaded successfully.`);
 };
 
+// ===== 3. START SYSTEM =====
 async function startSavage() {
+    // This 'session' folder ensures you NEVER have to input your phone number again
     const { state, saveCreds } = await useMultiFileAuthState("session");
     const { version } = await fetchLatestBaileysVersion();
 
@@ -45,14 +48,14 @@ async function startSavage() {
         browser: ["Savage-Tech", "Safari", "1.0.0"]
     });
 
-    // ===== 2. QR & CONNECTION =====
+    // Connection Updates
     sock.ev.on("connection.update", (update) => {
         const { connection, qr, lastDisconnect } = update;
         if (qr) {
-            console.log("\n📸 SCAN THE QR BELOW:\n");
+            console.log("\n📸 SESSION NOT FOUND. SCAN TO CONNECT:\n");
             qrcode.generate(qr, { small: true });
         }
-        if (connection === "open") console.log("\n🚀 BOT CONNECTED & READY!");
+        if (connection === "open") console.log("\n🚀 SAVAGE-TECH CONNECTED & READY!");
         if (connection === "close") {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) startSavage();
@@ -61,36 +64,45 @@ async function startSavage() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    // ===== 3. MESSAGE & COMMAND HANDLER =====
+    // ===== 4. MESSAGE HANDLER & HIERARCHY =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
         const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
         
-        // Anti-Delete Storage
+        // Anti-Delete: Save message to memory
         messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
+        // Auto-clean memory every hour
+        setTimeout(() => messageStore.delete(msg.key.id), 3600000);
+
+        // HIERARCHY CHECK
+        const isMe = msg.key.fromMe; // The Host account
+        const isArchitect = sender.includes(global.architect); // You (Architect)
+        const hasAccess = isArchitect || isMe; // High Rank Access
 
         const text = msg.message.conversation || 
                      msg.message.extendedTextMessage?.text || 
                      msg.message.imageMessage?.caption || "";
 
-        if (!text.startsWith(global.prefix)) return; // Fixed to global
+        if (!text.startsWith(global.prefix)) return;
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
         const commandName = args.shift().toLowerCase();
 
-        const cmd = global.commands.get(commandName); // Fixed to global
+        const cmd = global.commands.get(commandName);
         if (cmd) {
             try {
-                await cmd.execute(sock, msg, args);
+                // Execute with hierarchy context
+                await cmd.execute(sock, msg, args, { isArchitect, isMe, hasAccess });
             } catch (e) {
-                console.error(e);
+                console.error(`Error in ${commandName}:`, e);
             }
         }
     });
 
-    // ===== 4. ANTI-DELETE LISTENER (STILL HERE!) =====
+    // ===== 5. ANTI-DELETE LISTENER =====
     sock.ev.on("messages.update", async (updates) => {
         for (const update of updates) {
             if (update.update.message === null) {
@@ -104,7 +116,7 @@ async function startSavage() {
                                 "Media/Image/System Message";
 
                 await sock.sendMessage(key.remoteJid, {
-                    text: `🚨 *Anti-Delete Detected*\n\n*User:* @${sender.split("@")[0]}\n*Message:* ${content}`,
+                    text: `🚨 *ANTIDELETE SYSTEM* 🚨\n\n*User:* @${sender.split("@")[0]}\n*Status:* Logic Recovered\n*Message:* ${content}`,
                     mentions: [sender]
                 }, { quoted: prevMsg });
             }
@@ -112,5 +124,6 @@ async function startSavage() {
     });
 }
 
+// EXECUTE LOAD & START
 loadCommands();
 startSavage();

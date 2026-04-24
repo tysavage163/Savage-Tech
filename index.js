@@ -9,21 +9,24 @@ const {
 const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
+const os = require("os"); // Added for RAM calculations
 
 // ===== 1. SETTINGS & HIERARCHY =====
 global.prefix = "."; 
-global.architect = "254798841125"; // YOU: God Mode
+global.architect = "254798841125"; 
 global.commands = new Map();
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
 const messageStore = new Map(); 
 
-// ===== 2. COMMAND LOADER =====
+// ===== 2. COMMAND LOADER (UPDATED TO SYNC PROPERLY) =====
 const loadCommands = () => {
-    if (!fs.existsSync("./commands")) fs.mkdirSync("./commands");
+    global.commands.clear();
     const files = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
     for (const file of files) {
         try {
+            const fullPath = require.resolve(`./commands/${file}`);
+            delete require.cache[fullPath]; // CRITICAL: This allows new commands to sync
             const cmd = require(`./commands/${file}`);
             if (cmd.name) global.commands.set(cmd.name, cmd);
         } catch (e) {
@@ -64,28 +67,22 @@ async function startSavage() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    // ===== 4. MESSAGE HANDLER (COMMANDS & STATUS) =====
+    // ===== 4. MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // --- AUTO-VIEW STATUS ---
         if (msg.key.remoteJid === "status@broadcast") {
             if (global.autoViewStatus === "on") {
                 try {
                     await sock.readMessages([msg.key]);
                     console.log(`👁️ Status viewed from: ${msg.pushName || "User"}`);
-                } catch (e) {
-                    console.error("Failed to view status:", e);
-                }
+                } catch (e) {}
             }
             return; 
         }
 
-        const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
-        
-        // Anti-Delete Storage (1 Hour Cache)
         messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
         setTimeout(() => messageStore.delete(msg.key.id), 3600000);
 
@@ -112,56 +109,21 @@ async function startSavage() {
         }
     });
 
-    // ===== 5. ANTI-DELETE ENGINE (PRECISION LOGGING) =====
+    // ===== 5. ANTI-DELETE ENGINE =====
     sock.ev.on("messages.update", async (updates) => {
         for (const update of updates) {
             const isDelete = update.update.protocolMessage?.type === 0 || update.update.message === null;
-            
             if (isDelete) {
                 if (!global.antideleteMode || global.antideleteMode === "off") return;
-
                 const key = update.key || update.update.protocolMessage?.key;
                 const prevMsg = messageStore.get(key.id);
-                
                 if (prevMsg) {
                     const senderJid = prevMsg.key.participant || prevMsg.key.remoteJid;
                     const chatJid = prevMsg.key.remoteJid;
-                    const isGroup = chatJid.endsWith('@g.us');
-                    
-                    let locationName = "Private DM";
-                    if (isGroup) {
-                        try {
-                            const groupMeta = await sock.groupMetadata(chatJid);
-                            locationName = `Group: ${groupMeta.subject}`;
-                        } catch {
-                            locationName = "Specific Group";
-                        }
-                    }
-
-                    const content = prevMsg.message?.conversation || 
-                                    prevMsg.message?.extendedTextMessage?.text || 
-                                    prevMsg.message?.imageMessage?.caption || 
-                                    "📷 Media Content";
-
-                    const timeReceived = new Date(prevMsg.messageTimestamp * 1000).toLocaleTimeString();
-
-                    const log = `
-━━━ 「 *SAVAGE-RECOVERY* 」 ━━━
-
-👤 *SENDER:* @${senderJid.split("@")[0]}
-📍 *ORIGIN:* ${locationName}
-🕒 *TIME:* ${timeReceived}
-
-💬 *DELETED:* > ${content}
-
-━━━━━━━━━━━━━━━━━━━━`;
-
+                    const content = prevMsg.message?.conversation || prevMsg.message?.extendedTextMessage?.text || "Media Content";
+                    const log = `━━━ SAVAGE-RECOVERY ━━━\n\nSENDER: @${senderJid.split("@")[0]}\nORIGIN: ${chatJid.endsWith('@g.us') ? "Group" : "DM"}\n\nCONTENT: ${content}\n\n━━━━━━━━━━━━━━━━━━━━`;
                     const hostJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-
-                    await sock.sendMessage(hostJid, { 
-                        text: log, 
-                        mentions: [senderJid] 
-                    });
+                    await sock.sendMessage(hostJid, { text: log, mentions: [senderJid] });
                 }
             }
         }

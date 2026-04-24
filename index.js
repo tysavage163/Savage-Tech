@@ -9,6 +9,7 @@ const {
 const pino = require("pino");
 const fs = require("fs");
 const path = require("path");
+const qrcode = require("qrcode-terminal");
 
 const messagesCache = new Map();
 global.commands = new Map();
@@ -25,14 +26,12 @@ function loadCommands() {
                 global.commands.set(command.name, command);
                 console.log(`✅ Loaded: ${command.name}`);
             }
-        } catch (err) {
-            console.log(`❌ Failed: ${file}`);
-        }
+        } catch (err) {}
     }
 }
 
 async function startSavage() {
-    console.log("🚀 Starting Savage Bot...");
+    console.log("🚀 Starting bot...");
     loadCommands();
     
     const { state, saveCreds } = await useMultiFileAuthState('session');
@@ -42,48 +41,36 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
         },
-        printQRInTerminal: true,  // USING QR CODE - MORE RELIABLE
+        printQRInTerminal: false,
         logger: pino({ level: "silent" }),
         browser: ["SavageBot", "Chrome", "1.0.0"],
-        syncFullHistory: false,
-        markOnlineOnConnect: true,
-        connectTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000
     });
 
     global.sock = sock;
     sock.ev.on('creds.update', saveCreds);
 
-    // Show QR code info
+    // Generate QR code
     sock.ev.on("connection.update", (update) => {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
-            console.log("\n╔════════════════════════════════════╗");
-            console.log("║  📱 SCAN THIS QR CODE WITH WHATSAPP  ║");
-            console.log("╚════════════════════════════════════╝\n");
-            console.log("1. Open WhatsApp on your phone");
-            console.log("2. Tap Settings (3 dots or gear icon)");
-            console.log("3. Tap Linked Devices");
-            console.log("4. Tap 'Link a Device'");
-            console.log("5. Scan this QR code\n");
+            console.log("\n📱 SCAN THIS QR CODE WITH WHATSAPP:\n");
+            qrcode.generate(qr, { small: true });
+            console.log("\n1. Open WhatsApp → Settings → Linked Devices");
+            console.log("2. Tap 'Link a Device'");
+            console.log("3. Scan the QR code above\n");
         }
         
         if (connection === "open") {
-            console.log("\n✅ BOT IS ONLINE!");
-            console.log(`📌 Current prefix: ${global.prefix}`);
-            console.log(`🛡️ Anti-delete: ACTIVE`);
-            console.log(`📊 Commands loaded: ${global.commands.size}\n`);
+            console.log("\n✅ BOT ONLINE!");
+            console.log(`📌 Prefix: ${global.prefix}`);
+            console.log(`📊 Commands: ${global.commands.size}\n`);
         }
         
         if (connection === "close") {
-            const code = lastDisconnect?.error?.output?.statusCode;
-            console.log("❌ Connection closed!");
-            if (code !== DisconnectReason.loggedOut) {
-                console.log("🔄 Restarting in 5 seconds...");
+            if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
+                console.log("🔄 Restarting...");
                 setTimeout(() => startSavage(), 5000);
-            } else {
-                console.log("⚠️ Session logged out. Run: rm -rf session && node .");
             }
         }
     });
@@ -103,22 +90,14 @@ async function startSavage() {
     sock.ev.on('messages.delete', async (item) => {
         try {
             const key = item.keys[0];
-            const chatCache = messagesCache.get(key.remoteJid);
-            const cachedMsg = chatCache?.get(key.id);
-            
+            const cachedMsg = messagesCache.get(key.remoteJid)?.get(key.id);
             if (cachedMsg?.message) {
-                let content = "📎 Media Message";
-                const msg = cachedMsg.message;
-                content = msg.conversation || 
-                         msg.extendedTextMessage?.text ||
-                         msg.imageMessage?.caption ||
-                         msg.videoMessage?.caption ||
-                         "📎 Media Message";
-                
+                let content = cachedMsg.message.conversation || 
+                             cachedMsg.message.extendedTextMessage?.text || 
+                             "Media";
                 await sock.sendMessage(key.remoteJid, { 
-                    text: `🗑️ *ANTI-DELETE*\n\n💬 ${content.substring(0, 500)}` 
+                    text: `🗑️ *ANTI-DELETE*\n\n💬 ${content}` 
                 });
-                chatCache.delete(key.id);
             }
         } catch (e) {}
     });
@@ -129,9 +108,7 @@ async function startSavage() {
         if (!msg.message || msg.key.fromMe) return;
         
         const from = msg.key.remoteJid;
-        const body = msg.message.conversation || 
-                    msg.message.extendedTextMessage?.text || 
-                    "";
+        const body = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         
         if (body.startsWith(global.prefix)) {
             const args = body.slice(global.prefix.length).trim().split(/ +/);
@@ -142,16 +119,12 @@ async function startSavage() {
                 try {
                     await command.execute(sock, msg, args, from);
                 } catch (err) {
-                    console.error(`Error in ${commandName}:`, err);
-                    await sock.sendMessage(from, { text: "❌ Command error!" });
+                    await sock.sendMessage(from, { text: "❌ Error!" });
                 }
             }
         }
     });
 }
 
-startSavage().catch(err => {
-    console.error("Fatal error:", err);
-    setTimeout(() => startSavage(), 5000);
-});
+startSavage();
 EOF

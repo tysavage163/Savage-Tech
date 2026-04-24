@@ -1,7 +1,7 @@
 const yts = require('yt-search');
-const ytdl = require('ytdl-core');
-const ffmpeg = require('fluent-ffmpeg');
+const ytdl = require('@distube/ytdl-core'); // More stable than standard ytdl
 const fs = require('fs');
+const ffmpeg = require('fluent-ffmpeg');
 
 module.exports = {
     name: 'play',
@@ -10,55 +10,50 @@ module.exports = {
         const from = msg.key.remoteJid;
         const query = args.join(' ');
 
-        if (!query) return sock.sendMessage(from, { text: '🎧 *Savage-Play*: Provide a song name.' });
+        if (!query) return sock.sendMessage(from, { text: '🎵 *SΛVΛGΞ*: What are we listening to?' });
 
         try {
             const search = await yts(query);
             const video = search.videos[0];
-            if (!video) return sock.sendMessage(from, { text: '❌ Song not found.' });
+            if (!video) return sock.sendMessage(from, { text: '❌ Content not found.' });
 
-            // 1. Send the Metadata (Image + Details)
             const infoText = `
 ━━━ 「 *SAVAGE-PLAY* 」 ━━━
 🎵 *Title:* ${video.title}
 ⏳ *Duration:* ${video.timestamp}
-👤 *Channel:* ${video.author.name}
 🔗 *Link:* ${video.url}
 ━━━━━━━━━━━━━━━━━━━━
-_Sending audio file..._`;
+_Processing audio..._`;
 
+            // Send Thumbnail + Info
             await sock.sendMessage(from, { 
                 image: { url: video.thumbnail }, 
                 caption: infoText 
             }, { quoted: msg });
 
-            // 2. Process Audio
-            const stream = ytdl(video.url, { filter: 'audioonly', quality: 'highestaudio' });
+            // Download & Convert
             const filePath = `./${Date.now()}.mp3`;
+            const stream = ytdl(video.url, { filter: 'audioonly', quality: 'highestaudio' });
 
-            // We use FFmpeg to ensure the audio is encoded correctly for WhatsApp
             ffmpeg(stream)
-                .audioBitrate(128)
-                .save(filePath)
+                .toFormat('mp3')
                 .on('end', async () => {
-                    // 3. Send the verified audio file
                     await sock.sendMessage(from, { 
                         audio: fs.readFileSync(filePath), 
-                        mimetype: 'audio/mp4', // Most stable for WA
+                        mimetype: 'audio/mp4',
                         fileName: `${video.title}.mp3`
                     }, { quoted: msg });
-
-                    // Clean up temp file
-                    fs.unlinkSync(filePath);
+                    fs.unlinkSync(filePath); // Cleanup
                 })
                 .on('error', (err) => {
                     console.error(err);
-                    sock.sendMessage(from, { text: '❌ Error processing audio.' });
-                });
+                    sock.sendMessage(from, { text: '❌ Playback Error: Stream Interrupted.' });
+                })
+                .save(filePath);
 
         } catch (e) {
             console.error(e);
-            sock.sendMessage(from, { text: '❌ System Error: YouTube blocked the request.' });
+            sock.sendMessage(from, { text: '❌ YouTube blocked the connection. Try again in a moment.' });
         }
     }
 };

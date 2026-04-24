@@ -46,26 +46,34 @@ async function startSavage() {
         printQRInTerminal: false,
         logger: pino({ level: "fatal" }),
         browser: ["Ubuntu", "Chrome", "20.0.04"],
-        connectTimeoutMs: 60000, // Increased timeout to 60 seconds
-        defaultQueryTimeoutMs: 0,
+        connectTimeoutMs: 60000,
         keepAliveIntervalMs: 10000
     });
 
     if (!sock.authState.creds.registered) {
-        console.log("\n🚀 FAST-CONNECT MODE");
+        console.log("\n🚀 PERSISTENT CONNECT MODE");
         const phoneNumber = await question("📞 Number: ");
         
         if (phoneNumber) {
-            console.log(`⏳ Requesting code...`);
-            // Minimal delay just to let the socket open
-            await new Promise(r => setTimeout(r, 3000)); 
-            
-            try {
-                const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
-                console.log(`\n🔥 CODE: ${code}\n`);
-            } catch (err) {
-                console.log("❌ Timeout. Running 'node .' again is required.");
-                process.exit(1); 
+            let success = false;
+            let attempts = 0;
+
+            while (!success && attempts < 5) {
+                attempts++;
+                console.log(`⏳ Requesting code (Attempt ${attempts}/5)...`);
+                await new Promise(r => setTimeout(r, 5000)); 
+                
+                try {
+                    const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
+                    console.log(`\n🔥 PAIRING CODE: ${code}\n`);
+                    success = true;
+                } catch (err) {
+                    console.log(`❌ Attempt ${attempts} timed out. Retrying...`);
+                    if (attempts >= 5) {
+                        console.log("‼️ Critical Timeout. Please check your internet and restart.");
+                        process.exit(1);
+                    }
+                }
             }
         }
     }

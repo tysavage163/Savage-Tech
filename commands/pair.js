@@ -10,21 +10,16 @@ module.exports = {
     name: "pair",
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        const sender = msg.key.participant || msg.key.remoteJid;
-        
         let target = args[0]?.replace(/[^0-9]/g, "");
 
-        if (!target) {
-            return sock.sendMessage(from, { 
-                text: "⚡ *SYSTEM ERROR:* Provide a target number.\n*Format:* .pair 254..." 
-            }, { quoted: msg });
-        }
+        if (!target) return sock.sendMessage(from, { text: "⚡ *SYSTEM:* Provide a number. (.pair 254...)" });
 
-        await sock.sendMessage(from, { text: "🌌 *Savage-Tech:* Piercing WhatsApp firewalls... generating node access." });
+        await sock.sendMessage(from, { text: "🌌 *Savage-Tech:* Generating Neural Link..." });
 
-        const { state } = await useMultiFileAuthState(`./temp_pairs/${target}`);
-        
         try {
+            // Using a unique path for the temp session
+            const { state } = await useMultiFileAuthState(`./temp_pairs/${target}`);
+            
             const tempSock = makeWASocket({
                 auth: {
                     creds: state.creds,
@@ -38,7 +33,6 @@ module.exports = {
                 await delay(3000);
                 const code = await tempSock.requestPairingCode(target);
 
-                // 🌌 CYBER-GRID AESTHETIC
                 const responseText = `
 ╔════════════════════════╗
    ⚡ *NEURAL LINK ESTABLISHED* ⚡
@@ -46,30 +40,18 @@ module.exports = {
 ║
 ║ 💠 *NODE:* ${target}
 ║ 🧬 *AUTH:* ${code.toUpperCase().split('').join(' ')}
-║ ⏱️ *TTL:* 120 SECONDS
 ║
-╠════════════════════════╣
-║       *ACCESS PROTOCOL* ║
 ╠════════════════════════╣
 ║ 1. Open WA > Linked Devices    ║
 ║ 2. Link with phone number      ║
 ║ 3. Input the Neural Code       ║
 ╚════════════════════════╝
-   *“FORGING THE SYNDICATE”*
                 `.trim();
 
-                await sock.sendMessage(from, { 
-                    text: responseText,
-                    mentions: [sender]
-                }, { quoted: msg });
-
-                setTimeout(async () => {
-                    tempSock.ev.removeAllListeners();
-                }, 120000);
+                await sock.sendMessage(from, { text: responseText }, { quoted: msg });
             }
         } catch (err) {
-            console.error(err);
-            await sock.sendMessage(from, { text: "💀 *CRITICAL FAILURE:* Neural link rejected by host." });
+            await sock.sendMessage(from, { text: "💀 *FAILURE:* Link rejected." });
         }
     }
 };

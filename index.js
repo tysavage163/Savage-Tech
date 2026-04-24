@@ -3,127 +3,124 @@ const {
     useMultiFileAuthState,
     DisconnectReason,
     fetchLatestBaileysVersion,
-    makeCacheableSignalKeyStore
+    makeInMemoryStore,
+    jidDecode,
+    proto,
+    getContentType
 } = require("@whiskeysockets/baileys");
-
 const pino = require("pino");
+const { Boom } = require("@hapi/boom");
 const fs = require("fs");
-const qrcode = require("qrcode-terminal");
+const os = require("os");
 
-// ===== 1. SETTINGS & HIERARCHY =====
-global.prefix = "."; 
-global.architect = "254798841125"; // YOU: The God Mode
-global.commands = new Map();
-const messageStore = new Map(); // Memory for Antidelete
+const store = makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) });
+const warnings = {}; // Temporary memory for warnings
 
-// ===== 2. COMMAND LOADER =====
-const loadCommands = () => {
-    if (!fs.existsSync("./commands")) fs.mkdirSync("./commands");
-    const files = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
-    for (const file of files) {
-        try {
-            const cmd = require(`./commands/${file}`);
-            if (cmd.name) global.commands.set(cmd.name, cmd);
-        } catch (e) {
-            console.log(`❌ Error loading ${file}: ${e.message}`);
-        }
-    }
-    console.log(`✅ ${global.commands.size} Commands loaded successfully.`);
-};
-
-// ===== 3. START SYSTEM =====
 async function startSavage() {
-    // This 'session' folder ensures you NEVER have to input your phone number again
-    const { state, saveCreds } = await useMultiFileAuthState("session");
+    // --- 1. SESSION ID RESTORATION ---
+    const session_id = process.env.SESSION_ID;
+    if (session_id && session_id.startsWith("SAVAGE-TECH~")) {
+        const encodedData = session_id.split("SAVAGE-TECH~")[1];
+        if (!fs.existsSync('./session')) fs.mkdirSync('./session');
+        fs.writeFileSync('./session/creds.json', Buffer.from(encodedData, 'base64').toString());
+    }
+
+    const { state, saveCreds } = await useMultiFileAuthState('./session');
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
         version,
-        auth: {
-            creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
-        },
-        printQRInTerminal: false,
+        auth: state,
+        printQRInTerminal: true,
         logger: pino({ level: "silent" }),
-        browser: ["Savage-Tech", "Safari", "1.0.0"]
+        browser: ["Savage-Tech", "Safari", "1.0.0"],
     });
 
-    // Connection Updates
-    sock.ev.on("connection.update", (update) => {
-        const { connection, qr, lastDisconnect } = update;
-        if (qr) {
-            console.log("\n📸 SESSION NOT FOUND. SCAN TO CONNECT:\n");
-            qrcode.generate(qr, { small: true });
-        }
-        if (connection === "open") console.log("\n🚀 SAVAGE-TECH CONNECTED & READY!");
-        if (connection === "close") {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) startSavage();
-        }
-    });
-
+    store.bind(sock.ev);
     sock.ev.on("creds.update", saveCreds);
 
-    // ===== 4. MESSAGE HANDLER & HIERARCHY =====
-    sock.ev.on("messages.upsert", async (m) => {
-        const msg = m.messages?.[0];
-        if (!msg || !msg.message) return;
-
-        const from = msg.key.remoteJid;
-        const sender = msg.key.participant || msg.key.remoteJid;
-        
-        // Anti-Delete: Save message to memory
-        messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
-        // Auto-clean memory every hour
-        setTimeout(() => messageStore.delete(msg.key.id), 3600000);
-
-        // HIERARCHY CHECK
-        const isMe = msg.key.fromMe; // The Host account
-        const isArchitect = sender.includes(global.architect); // You (Architect)
-        const hasAccess = isArchitect || isMe; // High Rank Access
-
-        const text = msg.message.conversation || 
-                     msg.message.extendedTextMessage?.text || 
-                     msg.message.imageMessage?.caption || "";
-
-        if (!text.startsWith(global.prefix)) return;
-
-        const args = text.slice(global.prefix.length).trim().split(/\s+/);
-        const commandName = args.shift().toLowerCase();
-
-        const cmd = global.commands.get(commandName);
-        if (cmd) {
-            try {
-                // Execute with hierarchy context
-                await cmd.execute(sock, msg, args, { isArchitect, isMe, hasAccess });
-            } catch (e) {
-                console.error(`Error in ${commandName}:`, e);
+    // --- 2. ANTIDELETE LOGIC ---
+    sock.ev.on('messages.update', async (chatUpdate) => {
+        for (const { key, update } of chatUpdate) {
+            if (update.revoke) {
+                const delegatedMsg = await store.loadMessage(key.remoteJid, key.id);
+                if (!delegatedMsg) return;
+                const sender = delegatedMsg.key.participant || delegatedMsg.key.remoteJid;
+                await sock.sendMessage(key.remoteJid, { 
+                    text: `*🚨 ANTIDELETE!* @${sender.split('@')[0]} tried to delete a message.`,
+                    mentions: [sender]
+                }, { quoted: delegatedMsg });
+                await sock.copyNForward(key.remoteJid, delegatedMsg, false);
             }
         }
     });
 
-    // ===== 5. ANTI-DELETE LISTENER =====
-    sock.ev.on("messages.update", async (updates) => {
-        for (const update of updates) {
-            if (update.update.message === null) {
-                const key = update.key;
-                const prevMsg = messageStore.get(key.id);
-                if (!prevMsg) return;
-
-                const sender = key.participant || key.remoteJid;
-                const content = prevMsg.message.conversation || 
-                                prevMsg.message.extendedTextMessage?.text || 
-                                "Media/Image/System Message";
-
-                await sock.sendMessage(key.remoteJid, {
-                    text: `🚨 *ANTIDELETE SYSTEM* 🚨\n\n*User:* @${sender.split("@")[0]}\n*Status:* Logic Recovered\n*Message:* ${content}`,
-                    mentions: [sender]
-                }, { quoted: prevMsg });
-            }
+    sock.ev.on("connection.update", (update) => {
+        const { connection, lastDisconnect } = update;
+        if (connection === "close") {
+            let reason = new Boom(lastDisconnect?.error)?.output.statusCode;
+            if (reason !== DisconnectReason.loggedOut) startSavage();
+        } else if (connection === "open") {
+            console.log("✅ SAVAGE-TECH ONLINE | PREFIX: . | DEV: SPENCER");
         }
+    });
+
+    // --- 3. DYNAMIC COMMAND HANDLER ---
+    sock.ev.on("messages.upsert", async (chatUpdate) => {
+        try {
+            const mek = chatUpdate.messages[0];
+            if (!mek.message || mek.key.remoteJid === 'status@broadcast') return;
+            
+            const from = mek.key.remoteJid;
+            const body = mek.message.conversation || mek.message.extendedTextMessage?.text || mek.message.imageMessage?.caption || "";
+            
+            // --- PREFIX SETUP ---
+            const prefix = '.'; 
+            const isCmd = body.startsWith(prefix);
+            const command = isCmd ? body.slice(prefix.length).trim().split(' ').shift().toLowerCase() : '';
+            const args = body.trim().split(/ +/).slice(1);
+            const text = args.join(' ');
+            const pushname = mek.pushName || "User";
+
+            if (!isCmd) return;
+
+            switch (command) {
+                case 'menu':
+                    let menuText = `*⚡ SAVAGE-TECH BOT ⚡*\n\n👤 *Dev:* Spencer\n🛡️ *Antidelete:* Active\n⌨️ *Prefix:* [ ${prefix} ]\n\n*MODERATION:* \n• ${prefix}warn @user\n• ${prefix}resetwarn @user\n\n*OTHERS:* \n• ${prefix}play\n• ${prefix}owner`;
+                    await sock.sendMessage(from, { 
+                        image: { url: 'https://i.ibb.co/680pZ7V/1777019342227.jpg' }, 
+                        caption: menuText 
+                    }, { quoted: mek });
+                    break;
+
+                case 'warn':
+                    const mention = mek.message.extendedTextMessage?.contextInfo?.mentionedJid[0] || mek.key.participant;
+                    if (!mention) return sock.sendMessage(from, { text: "Tag someone to warn!" });
+                    
+                    warnings[mention] = (warnings[mention] || 0) + 1;
+                    await sock.sendMessage(from, { 
+                        text: `*⚠️ WARNING ISSUED*\n\n👤 *User:* @${mention.split('@')[0]}\n📉 *Total Warns:* ${warnings[mention]}/3`,
+                        mentions: [mention]
+                    });
+                    
+                    if (warnings[mention] >= 3) {
+                        await sock.sendMessage(from, { text: "Limit reached. User should be handled by admin." });
+                    }
+                    break;
+
+                case 'resetwarn':
+                    const target = mek.message.extendedTextMessage?.contextInfo?.mentionedJid[0];
+                    if (!target) return sock.sendMessage(from, { text: "Tag the user to reset." });
+                    warnings[target] = 0;
+                    await sock.sendMessage(from, { text: `Warns reset for @${target.split('@')[0]}`, mentions: [target] });
+                    break;
+
+                case 'owner':
+                    await sock.sendMessage(from, { text: "My Developer is *Spencer* ⚡" });
+                    break;
+            }
+        } catch (err) { console.log(err); }
     });
 }
 
-// EXECUTE LOAD & START
-loadCommands();
 startSavage();

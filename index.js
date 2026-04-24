@@ -53,27 +53,54 @@ async function startSavage() {
         },
         printQRInTerminal: false,
         logger: pino({ level: "fatal" }),
-        browser: ["Ubuntu", "Chrome", "20.0.04"]
+        browser: ["Ubuntu", "Chrome", "20.0.04"],
+        defaultQueryTimeoutMs: undefined,
+        keepAliveIntervalMs: 30000
     });
 
     global.sock = sock;
 
-    // FIXED PAIRING SECTION
+    // Wait for connection to be ready
+    let isConnected = false;
+    
+    sock.ev.on("connection.update", async (up) => {
+        if (up.connection === "open") {
+            console.log("✅ Connection established!");
+            isConnected = true;
+        }
+        
+        if (up.connection === "close") {
+            console.log("❌ Connection closed");
+            isConnected = false;
+            if (up.lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
+                console.log("🔄 Restarting in 5 seconds...");
+                setTimeout(() => startSavage(), 5000);
+            }
+        }
+    });
+
+    // Wait a bit for connection
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Handle pairing
     if (!sock.authState.creds.registered) {
         const phoneNumber = await question("\n📞 Enter phone number (e.g., 254765956776): ");
-        console.log("⏳ Requesting code...");
-        
-        // Wait for connection to stabilize
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log("⏳ Requesting pairing code...");
         
         try {
+            // Ensure socket is ready
+            await new Promise(resolve => setTimeout(resolve, 2000));
             const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
-            console.log(`\n🔥 YOUR CODE: ${code}\n`);
-            console.log("⚠️ Enter this code in WhatsApp → Settings → Linked Devices");
+            console.log(`\n🔥 YOUR PAIRING CODE: ${code}\n`);
+            console.log("📱 How to use:");
+            console.log("1. Open WhatsApp on your phone");
+            console.log("2. Go to Settings → Linked Devices");
+            console.log("3. Tap 'Link a Device'");
+            console.log("4. Enter this code\n");
         } catch (err) {
-            console.log("❌ Error:", err.message);
-            console.log("🔄 Restarting...");
-            setTimeout(() => startSavage(), 3000);
+            console.log("❌ Pairing error:", err.message);
+            console.log("🔄 Retrying in 10 seconds...");
+            setTimeout(() => startSavage(), 10000);
             return;
         }
     }
@@ -89,7 +116,6 @@ async function startSavage() {
             messagesCache.get(msg.key.remoteJid).set(msg.key.id, msg);
         }
         
-        // Handle commands
         if (!msg.message || msg.key.fromMe) return;
         
         const from = msg.key.remoteJid;
@@ -113,7 +139,6 @@ async function startSavage() {
         }
     });
 
-    // ANTI-DELETE
     sock.ev.on('messages.delete', async (item) => {
         try {
             const key = item.keys[0];
@@ -136,17 +161,16 @@ async function startSavage() {
         } catch (e) {}
     });
 
-    sock.ev.on("connection.update", (up) => {
-        if (up.connection === "open") {
-            console.log("✅ BOT ONLINE!");
-            console.log(`📌 Current prefix: ${global.prefix}`);
+    // Keep connection alive
+    setInterval(() => {
+        if (sock?.user) {
+            sock.sendPresenceUpdate('available');
         }
-        if (up.connection === "close") {
-            console.log("⚠️ Connection lost. Restarting in 5 seconds...");
-            setTimeout(() => startSavage(), 5000);
-        }
-    });
+    }, 30000);
 }
 
-startSavage();
+startSavage().catch(err => {
+    console.error("Fatal error:", err);
+    setTimeout(() => startSavage(), 5000);
+});
 EOF

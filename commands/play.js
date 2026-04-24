@@ -15,7 +15,7 @@ module.exports = {
             const video = search.videos[0];
             if (!video) return sock.sendMessage(from, { text: '❌ Video not found.' });
 
-            // 1. Fully Surrounded Musical Table
+            // 1. Fully Surrounded Musical Table (No Rocket)
             const infoText = `
 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡
 𝄞 ━━━ 「 *SAVAGE-PLAY* 」 ━━━ 𝄡
@@ -25,7 +25,6 @@ module.exports = {
 𝄞 🔗 *Link:* ${video.url} 𝄢
 𝄞                                   𝄡
 𝄞 ━━━━━━━━━━━━━━━━━━━━ 𝄡
-𝄞  _🚀 Ultra-Optimization Active..._  𝄡
 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡`;
 
             await sock.sendMessage(from, { 
@@ -33,17 +32,17 @@ module.exports = {
                 caption: infoText 
             }, { quoted: msg });
 
-            // 2. High-Speed API Fetch
-            const apiUrl = `https://api.vreden.my.id/api/ytmp3?url=${video.url}`;
+            // 2. High-Stability API Fetch
+            const apiUrl = `https://api.lolhuman.xyz/api/yt2mp3?apikey=GataDios&url=${video.url}`;
             const response = await axios.get(apiUrl);
 
-            if (response.data.status !== 200 || !response.data.result.download) {
-                throw new Error("API Limit");
+            if (!response.data || !response.data.result) {
+                throw new Error("Main API Fail");
             }
 
-            const audioUrl = response.data.result.download;
+            const audioUrl = response.data.result;
 
-            // 3. Direct Delivery
+            // 3. Direct Buffer Delivery
             await sock.sendMessage(from, { 
                 audio: { url: audioUrl }, 
                 mimetype: 'audio/mp4',
@@ -52,17 +51,17 @@ module.exports = {
 
         } catch (e) {
             console.error('Savage-Play Error:', e);
-            sock.sendMessage(from, { text: '𝄢 Playback Error: Stream Interrupted. Falling back...' });
+            sock.sendMessage(from, { text: '𝄢 Local stream failed. Attempting global bypass...' });
             
             try {
-                const fallbackUrl = `https://api.agatz.xyz/api/ytmp3?url=${encodeURIComponent(video.url)}`;
-                const res = await axios.get(fallbackUrl);
+                // Secondary High-Stability Fallback
+                const res = await axios.get(`https://pod02.9xbuddy.xyz/api/convert?url=${encodeURIComponent(args.join(' '))}`);
                 await sock.sendMessage(from, { 
-                    audio: { url: res.data.data.url }, 
+                    audio: { url: res.data.results[0].url }, 
                     mimetype: 'audio/mp4' 
                 }, { quoted: msg });
             } catch (err) {
-                sock.sendMessage(from, { text: '💀 System Error: Could not retrieve audio.' });
+                sock.sendMessage(from, { text: '💀 *SYSTEM ERROR:* YouTube is blocking our signature. Try again in 5 minutes.' });
             }
         }
     }

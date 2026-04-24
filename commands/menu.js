@@ -3,11 +3,11 @@ const os = require('os');
 module.exports = {
     name: 'menu',
     category: 'main',
-    execute: async (sock, msg, args, { hasAccess }) => {
+    execute: async (sock, msg, args) => {
         const from = msg.key.remoteJid;
         
         try {
-            // 1. CALCULATE REAL-TIME STATS
+            // 1. DYNAMIC SYSTEM CALCULATIONS
             const uptimeSeconds = process.uptime();
             const hours = Math.floor(uptimeSeconds / 3600);
             const minutes = Math.floor((uptimeSeconds % 3600) / 60);
@@ -17,7 +17,7 @@ module.exports = {
             const ramPercentage = Math.floor((usedMem / totalMem) * 100);
             const ramBar = "█".repeat(Math.floor(ramPercentage / 10)) + "░".repeat(Math.floor(10 - (ramPercentage / 10)));
 
-            // 2. BUILD CIPHER-X BODY
+            // 2. CIPHER-X ORGANIZED BODY
             const menuText = `
 ┌──╼ ◈ *SΛVΛGΞ-TECH* ◈
 │ *OWNER* : Savage
@@ -35,16 +35,20 @@ ${Array.from(global.commands.values()).map((cmd) => `│ ➥ ${cmd.name}`).join(
 
 *Master your tools or be mastered by them.*`;
 
-            // 3. SEND AS CLEAN IMAGE CAPTION
+            // 3. YOUR SPECIFIC IMAGE LINK
+            const menuImage = 'https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/0c780413-5837-4d2c-bc94-5c91851e7a93.png';
+
             await sock.sendMessage(from, { 
-                image: { url: 'https://github.com/tysavage163/Savage-Tech/raw/main/assets/spencer.jpg' }, 
+                image: { url: menuImage }, 
                 caption: menuText,
                 mentions: [msg.key.participant || from]
+            }).catch(async (err) => {
+                console.error("Image delivery failed, sending text fallback.");
+                await sock.sendMessage(from, { text: menuText });
             });
 
         } catch (error) {
-            console.error("MENU ERROR:", error);
-            await sock.sendMessage(from, { text: "❌ Menu system encountered an internal error." });
+            console.error("CRITICAL MENU ERROR:", error);
         }
     }
 };

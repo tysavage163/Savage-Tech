@@ -45,35 +45,28 @@ async function startSavage() {
         },
         printQRInTerminal: false,
         logger: pino({ level: "fatal" }),
-        browser: ["Ubuntu", "Chrome", "20.0.04"],
-        connectTimeoutMs: 60000,
-        keepAliveIntervalMs: 10000
+        // Forced high-compatibility browser string
+        browser: ["Chrome (Linux)", "Chrome", "110.0.5481.178"],
+        syncFullHistory: false,
+        markOnlineOnConnect: true,
+        connectTimeoutMs: 60000
     });
 
     if (!sock.authState.creds.registered) {
-        console.log("\n🚀 PERSISTENT CONNECT MODE");
+        console.log("\n⚡️ PRIORITY CONNECTION MODE");
         const phoneNumber = await question("📞 Number: ");
         
         if (phoneNumber) {
-            let success = false;
-            let attempts = 0;
-
-            while (!success && attempts < 5) {
-                attempts++;
-                console.log(`⏳ Requesting code (Attempt ${attempts}/5)...`);
-                await new Promise(r => setTimeout(r, 5000)); 
-                
-                try {
-                    const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
-                    console.log(`\n🔥 PAIRING CODE: ${code}\n`);
-                    success = true;
-                } catch (err) {
-                    console.log(`❌ Attempt ${attempts} timed out. Retrying...`);
-                    if (attempts >= 5) {
-                        console.log("‼️ Critical Timeout. Please check your internet and restart.");
-                        process.exit(1);
-                    }
-                }
+            console.log(`⏳ Initializing Priority Handshake...`);
+            // Brief wait for the socket to stabilize
+            await new Promise(r => setTimeout(r, 5000)); 
+            
+            try {
+                const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
+                console.log(`\n✅ SUCCESS! YOUR CODE IS: ${code}\n`);
+            } catch (err) {
+                console.log("❌ Connection lost. Re-running the script is necessary.");
+                process.exit(1); 
             }
         }
     }
@@ -100,14 +93,14 @@ async function startSavage() {
             const key = item.keys[0];
             const cached = messagesCache.get(key.remoteJid)?.get(key.id);
             if (cached) {
-                const content = cached.message.conversation || cached.message.extendedTextMessage?.text || "Media";
+                const content = cached.message.conversation || cached.message.extendedTextMessage?.text || "Media Content";
                 await sock.sendMessage(key.remoteJid, { text: `🗑️ *ANTIDELETE*\n\n💬 ${content}` });
             }
         } catch (e) { }
     });
 
     sock.ev.on("connection.update", (up) => {
-        if (up.connection === "open") console.log("✅ ONLINE");
+        if (up.connection === "open") console.log("✅ BOT ACTIVE");
         if (up.connection === "close") startSavage();
     });
 }

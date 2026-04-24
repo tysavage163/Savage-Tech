@@ -9,7 +9,7 @@ const {
 const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
-const os = require("os"); // Added for RAM calculations
+const os = require("os");
 
 // ===== 1. SETTINGS & HIERARCHY =====
 global.prefix = "."; 
@@ -17,16 +17,40 @@ global.architect = "254798841125";
 global.commands = new Map();
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
+global.antitag = "on"; // Cold response system active by default
 const messageStore = new Map(); 
 
-// ===== 2. COMMAND LOADER (UPDATED TO SYNC PROPERLY) =====
+const savageReplies = [
+    "Don't tag me unless it's a life or death situation. Even then, think twice.",
+    "Your notification isn't worth my attention.",
+    "I'm busy building; you're busy tagging. We aren't the same.",
+    "Why mention the king when you have nothing to say?",
+    "System busy. Don't disturb the silence.",
+    "You're screaming in a void I've already left.",
+    "My time is expensive. You're currently wasting it.",
+    "Error 403: Access to my attention is denied.",
+    "Did you mention me to feel important, or was there an actual point?",
+    "If I wanted your opinion, I would have programmed it into myself.",
+    "Tags are for followers. I don't follow.",
+    "You're a guest in this chat. Act like one.",
+    "I don't respond to noise. Try logic next time.",
+    "My silence was your answer. You should have taken it.",
+    "I’m the architect of this system. You’re just a data point.",
+    "Lower your tone when typing my name.",
+    "Noted. Now go back to being irrelevant.",
+    "Was that supposed to matter to me?",
+    "Checking the logs... No one asked.",
+    "Connection terminated. Your input was unnecessary."
+];
+
+// ===== 2. COMMAND LOADER (AUTO-SYNC ENABLED) =====
 const loadCommands = () => {
     global.commands.clear();
     const files = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
     for (const file of files) {
         try {
             const fullPath = require.resolve(`./commands/${file}`);
-            delete require.cache[fullPath]; // CRITICAL: This allows new commands to sync
+            delete require.cache[fullPath]; // Clears cache for instant syncing
             const cmd = require(`./commands/${file}`);
             if (cmd.name) global.commands.set(cmd.name, cmd);
         } catch (e) {
@@ -72,40 +96,49 @@ async function startSavage() {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        if (msg.key.remoteJid === "status@broadcast") {
+        const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || msg.message.imageMessage?.caption || "").trim();
+
+        // --- ANTITAG DETECTION ---
+        if (global.antitag === 'on' && !msg.key.fromMe) {
+            const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+            const isTagged = mentions.includes(sock.user.id.split(':')[0] + '@s.whatsapp.net');
+
+            if (isTagged) {
+                const reply = savageReplies[Math.floor(Math.random() * savageReplies.length)];
+                await sock.sendMessage(from, { 
+                    text: `*SΛVΛGΞ-TECH:* ${reply}`,
+                    mentions: [sender]
+                }, { quoted: msg });
+                console.log(`❄️ Antitag triggered by: ${sender}`);
+            }
+        }
+
+        // --- AUTO-VIEW STATUS ---
+        if (from === "status@broadcast") {
             if (global.autoViewStatus === "on") {
-                try {
-                    await sock.readMessages([msg.key]);
-                    console.log(`👁️ Status viewed from: ${msg.pushName || "User"}`);
-                } catch (e) {}
+                try { await sock.readMessages([msg.key]); } catch (e) {}
             }
             return; 
         }
 
-        const sender = msg.key.participant || msg.key.remoteJid;
         messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
         setTimeout(() => messageStore.delete(msg.key.id), 3600000);
-
-        const isMe = msg.key.fromMe; 
-        const isArchitect = sender.includes(global.architect); 
-        const hasAccess = isArchitect || isMe; 
-
-        const text = msg.message.conversation || 
-                     msg.message.extendedTextMessage?.text || 
-                     msg.message.imageMessage?.caption || "";
 
         if (!text.startsWith(global.prefix)) return;
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
         const commandName = args.shift().toLowerCase();
+        const isMe = msg.key.fromMe; 
+        const isArchitect = sender.includes(global.architect); 
+        const hasAccess = isArchitect || isMe; 
 
         const cmd = global.commands.get(commandName);
         if (cmd) {
             try {
                 await cmd.execute(sock, msg, args, { isArchitect, isMe, hasAccess });
-            } catch (e) {
-                console.error(`Error in ${commandName}:`, e);
-            }
+            } catch (e) { console.error(`❌ Error in ${commandName}:`, e); }
         }
     });
 
@@ -119,9 +152,8 @@ async function startSavage() {
                 const prevMsg = messageStore.get(key.id);
                 if (prevMsg) {
                     const senderJid = prevMsg.key.participant || prevMsg.key.remoteJid;
-                    const chatJid = prevMsg.key.remoteJid;
                     const content = prevMsg.message?.conversation || prevMsg.message?.extendedTextMessage?.text || "Media Content";
-                    const log = `━━━ SAVAGE-RECOVERY ━━━\n\nSENDER: @${senderJid.split("@")[0]}\nORIGIN: ${chatJid.endsWith('@g.us') ? "Group" : "DM"}\n\nCONTENT: ${content}\n\n━━━━━━━━━━━━━━━━━━━━`;
+                    const log = `━━━ SAVAGE-RECOVERY ━━━\n\nSENDER: @${senderJid.split("@")[0]}\nCONTENT: ${content}\n\n━━━━━━━━━━━━━━━━━━━━`;
                     const hostJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
                     await sock.sendMessage(hostJid, { text: log, mentions: [senderJid] });
                 }

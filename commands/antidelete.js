@@ -5,47 +5,34 @@ module.exports = {
         const from = msg.key.remoteJid;
         const mode = args[0]?.toLowerCase();
 
-        // Standardizing the input options
-        const modes = {
-            'on': 'on',
-            'public': 'public',
-            'private': 'private',
-            'off': 'off'
-        };
-
-        if (modes[mode]) {
-            global.antideleteMode = modes[mode];
-            
-            let response = "";
-            switch(modes[mode]) {
-                case 'on': 
-                    response = "🛡️ *ANTIDELETE:* ENABLED (Default Chat)"; 
-                    break;
-                case 'public': 
-                    response = "🛡️ *ANTIDELETE:* ENABLED (Sending to Chat)"; 
-                    break;
-                case 'private': 
-                    response = "🕵️ *ANTIDELETE:* STEALTH MODE (Sending to Host Only)"; 
-                    break;
-                case 'off': 
-                    response = "🔓 *ANTIDELETE:* DISABLED"; 
-                    break;
-            }
-
-            return sock.sendMessage(from, { text: response });
+        // 1. Check input
+        if (mode === 'on') {
+            global.antideleteMode = 'on';
+            return sock.sendMessage(from, { 
+                text: '🛡️ *ANTIDELETE:* ACTIVE\n\n_All recovered messages will be redirected to the Host phone in Stealth Mode._' 
+            });
         }
 
-        // Help menu if they type it wrong
+        if (mode === 'off') {
+            global.antideleteMode = 'off';
+            return sock.sendMessage(from, { 
+                text: '🔓 *ANTIDELETE:* DISABLED\n\n_Deletions will no longer be logged._' 
+            });
+        }
+
+        // 2. Help Menu (If user types .antidelete incorrectly)
+        const currentStatus = global.antideleteMode === 'on' ? 'ACTIVE 🛡️' : 'DISABLED 🔓';
+        
         const helpText = `
-*S Λ V Λ G Ξ  -  CONFIG*
+*S Λ V Λ G Ξ  -  ANTIDELETE*
 
-Usage:
-.antidelete on
-.antidelete off
-.antidelete public
-.antidelete private
+*Current Status:* ${currentStatus}
 
-*Current Mode:* ${global.antideleteMode.toUpperCase()}`;
+*Usage:*
+.antidelete on  -  Start Stealth Logs
+.antidelete off -  Stop Logging
+
+_Note: For security, all data is sent to the Host account only._`;
 
         await sock.sendMessage(from, { text: helpText });
     }

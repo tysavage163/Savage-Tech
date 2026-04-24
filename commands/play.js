@@ -1,49 +1,64 @@
 const yts = require('yt-search');
+const ytdl = require('ytdl-core');
+const ffmpeg = require('fluent-ffmpeg');
+const fs = require('fs');
 
 module.exports = {
     name: 'play',
-    async execute(sock, msg, args) {
+    category: 'media',
+    execute: async (sock, msg, args) => {
         const from = msg.key.remoteJid;
         const query = args.join(' ');
 
-        if (!query) return sock.sendMessage(from, { text: 'What do you want to hear? Provide a name or link.' });
-
-        await sock.sendMessage(from, { text: `🔍 Searching for: *${query}*...` });
+        if (!query) return sock.sendMessage(from, { text: '🎧 *Savage-Play*: Provide a song name.' });
 
         try {
             const search = await yts(query);
             const video = search.videos[0];
+            if (!video) return sock.sendMessage(from, { text: '❌ Song not found.' });
 
-            if (!video) return sock.sendMessage(from, { text: 'No results found. Try a different title.' });
-
-            const responseText = `
-*───「 SAVAGE-PLAY 」───*
+            // 1. Send the Metadata (Image + Details)
+            const infoText = `
+━━━ 「 *SAVAGE-PLAY* 」 ━━━
 🎵 *Title:* ${video.title}
 ⏳ *Duration:* ${video.timestamp}
 👤 *Channel:* ${video.author.name}
 🔗 *Link:* ${video.url}
-──────────────────
+━━━━━━━━━━━━━━━━━━━━
 _Sending audio file..._`;
 
-            // Send the info with your hardcoded thumbnail
             await sock.sendMessage(from, { 
                 image: { url: video.thumbnail }, 
-                caption: responseText 
+                caption: infoText 
             }, { quoted: msg });
 
-            // Note: For actual audio file downloading on Heroku/Termux, 
-            // you usually need ytdl-core or an API. 
-            // This sends the link and info instantly.
-            await sock.sendMessage(from, { 
-                audio: { url: video.url }, 
-                mimetype: 'audio/mp4',
-                ptt: false 
-            }, { quoted: msg });
+            // 2. Process Audio
+            const stream = ytdl(video.url, { filter: 'audioonly', quality: 'highestaudio' });
+            const filePath = `./${Date.now()}.mp3`;
+
+            // We use FFmpeg to ensure the audio is encoded correctly for WhatsApp
+            ffmpeg(stream)
+                .audioBitrate(128)
+                .save(filePath)
+                .on('end', async () => {
+                    // 3. Send the verified audio file
+                    await sock.sendMessage(from, { 
+                        audio: fs.readFileSync(filePath), 
+                        mimetype: 'audio/mp4', // Most stable for WA
+                        fileName: `${video.title}.mp3`
+                    }, { quoted: msg });
+
+                    // Clean up temp file
+                    fs.unlinkSync(filePath);
+                })
+                .on('error', (err) => {
+                    console.error(err);
+                    sock.sendMessage(from, { text: '❌ Error processing audio.' });
+                });
 
         } catch (e) {
             console.error(e);
-            await sock.sendMessage(from, { text: 'Failed to fetch the audio. Ensure the link is valid.' });
+            sock.sendMessage(from, { text: '❌ System Error: YouTube blocked the request.' });
         }
     }
 };
-

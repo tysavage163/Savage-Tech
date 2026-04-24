@@ -10,10 +10,10 @@ const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 
-// Settings
-const prefix = "."; // Change this to your preferred prefix
-const commands = new Map();
-const messageStore = new Map(); // For Anti-Delete
+// Settings - FIXED: Changed to global so commands can see them
+global.prefix = "."; 
+global.commands = new Map();
+const messageStore = new Map(); 
 
 // ===== 1. LOAD COMMANDS ONCE =====
 const loadCommands = () => {
@@ -22,12 +22,12 @@ const loadCommands = () => {
     for (const file of files) {
         try {
             const cmd = require(`./commands/${file}`);
-            if (cmd.name) commands.set(cmd.name, cmd);
+            if (cmd.name) global.commands.set(cmd.name, cmd); // Fixed to global
         } catch (e) {
             console.log(`❌ Error loading ${file}: ${e.message}`);
         }
     }
-    console.log(`✅ ${commands.size} Commands loaded into the body.`);
+    console.log(`✅ ${global.commands.size} Commands loaded into the body.`);
 };
 
 async function startSavage() {
@@ -68,22 +68,21 @@ async function startSavage() {
 
         const from = msg.key.remoteJid;
         
-        // Anti-Delete: Store message content
+        // Anti-Delete Storage
         messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
 
         const text = msg.message.conversation || 
                      msg.message.extendedTextMessage?.text || 
                      msg.message.imageMessage?.caption || "";
 
-        if (!text.startsWith(prefix)) return;
+        if (!text.startsWith(global.prefix)) return; // Fixed to global
 
-        const args = text.slice(prefix.length).trim().split(/\s+/);
+        const args = text.slice(global.prefix.length).trim().split(/\s+/);
         const commandName = args.shift().toLowerCase();
 
-        const cmd = commands.get(commandName);
+        const cmd = global.commands.get(commandName); // Fixed to global
         if (cmd) {
             try {
-                // This will reply to EVERYONE, including you
                 await cmd.execute(sock, msg, args);
             } catch (e) {
                 console.error(e);
@@ -91,7 +90,7 @@ async function startSavage() {
         }
     });
 
-    // ===== 4. ANTI-DELETE LISTENER =====
+    // ===== 4. ANTI-DELETE LISTENER (STILL HERE!) =====
     sock.ev.on("messages.update", async (updates) => {
         for (const update of updates) {
             if (update.update.message === null) {

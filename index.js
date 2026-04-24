@@ -1,130 +1,112 @@
-cat > index.js << 'EOF'
 const { 
     default: makeWASocket, 
     useMultiFileAuthState, 
     DisconnectReason,
-    makeCacheableSignalKeyStore
+    makeCacheableSignalKeyStore,
+    fetchLatestBaileysVersion
 } = require("@whiskeysockets/baileys");
-
 const pino = require("pino");
+const readline = require("readline");
 const fs = require("fs");
 const path = require("path");
-const qrcode = require("qrcode-terminal");
 
-const messagesCache = new Map();
+// Configuration
+global.prefix = "."; 
 global.commands = new Map();
-global.prefix = ".";
 
+const question = (text) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    return new Promise((resolve) => rl.question(text, (ans) => {
+        rl.close();
+        resolve(ans.trim());
+    }));
+};
+
+// --- DYNAMIC COMMAND LOADER ---
+// This lets you add new commands without touching index.js again
 function loadCommands() {
     const commandsFolder = path.join(__dirname, "commands");
     if (!fs.existsSync(commandsFolder)) fs.mkdirSync(commandsFolder);
+    
     const commandFiles = fs.readdirSync(commandsFolder).filter(file => file.endsWith('.js'));
     for (const file of commandFiles) {
         try {
             const command = require(`./commands/${file}`);
             if (command.name) {
                 global.commands.set(command.name, command);
-                console.log(`✅ Loaded: ${command.name}`);
+                console.log(`✅ Loaded command: ${command.name}`);
             }
-        } catch (err) {}
+        } catch (err) {
+            console.log(`❌ Failed to load ${file}: ${err.message}`);
+        }
     }
 }
 
 async function startSavage() {
-    console.log("🚀 Starting bot...");
     loadCommands();
-    
     const { state, saveCreds } = await useMultiFileAuthState('session');
-    
+    const { version } = await fetchLatestBaileysVersion();
+
     const sock = makeWASocket({
+        version,
         auth: {
             creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "silent" })),
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
         },
         printQRInTerminal: false,
-        logger: pino({ level: "silent" }),
-        browser: ["SavageBot", "Chrome", "1.0.0"],
+        logger: pino({ level: "fatal" }),
+        browser: ["Savage-Tech", "Chrome", "1.0.0"]
     });
 
-    global.sock = sock;
+    // --- MOBILE PAIRING LOGIC ---
+    if (!sock.authState.creds.registered) {
+        const phoneNumber = await question("📞 Enter Number (e.g., 2547XXXXXXXX): ");
+        if (phoneNumber) {
+            console.log("⏳ Requesting pairing code...");
+            setTimeout(async () => {
+                try {
+                    let code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
+                    console.log(`\n🔥 YOUR PAIRING CODE: ${code}\n`);
+                } catch (err) {
+                    console.log("❌ Handshake failed. Toggle Airplane Mode and run 'node .' again.");
+                }
+            }, 3000);
+        }
+    }
+
     sock.ev.on('creds.update', saveCreds);
 
-    // Generate QR code
-    sock.ev.on("connection.update", (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        if (qr) {
-            console.log("\n📱 SCAN THIS QR CODE WITH WHATSAPP:\n");
-            qrcode.generate(qr, { small: true });
-            console.log("\n1. Open WhatsApp → Settings → Linked Devices");
-            console.log("2. Tap 'Link a Device'");
-            console.log("3. Scan the QR code above\n");
-        }
-        
-        if (connection === "open") {
-            console.log("\n✅ BOT ONLINE!");
-            console.log(`📌 Prefix: ${global.prefix}`);
-            console.log(`📊 Commands: ${global.commands.size}\n`);
-        }
-        
-        if (connection === "close") {
-            if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
-                console.log("🔄 Restarting...");
-                setTimeout(() => startSavage(), 5000);
-            }
-        }
-    });
-
-    // Store messages
-    sock.ev.on('messages.upsert', async ({ messages }) => {
-        const msg = messages[0];
-        if (msg.key && msg.key.id && msg.key.remoteJid && !msg.key.fromMe) {
-            if (!messagesCache.has(msg.key.remoteJid)) {
-                messagesCache.set(msg.key.remoteJid, new Map());
-            }
-            messagesCache.get(msg.key.remoteJid).set(msg.key.id, msg);
-        }
-    });
-
-    // Anti-delete
-    sock.ev.on('messages.delete', async (item) => {
-        try {
-            const key = item.keys[0];
-            const cachedMsg = messagesCache.get(key.remoteJid)?.get(key.id);
-            if (cachedMsg?.message) {
-                let content = cachedMsg.message.conversation || 
-                             cachedMsg.message.extendedTextMessage?.text || 
-                             "Media";
-                await sock.sendMessage(key.remoteJid, { 
-                    text: `🗑️ *ANTI-DELETE*\n\n💬 ${content}` 
-                });
-            }
-        } catch (e) {}
-    });
-
-    // Command handler
+    // --- PREFIX COMMAND HANDLER ---
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
         if (!msg.message || msg.key.fromMe) return;
-        
+
         const from = msg.key.remoteJid;
         const body = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         
         if (body.startsWith(global.prefix)) {
             const args = body.slice(global.prefix.length).trim().split(/ +/);
-            const commandName = args.shift().toLowerCase();
-            const command = global.commands.get(commandName);
-            
+            const cmdName = args.shift().toLowerCase();
+            const command = global.commands.get(cmdName);
+
             if (command) {
                 try {
-                    await command.execute(sock, msg, args, from);
+                    await command.execute(sock, msg, args);
                 } catch (err) {
-                    await sock.sendMessage(from, { text: "❌ Error!" });
+                    console.log(`Error in command ${cmdName}:`, err);
                 }
             }
+        }
+    });
+
+    sock.ev.on("connection.update", (up) => {
+        const { connection, lastDisconnect } = up;
+        if (connection === "open") console.log("✅ BOT CONNECTED & READY");
+        if (connection === "close") {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            if (shouldReconnect) startSavage();
         }
     });
 }
 
 startSavage();
-EOF

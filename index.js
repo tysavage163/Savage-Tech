@@ -12,9 +12,9 @@ const qrcode = require("qrcode-terminal");
 
 // ===== 1. SETTINGS & HIERARCHY =====
 global.prefix = "."; 
-global.architect = "254798841125"; // YOU: The Creator
+global.architect = "254798841125"; // YOU: God Mode
 global.commands = new Map();
-global.antideleteMode = "on"; // Default mode
+global.antideleteMode = "on"; // Default to Stealth On
 const messageStore = new Map(); // Memory for Antidelete
 
 // ===== 2. COMMAND LOADER =====
@@ -71,4 +71,84 @@ async function startSavage() {
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
         
-        // Anti-Delete: Deep copy message
+        // Anti-Delete: Store message for recovery
+        messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
+        setTimeout(() => messageStore.delete(msg.key.id), 3600000);
+
+        const isMe = msg.key.fromMe; 
+        const isArchitect = sender.includes(global.architect); 
+        const hasAccess = isArchitect || isMe; 
+
+        const text = msg.message.conversation || 
+                     msg.message.extendedTextMessage?.text || 
+                     msg.message.imageMessage?.caption || "";
+
+        if (!text.startsWith(global.prefix)) return;
+
+        const args = text.slice(global.prefix.length).trim().split(/\s+/);
+        const commandName = args.shift().toLowerCase();
+
+        const cmd = global.commands.get(commandName);
+        if (cmd) {
+            try {
+                await cmd.execute(sock, msg, args, { isArchitect, isMe, hasAccess });
+            } catch (e) {
+                console.error(`Error in ${commandName}:`, e);
+            }
+        }
+    });
+
+    // ===== 5. ANTI-DELETE ENGINE (STEALTH HOST-ONLY) =====
+    sock.ev.on("messages.update", async (updates) => {
+        for (const update of updates) {
+            // Check for Protocol Message (Type 0) or Nulled Message
+            const isDelete = update.update.protocolMessage?.type === 0 || update.update.message === null;
+            
+            if (isDelete) {
+                if (!global.antideleteMode || global.antideleteMode === "off") return;
+
+                const key = update.key || update.update.protocolMessage?.key;
+                const prevMsg = messageStore.get(key.id);
+                
+                if (prevMsg) {
+                    const sender = prevMsg.key.participant || prevMsg.key.remoteJid;
+                    const isGroup = key.remoteJid.endsWith('@g.us');
+                    const chatName = isGroup ? "Group Chat" : "Private DM";
+                    
+                    const content = prevMsg.message?.conversation || 
+                                    prevMsg.message?.extendedTextMessage?.text || 
+                                    prevMsg.message?.imageMessage?.caption || 
+                                    "Media Content Detected";
+
+                    const timeReceived = new Date(prevMsg.messageTimestamp * 1000).toLocaleTimeString();
+
+                    // RADIOACTIVE CUSTOM TABLE
+                    const log = `
+-=☢-=☢-=☢-=☢-=☢-=☢-=☢-
+*🛡️ S Λ V Λ G Ξ  STEALTH RECOVERY*
+
+*👤 SENDER:* @${sender.split("@")[0]}
+*📍 CHAT:* ${chatName}
+*🕒 RECEIVED:* ${timeReceived}
+*📁 STATUS:* HOST-ONLY REDIRECT
+
+*💬 DELETED MESSAGE:*
+> ${content}
+
+-=☢-=☢-=☢-=☢-=☢-=☢-=☢-`;
+
+                    // FORCED HOST ROUTING: Always sends to the account logged into the bot
+                    const hostJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+
+                    await sock.sendMessage(hostJid, { 
+                        text: log, 
+                        mentions: [sender] 
+                    });
+                }
+            }
+        }
+    });
+}
+
+loadCommands();
+startSavage();

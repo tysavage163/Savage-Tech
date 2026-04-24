@@ -49,12 +49,14 @@ module.exports = {
 _“The grid is yours to command.”_`;
 
         try {
+            // Updated with your working ibb.co link
             await sock.sendMessage(from, { 
-                image: { url: "https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/0c780413-5837-4d2c-bc94-5c91851e7a93.png" }, 
+                image: { url: "https://i.ibb.co/m5vwwQDR/IMG-20260424-WA0110.webp" }, 
                 caption: menuText,
                 mentions: [userJid]
             }, { quoted: msg });
         } catch (e) {
+            // Text-only fallback to prevent crashing
             await sock.sendMessage(from, { text: menuText, mentions: [userJid] }, { quoted: msg });
         }
     }

@@ -1,44 +1,52 @@
 module.exports = {
     name: 'antidelete',
-    async execute(sock, msg, args) {
+    category: 'admin',
+    execute: async (sock, msg, args) => {
         const from = msg.key.remoteJid;
-        const sender = msg.key.participant || msg.key.remoteJid;
-
-        const supremeDeveloper = '254798841125@s.whatsapp.net';
-        const localOwner = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-        const isBoss = (sender === supremeDeveloper || sender === localOwner || msg.key.fromMe);
-
-        if (!isBoss) {
-            return sock.sendMessage(from, { text: "🚫 *ACCESS DENIED.*" });
-        }
-
         const mode = args[0]?.toLowerCase();
 
-        // Handle ".antidelete on" or ".antidelete chat"
-        if (mode === 'on' || mode === 'chat') {
-            global.antiDelete = 'chat';
-            await sock.sendMessage(from, { 
-                text: "🛡️ *GHOST PROTOCOL: ON*\nMode: [ CHAT ]\nStatus: Recovered messages will be re-posted publicly." 
-            });
-        } 
-        // Handle ".antidelete private"
-        else if (mode === 'private') {
-            global.antiDelete = 'private';
-            await sock.sendMessage(from, { 
-                text: "🕵️ *GHOST PROTOCOL: ON*\nMode: [ PRIVATE ]\nStatus: Recovered messages sent only to the Architect." 
-            });
-        } 
-        // Handle ".antidelete off"
-        else if (mode === 'off') {
-            global.antiDelete = 'off';
-            await sock.sendMessage(from, { 
-                text: "🚫 *GHOST PROTOCOL: OFF*\nStatus: Deletion tracking disabled." 
-            });
-        } 
-        else {
-            await sock.sendMessage(from, { 
-                text: `*ANTI-DELETE OPTIONS:*\n\n1. ${global.prefix}antidelete on (Chat Mode)\n2. ${global.prefix}antidelete private\n3. ${global.prefix}antidelete off` 
-            });
+        // Standardizing the input options
+        const modes = {
+            'on': 'on',
+            'public': 'public',
+            'private': 'private',
+            'off': 'off'
+        };
+
+        if (modes[mode]) {
+            global.antideleteMode = modes[mode];
+            
+            let response = "";
+            switch(modes[mode]) {
+                case 'on': 
+                    response = "🛡️ *ANTIDELETE:* ENABLED (Default Chat)"; 
+                    break;
+                case 'public': 
+                    response = "🛡️ *ANTIDELETE:* ENABLED (Sending to Chat)"; 
+                    break;
+                case 'private': 
+                    response = "🕵️ *ANTIDELETE:* STEALTH MODE (Sending to Host Only)"; 
+                    break;
+                case 'off': 
+                    response = "🔓 *ANTIDELETE:* DISABLED"; 
+                    break;
+            }
+
+            return sock.sendMessage(from, { text: response });
         }
+
+        // Help menu if they type it wrong
+        const helpText = `
+*S Λ V Λ G Ξ  -  CONFIG*
+
+Usage:
+.antidelete on
+.antidelete off
+.antidelete public
+.antidelete private
+
+*Current Mode:* ${global.antideleteMode.toUpperCase()}`;
+
+        await sock.sendMessage(from, { text: helpText });
     }
 };

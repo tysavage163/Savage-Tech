@@ -8,6 +8,7 @@ const {
 const pino = require("pino");
 const fs = require("fs");
 const path = require("path");
+const qrcode = require("qrcode-terminal");
 
 const messagesCache = new Map();
 global.commands = new Map();
@@ -34,10 +35,22 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
         },
-        // --- QR CODE ENABLED ---
-        printQRInTerminal: true, 
         logger: pino({ level: "fatal" }),
         browser: ["Savage-Tech", "Safari", "1.0.0"]
+    });
+
+    // --- QR CODE LISTENER ---
+    sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect, qr } = update;
+        if (qr) {
+            console.log("📸 SCAN THIS QR CODE:");
+            qrcode.generate(qr, { small: true });
+        }
+        if (connection === "open") console.log("✅ BOT CONNECTED!");
+        if (connection === "close") {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            if (shouldReconnect) startSavage();
+        }
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -48,26 +61,6 @@ async function startSavage() {
         const from = msg.key.remoteJid;
         if (!messagesCache.has(from)) messagesCache.set(from, new Map());
         messagesCache.get(from).set(msg.key.id, msg);
-    });
-
-    sock.ev.on('messages.delete', async (item) => {
-        try {
-            const key = item.keys[0];
-            const cached = messagesCache.get(key.remoteJid)?.get(key.id);
-            if (cached && cached.message) {
-                const content = cached.message.conversation || cached.message.extendedTextMessage?.text || "Media Message";
-                await sock.sendMessage(key.remoteJid, { text: `🗑️ *ANTIDELETE*\n\n💬 ${content}` });
-            }
-        } catch (e) { }
-    });
-
-    sock.ev.on("connection.update", (up) => {
-        const { connection, lastDisconnect } = up;
-        if (connection === "open") console.log("✅ BOT CONNECTED SUCCESSFULLY");
-        if (connection === "close") {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) startSavage();
-        }
     });
 }
 

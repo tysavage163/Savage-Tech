@@ -1,61 +1,39 @@
-<p align="center">
-  <img src="https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/ea9c9da6-c359-4917-aff9-b49b39daa665.jpg" alt="Savage-Tech" width="400">
-</p>
+<div align="center">
 
-<h1 align="center">⚡ SAVAGE-TECH V1 ⚡</h1>
+# 🛡️ SΛVΛGΞ-TECH V1 🛡️
 
-<p align="center">
-  <kbd>HIGH-PERFORMANCE WHATSAPP AUTOMATION ENGINE</kbd>
-</p>
+<img src="https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/0c780413-5837-4d2c-bc94-5c91851e7a93.png" width="100%" />
 
-<p align="center">
-  <a href="https://github.com/YOUR_USERNAME/YOUR_REPO_NAME/fork">
-    <img src="https://img.shields.io/badge/FORK%20REPOSITORY-0000FF?style=for-the-badge&logo=github&logoColor=white" />
-  </a>
-</p>
+<a href="https://git.io/typing-svg">
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&pause=1000&color=A020F0&center=true&vCenter=true&width=435&lines=BUILT+BY+SPENCER;INSPIRED+BY+MERYL;HIGH-PERFORMANCE+ENGINE;WESTLANDS+ROOT+AUTHORITY;ZERO+FOOTPRINT+EXECUTION" alt="Typing SVG" />
+</a>
+
+[![Fork Repository](https://img.shields.io/badge/FORK-REPOSITORY-8A2BE2?style=for-the-badge&logo=github)](https://github.com/tysavage163/Savage-Tech/fork)
 
 ---
 
-### 📡 System Architecture
-> **Engineered with Cypher X encryption for absolute system integrity.**
+</div>
 
-Savage-Tech operates as a self-sustaining command ecosystem. Designed for those who prioritize undivided attention and move with strategic independence, the system is built on a modular architecture that ensures total authority and zero-footprint execution.
+### 📡 System Architecture
+> **"Authority isn't given, it's taken."**
+
+Savage-Tech operates as a self-sustaining command ecosystem. Designed for those who move with strategic independence, this modular architecture ensures total control and encrypted execution.
+
+---
+
+### 👑 Developer Core
+* **Architect:** Spencer
+* **Location:** Westlands, Nairobi
+* **Theme:** Purple Neon / Dark Architect
 
 ---
 
 ### 🛠️ Strategic Deployment
-
-#### 1. SESSION ID
-Initialize your connection to the ecosystem.
-<p align="center">
-  <a href="YOUR_SESSION_LINK">
-    <img src="https://img.shields.io/badge/LET'S%20GO-8B0000?style=for-the-badge&logo=powershell&logoColor=white" />
-  </a>
-</p>
-
-#### 2. DEPLOY TO SERVERS
-| SERVER 1 | SERVER 2 |
-| :---: | :---: |
-| [![S1](https://img.shields.io/badge/SERVER--1-red?style=for-the-badge)](LINK1) | [![S2](https://img.shields.io/badge/SERVER--2-red?style=for-the-badge)](LINK2) |
-
-| SERVER 3 | SERVER 4 |
-| :---: | :---: |
-| [![S3](https://img.shields.io/badge/SERVER--3-red?style=for-the-badge)](LINK3) | [![S4](https://img.shields.io/badge/SERVER--4-red?style=for-the-badge)](LINK4) |
+1. `pkg install nodejs git -y`
+2. `git clone https://github.com/tysavage163/Savage-Tech`
+3. `node index.js`
 
 ---
-
-## 🗂️ Project Structure
-* `index.js` - The Core Engine
-* `package.json` - Dependency Manifest
-* `commands/` - Modular Command Logic
----
-
-<p align="center">
-  <b>SAVAGE-TECH V1</b> <br>
-  <i>Created by <b>Spencer</b> with undivided attention.</i>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/STRATEGIC-INDEPENDENCE-black?style=flat-square" />
-  <img src="https://img.shields.io/badge/ZERO-FOOTPRINT-black?style=flat-square" />
-</p>
+<div align="center">
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=14&pause=1000&color=8A2BE2&center=true&vCenter=true&width=435&lines=Proprietary+system+under+Spencer's+command." />
+</div>

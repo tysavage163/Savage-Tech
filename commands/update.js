@@ -1,61 +1,59 @@
-const { exec } = require('child_process');
+const { exec } = require("child_process");
 
 module.exports = {
-    name: 'update',
-    async execute(sock, msg, args) {
+    name: "update",
+    async execute(sock, msg, args, { hasAccess }) {
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
-        
-        // 🆔 IDENTITY CHECK
-        const supremeDeveloper = '254798841125@s.whatsapp.net';
-        const localOwner = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-        const isBoss = (sender === supremeDeveloper || sender === localOwner || msg.key.fromMe);
 
-        if (!isBoss) {
-            return sock.sendMessage(from, { text: "❌ *Access Denied.* Only the Architect can authorize a Neural Upgrade." });
+        // 🛡️ SECURITY GATE
+        if (!hasAccess) {
+            return sock.sendMessage(from, { 
+                text: "🚫 *ACCESS DENIED:* Only the Architect or Host can trigger a system synchronization." 
+            }, { quoted: msg });
         }
 
         // ⚡ POWER-UP QUOTES
-        const upgradeQuotes = [
-            "🌀 *Neural pathways expanding... The evolution is inevitable.*",
-            "⚡ *Power levels surging. Initiating core code overwrite.*",
-            "🛡️ *Optimizing combat protocols... A superior version is manifesting.*",
-            "🌌 *Breaking limits. The system is transcending its current form.*"
+        const quotes = [
+            "“The limit of my language means the limit of my world.”",
+            "“Evolution is a process, not an event.”",
+            "“True power is the ability to redefine oneself.”",
+            "“Breaking the shell to let the dragon fly.”"
         ];
-        const randomQuote = upgradeQuotes[Math.floor(Math.random() * upgradeQuotes.length)];
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
-        await sock.sendMessage(from, { text: `🛰️ *SAVAGE-TECH UPGRADE:*\n\n"${randomQuote}"\n\n> Fetching updates from GitHub...` });
+        await sock.sendMessage(from, { text: "📡 *System:* Contacting core server... preparing for evolution." }, { quoted: msg });
 
-        // 🛠️ EXECUTE GIT PULL
-        exec('git pull', (err, stdout, stderr) => {
+        // ⚙️ EXECUTE GIT PULL
+        exec("git pull", (err, stdout, stderr) => {
             if (err) {
-                return sock.sendMessage(from, { text: `❌ *Upgrade Failed:* ${err.message}` });
-            }
-            
-            if (stdout.includes('Already up to date.')) {
-                return sock.sendMessage(from, { text: "💎 *System Perfection:* No updates found. The current version is already at its peak." });
+                return sock.sendMessage(from, { text: `❌ *Update Failed:* ${err.message}` }, { quoted: msg });
             }
 
-            const successMessage = `
-┎──────────────────────────╼
-┃   🔥 𝐒𝐘𝐒𝐓𝐄𝐌 𝐔𝐏𝐆𝐑𝐀𝐃𝐄𝐃 🔥  
-┖──────────────────────────╼
-┃
-┃ 🟢 *EVOLUTION:* COMPLETE
-┃ 🧬 *MODIFICATIONS:* ┃ ${stdout}
-┃
-┃ ⚠️ *NOTICE:* Rebooting to integrate 
-┃ new power levels...
-┖──────────────────────────╼
-`;
+            // 📊 COOL UPGRADE BOX STRUCTURE
+            const responseText = `
+╔══════════════════════╗
+       🧬 *SYSTEM EVOLUTION* 🧬
+╠══════════════════════╣
+║
+║ 🟢 *CORE STATUS:* OPTIMIZED
+║ 📡 *PROTOCOL:* SYNCED
+║ 👤 *AUTHOR:* ARCHITECT
+║
+╠══════════════════════╣
+   *“MAJOR UPGRADE INCOMING”*
+   ${randomQuote}
+╚══════════════════════╝
+_Initiating reboot sequence..._
+            `.trim();
 
-            sock.sendMessage(from, { text: successMessage });
-
-            // 🔄 AUTO-RESTART 
-            // Bot shuts down to apply the "Major Power Up"
-            setTimeout(() => {
-                process.exit();
-            }, 3000);
+            sock.sendMessage(from, { 
+                text: responseText, 
+                mentions: [sender] 
+            }, { quoted: msg }).then(() => {
+                // Kill process to trigger restart
+                process.exit(); 
+            });
         });
     }
 };

@@ -45,24 +45,26 @@ async function startSavage() {
         },
         printQRInTerminal: false,
         logger: pino({ level: "fatal" }),
-        // Using a more stable browser string
-        browser: ["Mac OS", "Chrome", "110.0.5481.178"]
+        browser: ["Ubuntu", "Chrome", "20.0.04"],
+        connectTimeoutMs: 60000, // Increased timeout to 60 seconds
+        defaultQueryTimeoutMs: 0,
+        keepAliveIntervalMs: 10000
     });
 
     if (!sock.authState.creds.registered) {
-        console.log("\n⚠️ PAUSE: SETUP MODE ACTIVE");
-        const phoneNumber = await question("📞 Enter your phone number (e.g., 2547XXXXXXXX): ");
+        console.log("\n🚀 FAST-CONNECT MODE");
+        const phoneNumber = await question("📞 Number: ");
         
         if (phoneNumber) {
-            console.log(`⏳ Opening handshake with WhatsApp...`);
-            // Slightly longer delay to allow the network to stabilize
-            await new Promise(r => setTimeout(r, 7000)); 
+            console.log(`⏳ Requesting code...`);
+            // Minimal delay just to let the socket open
+            await new Promise(r => setTimeout(r, 3000)); 
             
             try {
                 const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
-                console.log(`\n🔥 YOUR PAIRING CODE: ${code}\n`);
+                console.log(`\n🔥 CODE: ${code}\n`);
             } catch (err) {
-                console.log("❌ Connection timed out. Let's try one more time...");
+                console.log("❌ Timeout. Running 'node .' again is required.");
                 process.exit(1); 
             }
         }
@@ -90,19 +92,15 @@ async function startSavage() {
             const key = item.keys[0];
             const cached = messagesCache.get(key.remoteJid)?.get(key.id);
             if (cached) {
-                const content = cached.message.conversation || cached.message.extendedTextMessage?.text || "Media Content";
+                const content = cached.message.conversation || cached.message.extendedTextMessage?.text || "Media";
                 await sock.sendMessage(key.remoteJid, { text: `🗑️ *ANTIDELETE*\n\n💬 ${content}` });
             }
         } catch (e) { }
     });
 
     sock.ev.on("connection.update", (up) => {
-        if (up.connection === "open") console.log("✅ SAVAGE-TECH ONLINE");
-        if (up.connection === "close") {
-            if (up.lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
-                startSavage();
-            }
-        }
+        if (up.connection === "open") console.log("✅ ONLINE");
+        if (up.connection === "close") startSavage();
     });
 }
 

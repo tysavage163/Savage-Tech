@@ -15,7 +15,7 @@ global.prefix = ".";
 global.architect = "254798841125"; // YOU: God Mode
 global.commands = new Map();
 global.antideleteMode = "on"; 
-global.autoViewStatus = "on"; // <--- NEW: Global Toggle
+global.autoViewStatus = "on"; 
 const messageStore = new Map(); 
 
 // ===== 2. COMMAND LOADER =====
@@ -69,7 +69,7 @@ async function startSavage() {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // --- MODULAR AUTO-VIEW STATUS ---
+        // --- AUTO-VIEW STATUS ---
         if (msg.key.remoteJid === "status@broadcast") {
             if (global.autoViewStatus === "on") {
                 try {
@@ -85,4 +85,89 @@ async function startSavage() {
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
         
+        // Anti-Delete Storage (1 Hour Cache)
         messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
+        setTimeout(() => messageStore.delete(msg.key.id), 3600000);
+
+        const isMe = msg.key.fromMe; 
+        const isArchitect = sender.includes(global.architect); 
+        const hasAccess = isArchitect || isMe; 
+
+        const text = msg.message.conversation || 
+                     msg.message.extendedTextMessage?.text || 
+                     msg.message.imageMessage?.caption || "";
+
+        if (!text.startsWith(global.prefix)) return;
+
+        const args = text.slice(global.prefix.length).trim().split(/\s+/);
+        const commandName = args.shift().toLowerCase();
+
+        const cmd = global.commands.get(commandName);
+        if (cmd) {
+            try {
+                await cmd.execute(sock, msg, args, { isArchitect, isMe, hasAccess });
+            } catch (e) {
+                console.error(`Error in ${commandName}:`, e);
+            }
+        }
+    });
+
+    // ===== 5. ANTI-DELETE ENGINE (PRECISION LOGGING) =====
+    sock.ev.on("messages.update", async (updates) => {
+        for (const update of updates) {
+            const isDelete = update.update.protocolMessage?.type === 0 || update.update.message === null;
+            
+            if (isDelete) {
+                if (!global.antideleteMode || global.antideleteMode === "off") return;
+
+                const key = update.key || update.update.protocolMessage?.key;
+                const prevMsg = messageStore.get(key.id);
+                
+                if (prevMsg) {
+                    const senderJid = prevMsg.key.participant || prevMsg.key.remoteJid;
+                    const chatJid = prevMsg.key.remoteJid;
+                    const isGroup = chatJid.endsWith('@g.us');
+                    
+                    let locationName = "Private DM";
+                    if (isGroup) {
+                        try {
+                            const groupMeta = await sock.groupMetadata(chatJid);
+                            locationName = `Group: ${groupMeta.subject}`;
+                        } catch {
+                            locationName = "Specific Group";
+                        }
+                    }
+
+                    const content = prevMsg.message?.conversation || 
+                                    prevMsg.message?.extendedTextMessage?.text || 
+                                    prevMsg.message?.imageMessage?.caption || 
+                                    "📷 Media Content";
+
+                    const timeReceived = new Date(prevMsg.messageTimestamp * 1000).toLocaleTimeString();
+
+                    const log = `
+━━━ 「 *SAVAGE-RECOVERY* 」 ━━━
+
+👤 *SENDER:* @${senderJid.split("@")[0]}
+📍 *ORIGIN:* ${locationName}
+🕒 *TIME:* ${timeReceived}
+
+💬 *DELETED:* > ${content}
+
+━━━━━━━━━━━━━━━━━━━━`;
+
+                    const hostJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+
+                    await sock.sendMessage(hostJid, { 
+                        text: log, 
+                        mentions: [senderJid] 
+                    });
+                }
+            }
+        }
+    });
+}
+
+// ===== 6. BOOT =====
+loadCommands();
+startSavage();

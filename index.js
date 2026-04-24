@@ -14,6 +14,7 @@ const qrcode = require("qrcode-terminal");
 global.prefix = "."; 
 global.architect = "254798841125"; // YOU: The God Mode
 global.commands = new Map();
+global.antideleteMode = "chat"; // Default mode
 const messageStore = new Map(); // Memory for Antidelete
 
 // ===== 2. COMMAND LOADER =====
@@ -33,7 +34,6 @@ const loadCommands = () => {
 
 // ===== 3. START SYSTEM =====
 async function startSavage() {
-    // This 'session' folder ensures you NEVER have to input your phone number again
     const { state, saveCreds } = await useMultiFileAuthState("session");
     const { version } = await fetchLatestBaileysVersion();
 
@@ -48,7 +48,6 @@ async function startSavage() {
         browser: ["Savage-Tech", "Safari", "1.0.0"]
     });
 
-    // Connection Updates
     sock.ev.on("connection.update", (update) => {
         const { connection, qr, lastDisconnect } = update;
         if (qr) {
@@ -72,15 +71,13 @@ async function startSavage() {
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
         
-        // Anti-Delete: Save message to memory
+        // Anti-Delete: Save deep copy to memory
         messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
-        // Auto-clean memory every hour
         setTimeout(() => messageStore.delete(msg.key.id), 3600000);
 
-        // HIERARCHY CHECK
-        const isMe = msg.key.fromMe; // The Host account
-        const isArchitect = sender.includes(global.architect); // You (Architect)
-        const hasAccess = isArchitect || isMe; // High Rank Access
+        const isMe = msg.key.fromMe; 
+        const isArchitect = sender.includes(global.architect); 
+        const hasAccess = isArchitect || isMe; 
 
         const text = msg.message.conversation || 
                      msg.message.extendedTextMessage?.text || 
@@ -94,7 +91,6 @@ async function startSavage() {
         const cmd = global.commands.get(commandName);
         if (cmd) {
             try {
-                // Execute with hierarchy context
                 await cmd.execute(sock, msg, args, { isArchitect, isMe, hasAccess });
             } catch (e) {
                 console.error(`Error in ${commandName}:`, e);
@@ -102,28 +98,53 @@ async function startSavage() {
         }
     });
 
-    // ===== 5. ANTI-DELETE LISTENER =====
+    // ===== 5. ANTI-DELETE ENGINE (ON/OFF/CHAT/PRIVATE) =====
     sock.ev.on("messages.update", async (updates) => {
         for (const update of updates) {
-            if (update.update.message === null) {
-                const key = update.key;
+            // Check for Protocol Message (Type 0 = Deletion)
+            if (update.update.protocolMessage && update.update.protocolMessage.type === 0) {
+                
+                if (!global.antideleteMode || global.antideleteMode === "off") return;
+
+                const key = update.update.protocolMessage.key;
                 const prevMsg = messageStore.get(key.id);
                 if (!prevMsg) return;
 
-                const sender = key.participant || key.remoteJid;
+                const sender = prevMsg.key.participant || prevMsg.key.remoteJid;
                 const content = prevMsg.message.conversation || 
                                 prevMsg.message.extendedTextMessage?.text || 
-                                "Media/Image/System Message";
+                                "Media/Image/Document";
 
-                await sock.sendMessage(key.remoteJid, {
-                    text: `🚨 *ANTIDELETE SYSTEM* 🚨\n\n*User:* @${sender.split("@")[0]}\n*Status:* Logic Recovered\n*Message:* ${content}`,
-                    mentions: [sender]
+                const log = `
+*🛡️ S Λ V Λ G Ξ  -  A N T I D E L E T E*
+
+| INFO | DETAILS |
+| :--- | :--- |
+| 👤 *User* | @${sender.split("@")[0]} |
+| 🕒 *Time* | ${new Date().toLocaleTimeString()} |
+| 📁 *Mode* | ${global.antideleteMode.toUpperCase()} |
+
+*💬 RESTORED CONTENT:*
+> ${content}
+
+_Master your tools or be mastered by them._`;
+
+                // ROUTING
+                let targetJid;
+                if (global.antideleteMode === "private") {
+                    targetJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+                } else {
+                    targetJid = key.remoteJid;
+                }
+
+                await sock.sendMessage(targetJid, { 
+                    text: log, 
+                    mentions: [sender] 
                 }, { quoted: prevMsg });
             }
         }
     });
 }
 
-// EXECUTE LOAD & START
 loadCommands();
 startSavage();

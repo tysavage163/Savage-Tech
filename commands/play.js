@@ -15,34 +15,34 @@ module.exports = {
             const video = search.videos[0];
             if (!video) return sock.sendMessage(from, { text: '❌ Video not found.' });
 
-            // 1. Fully Surrounded Musical Table (No Rocket)
+            // 1. Fully Surrounded Musical Table
             const infoText = `
-𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡
-𝄞 ━━━ 「 *SAVAGE-PLAY* 」 ━━━ 𝄡
-𝄞                                   𝄡
-𝄞 🎵 *Title:* ${video.title} 𝄢
-𝄞 ⏳ *Duration:* ${video.timestamp} 𝄢
-𝄞 🔗 *Link:* ${video.url} 𝄢
-𝄞                                   𝄡
-𝄞 ━━━━━━━━━━━━━━━━━━━━ 𝄡
-𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡`;
+    𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡
+    𝄞 ━━━ 「 *SAVAGE-PLAY* 」 ━━━ 𝄡
+    𝄞                                   𝄡
+    𝄞 🎵 *Title:* ${video.title} 𝄢
+    𝄞 ⏳ *Duration:* ${video.timestamp} 𝄢
+    𝄞 🔗 *Link:* ${video.url} 𝄢
+    𝄞                                   𝄡
+    𝄞 ━━━━━━━━━━━━━━━━━━━━ 𝄡
+    𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡`;
 
             await sock.sendMessage(from, { 
                 image: { url: video.thumbnail }, 
                 caption: infoText 
             }, { quoted: msg });
 
-            // 2. High-Stability API Fetch
-            const apiUrl = `https://api.lolhuman.xyz/api/yt2mp3?apikey=GataDios&url=${video.url}`;
-            const response = await axios.get(apiUrl);
-
-            if (!response.data || !response.data.result) {
-                throw new Error("Main API Fail");
+            // 2. Fetch using a Public High-Stability API
+            // This endpoint currently bypasses the need for a private key
+            const res = await axios.get(`https://api.vreden.my.id/api/ytmp3?url=${video.url}`);
+            
+            if (!res.data || !res.data.result || !res.data.result.download) {
+                throw new Error("API Route Blocked");
             }
 
-            const audioUrl = response.data.result;
+            const audioUrl = res.data.result.download;
 
-            // 3. Direct Buffer Delivery
+            // 3. Direct Delivery
             await sock.sendMessage(from, { 
                 audio: { url: audioUrl }, 
                 mimetype: 'audio/mp4',
@@ -51,17 +51,16 @@ module.exports = {
 
         } catch (e) {
             console.error('Savage-Play Error:', e);
-            sock.sendMessage(from, { text: '𝄢 Local stream failed. Attempting global bypass...' });
             
+            // Fallback for when the first API is down
             try {
-                // Secondary High-Stability Fallback
-                const res = await axios.get(`https://pod02.9xbuddy.xyz/api/convert?url=${encodeURIComponent(args.join(' '))}`);
+                const fallback = await axios.get(`https://api.agatz.xyz/api/ytmp3?url=${encodeURIComponent(query)}`);
                 await sock.sendMessage(from, { 
-                    audio: { url: res.data.results[0].url }, 
+                    audio: { url: fallback.data.data.url }, 
                     mimetype: 'audio/mp4' 
                 }, { quoted: msg });
             } catch (err) {
-                sock.sendMessage(from, { text: '💀 *SYSTEM ERROR:* YouTube is blocking our signature. Try again in 5 minutes.' });
+                sock.sendMessage(from, { text: '💀 *SYSTEM ERROR:* All music nodes are currently congested. Try again in a minute.' });
             }
         }
     }

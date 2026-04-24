@@ -6,6 +6,7 @@ const {
     jidNormalizedUser
 } = require("@whiskeysockets/baileys");
 
+// --- UNIVERSAL IMPORT FIX ---
 const Baileys = require("@whiskeysockets/baileys");
 const makeInMemoryStore = Baileys.makeInMemoryStore || 
     (Baileys.default && Baileys.default.makeInMemoryStore) || 
@@ -48,19 +49,15 @@ async function startSavage() {
 
     store.bind(sock.ev);
 
+    // PAIRING LOGIC
     if (!sock.authState.creds.registered) {
         console.log("\n🚀 PAIRING MODE (PHONE NUMBER)");
         const phoneNumber = await question("📞 Enter number (e.g. 2547XXXXXXXX): ");
-
         setTimeout(async () => {
             try {
-                const code = await sock.requestPairingCode(
-                    phoneNumber.replace(/[^0-9]/g, '')
-                );
+                const code = await sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ''));
                 console.log(`\n🔥 PAIRING CODE: ${code.match(/.{1,4}/g).join("-")}\n`);
-            } catch (err) {
-                console.error("❌ Pairing error:", err);
-            }
+            } catch (err) { console.error("Pairing error:", err); }
         }, 3000);
     }
 
@@ -85,17 +82,16 @@ async function startSavage() {
         } catch (e) { console.error("Antidelete Error:", e); }
     });
 
-    // 📩 CONNECTION & COMMAND HANDLER
     sock.ev.on("connection.update", (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === "close") {
-            const shouldReconnect = (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut);
-            if (shouldReconnect) startSavage();
+            if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) startSavage();
         } else if (connection === "open") {
             console.log("✅ SAVAGE-TECH CONNECTED & ANTIDELETE ACTIVE");
         }
     });
 
+    // 📩 COMMAND HANDLER
     sock.ev.on('messages.upsert', async (chatUpdate) => {
         const mek = chatUpdate.messages?.[0];
         if (!mek || !mek.message || mek.key.fromMe) return;
@@ -113,9 +109,7 @@ async function startSavage() {
                 for (const file of commandFiles) {
                     delete require.cache[require.resolve(`./commands/${file}`)];
                     const cmd = require(`./commands/${file}`);
-                    if (cmd.name === command) {
-                        return cmd.execute(sock, mek, args, { prefix, isOwner });
-                    }
+                    if (cmd.name === command) return cmd.execute(sock, mek, args, { prefix, isOwner });
                 }
             } catch (e) { console.error(e); }
         }

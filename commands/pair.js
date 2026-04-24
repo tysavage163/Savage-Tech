@@ -1,57 +1,75 @@
-const { default: makeWASocket, useMultiFileAuthState, delay } = require("@whiskeysockets/baileys");
+const { 
+    default: makeWASocket, 
+    useMultiFileAuthState, 
+    delay, 
+    makeCacheableSignalKeyStore 
+} = require("@whiskeysockets/baileys");
 const pino = require("pino");
 
 module.exports = {
     name: "pair",
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        
         let target = args[0]?.replace(/[^0-9]/g, "");
 
-        if (!target) return sock.sendMessage(from, { text: "❌ *Error:* Provide a number! (.pair 254...)" });
+        if (!target) {
+            return sock.sendMessage(from, { 
+                text: "⚡ *SYSTEM ERROR:* Provide a target number.\n*Format:* .pair 254..." 
+            }, { quoted: msg });
+        }
 
-        await sock.sendMessage(from, { text: "⏳ *Savage-Tech:* Generating unique neural link code..." });
+        await sock.sendMessage(from, { text: "🌌 *Savage-Tech:* Piercing WhatsApp firewalls... generating node access." });
 
-        // Create a temporary state for the other person
         const { state } = await useMultiFileAuthState(`./temp_pairs/${target}`);
         
         try {
             const tempSock = makeWASocket({
-                auth: state,
+                auth: {
+                    creds: state.creds,
+                    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
+                },
                 logger: pino({ level: "silent" }),
                 printQRInTerminal: false
             });
 
             if (!tempSock.authState.creds.registered) {
-                await delay(2000); // Wait for socket to stabilize
+                await delay(3000);
                 const code = await tempSock.requestPairingCode(target);
 
+                // 🌌 CYBER-GRID AESTHETIC
                 const responseText = `
-╔══════════════════════╗
-       🔑 *EXTERNAL PAIR* 🔑
-╠══════════════════════╣
+╔════════════════════════╗
+   ⚡ *NEURAL LINK ESTABLISHED* ⚡
+╠════════════════════════╣
 ║
-║ 📱 *TARGET:* ${target}
-║ 🔐 *CODE:* ${code.toUpperCase()}
+║ 💠 *NODE:* ${target}
+║ 🧬 *AUTH:* ${code.toUpperCase().split('').join(' ')}
+║ ⏱️ *TTL:* 120 SECONDS
 ║
-╠══════════════════════╣
-   *“LINKING NEW NODE...”*
-   
-   Enter this code on your 
-   WhatsApp "Link Device"
-   section now.
-╚══════════════════════╝
+╠════════════════════════╣
+║       *ACCESS PROTOCOL* ║
+╠════════════════════════╣
+║ 1. Open WA > Linked Devices    ║
+║ 2. Link with phone number      ║
+║ 3. Input the Neural Code       ║
+╚════════════════════════╝
+   *“FORGING THE SYNDICATE”*
                 `.trim();
 
-                await sock.sendMessage(from, { text: responseText }, { quoted: msg });
-                
-                // Clean up: Close temp socket after 2 mins
+                await sock.sendMessage(from, { 
+                    text: responseText,
+                    mentions: [sender]
+                }, { quoted: msg });
+
                 setTimeout(async () => {
-                    await tempSock.logout();
+                    tempSock.ev.removeAllListeners();
                 }, 120000);
             }
         } catch (err) {
             console.error(err);
-            await sock.sendMessage(from, { text: "❌ *System Error:* Failed to link neural net." });
+            await sock.sendMessage(from, { text: "💀 *CRITICAL FAILURE:* Neural link rejected by host." });
         }
     }
 };

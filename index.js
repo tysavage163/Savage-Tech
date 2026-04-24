@@ -9,11 +9,10 @@ const fs = require("fs");
 const path = require("path");
 const qrcode = require("qrcode-terminal");
 
-// Configuration
 global.prefix = "."; 
 global.commands = new Map();
 
-// --- DYNAMIC COMMAND LOADER ---
+// Load commands ONCE at the start
 function loadCommands() {
     const commandsFolder = path.join(__dirname, "commands");
     if (!fs.existsSync(commandsFolder)) fs.mkdirSync(commandsFolder);
@@ -24,14 +23,13 @@ function loadCommands() {
             const command = require(`./commands/${file}`);
             if (command.name) {
                 global.commands.set(command.name, command);
-                console.log(`✅ Loaded command: ${command.name}`);
             }
         } catch (err) { }
     }
+    console.log(`✅ Loaded ${global.commands.size} commands successfully.`);
 }
 
 async function startSavage() {
-    loadCommands();
     const { state, saveCreds } = await useMultiFileAuthState('session');
     
     const sock = makeWASocket({
@@ -40,17 +38,22 @@ async function startSavage() {
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" })),
         },
         logger: pino({ level: "fatal" }),
-        browser: ["Savage-Tech", "Safari", "1.0.0"]
+        browser: ["Savage-Tech", "Chrome", "1.0.0"],
+        printQRInTerminal: false // Handled manually below for better reliability
     });
 
-    // --- QR CODE HANDLER ---
-    sock.ev.on('connection.update', (update) => {
+    sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
+        
         if (qr) {
             console.log("\n📸 SCAN THE QR CODE BELOW:");
             qrcode.generate(qr, { small: true });
         }
-        if (connection === "open") console.log("\n✅ BOT CONNECTED!");
+
+        if (connection === "open") {
+            console.log("\n✅ BOT CONNECTED!");
+        }
+
         if (connection === "close") {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) startSavage();
@@ -59,11 +62,9 @@ async function startSavage() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // --- PREFIX & ANTIDELETE HANDLER ---
     sock.ev.on('messages.upsert', async ({ messages }) => {
         const msg = messages[0];
         if (!msg.message || msg.key.fromMe) return;
-
         const body = msg.message.conversation || msg.message.extendedTextMessage?.text || "";
         
         if (body.startsWith(global.prefix)) {
@@ -75,4 +76,6 @@ async function startSavage() {
     });
 }
 
+// Start the process
+loadCommands();
 startSavage();

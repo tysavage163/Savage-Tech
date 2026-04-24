@@ -24,7 +24,7 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
         },
-        printQRInTerminal: false, // we handle QR manually
+        printQRInTerminal: false,
         logger: pino({ level: "silent" })
     });
 
@@ -57,7 +57,7 @@ async function startSavage() {
     // ===== MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
-        if (!msg || !msg.message || msg.key.fromMe) return;
+        if (!msg || !msg.message) return; // ✅ FIXED (no longer blocks your own messages)
 
         const from = msg.key.remoteJid;
         const text =
@@ -78,11 +78,17 @@ async function startSavage() {
                 const cmd = require(`./commands/${file}`);
 
                 if (cmd.name === commandName) {
+                    // ✅ pass msg properly so commands can reply correctly
                     return cmd.execute(sock, msg, args);
                 }
             }
         } catch (e) {
             console.error("Command error:", e);
+
+            // ✅ FIXED reply visibility
+            await sock.sendMessage(from, {
+                text: "⚠️ Error executing command"
+            }, { quoted: msg });
         }
     });
 

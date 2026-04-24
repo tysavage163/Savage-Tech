@@ -2,57 +2,34 @@ const { exec } = require("child_process");
 
 module.exports = {
     name: "update",
-    async execute(sock, msg, args, { hasAccess }) {
+    async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        const sender = msg.key.participant || msg.key.remoteJid;
 
-        // 🛡️ SECURITY GATE
-        if (!hasAccess) {
-            return sock.sendMessage(from, { 
-                text: "🚫 *ACCESS DENIED:* Only the Architect or Host can trigger a system synchronization." 
-            }, { quoted: msg });
-        }
+        await sock.sendMessage(from, { text: "🧬 *SYSTEM:* Initiating evolutionary rewrite..." });
 
-        // ⚡ POWER-UP QUOTES
-        const quotes = [
-            "“The limit of my language means the limit of my world.”",
-            "“Evolution is a process, not an event.”",
-            "“True power is the ability to redefine oneself.”",
-            "“Breaking the shell to let the dragon fly.”"
-        ];
-        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-
-        await sock.sendMessage(from, { text: "📡 *System:* Contacting core server... preparing for evolution." }, { quoted: msg });
-
-        // ⚙️ EXECUTE GIT PULL
-        exec("git pull", (err, stdout, stderr) => {
+        // Force the sync from your Savage-Tech repo
+        exec("git fetch --all && git reset --hard origin/main", (err, stdout, stderr) => {
             if (err) {
-                return sock.sendMessage(from, { text: `❌ *Update Failed:* ${err.message}` }, { quoted: msg });
+                return sock.sendMessage(from, { text: `❌ *EVOLUTION ABORTED:* ${err.message}` });
             }
 
-            // 📊 COOL UPGRADE BOX STRUCTURE
-            const responseText = `
-╔══════════════════════╗
-       🧬 *SYSTEM EVOLUTION* 🧬
-╠══════════════════════╣
+            const evolutionMsg = `
+╔════════════════════════╗
+     🧬 *EVOLUTION COMPLETE* 🧬
+╠════════════════════════╣
 ║
-║ 🟢 *CORE STATUS:* OPTIMIZED
-║ 📡 *PROTOCOL:* SYNCED
-║ 👤 *AUTHOR:* ARCHITECT
+║ 🛰️ *GRID:* Synced & Optimized
+║ 🦾 *STATUS:* Stronger than before
+║ 🛡️ *LEVEL:* Sovereign Architect
 ║
-╠══════════════════════╣
-   *“MAJOR UPGRADE INCOMING”*
-   ${randomQuote}
-╚══════════════════════╝
-_Initiating reboot sequence..._
+╚════════════════════════╝
+_I have evolved. Rebooting to 
+apply my new strength..._
             `.trim();
 
-            sock.sendMessage(from, { 
-                text: responseText, 
-                mentions: [sender] 
-            }, { quoted: msg }).then(() => {
-                // Kill process to trigger restart
-                process.exit(); 
+            sock.sendMessage(from, { text: evolutionMsg }).then(() => {
+                // Kill process to reload fresh code
+                process.exit();
             });
         });
     }

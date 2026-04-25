@@ -1,45 +1,34 @@
-const handler = async (m, { conn, text, isOwner, isAdmin, participants }) => {
-    // Command logic for toggling the feature
-    if (m.text) {
-        if (!isAdmin && !isOwner) return m.reply("❌ Only Admins can toggle the Welcome system.");
-        if (!text) return m.reply("Use: .welcome on / .welcome off");
+module.exports = {
+    name: 'welcome',
+    async execute(sock, msg, args) {
+        const from = msg.key.remoteJid;
 
-        if (text === 'on') {
-            global.db.data.chats[m.chat].welcome = true;
-            return m.reply("✅ SΛVΛGΞ Welcome System: *ACTIVATED*");
-        } else if (text === 'off') {
-            global.db.data.chats[m.chat].welcome = false;
-            return m.reply("❌ SΛVΛGΞ Welcome System: *DEACTIVATED*");
+        // 1. Group Check
+        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ This is a group-only command.' });
+
+        // 2. Admin Check
+        const metadata = await sock.groupMetadata(from);
+        const participants = metadata.participants;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const isAdmin = participants.find(p => p.id === sender)?.admin;
+
+        if (!isAdmin) return sock.sendMessage(from, { text: '❌ Only Admins can control the Welcome system.' }, { quoted: msg });
+
+        // 3. Logic
+        const status = args[0]?.toLowerCase();
+        if (status === 'on') {
+            // Note: This saves to a global variable. If you restart Termux, you may need to turn it back on 
+            // unless your index.js has a permanent database (global.db).
+            if (!global.db) global.db = { chats: {} };
+            if (!global.db.chats[from]) global.db.chats[from] = {};
+            
+            global.db.chats[from].welcome = true;
+            return sock.sendMessage(from, { text: "✅ *SΛVΛGΞ Welcome System: ACTIVATED*" }, { quoted: msg });
+        } else if (status === 'off') {
+            if (global.db?.chats?.[from]) global.db.chats[from].welcome = false;
+            return sock.sendMessage(from, { text: "❌ *SΛVΛGΞ Welcome System: DEACTIVATED*" }, { quoted: msg });
+        } else {
+            return sock.sendMessage(from, { text: "Usage: *.welcome on* or *.welcome off*" }, { quoted: msg });
         }
     }
 };
-
-// This part handles the actual greeting when someone joins
-handler.before = async (m, { conn }) => {
-    // Only trigger if it's a "new member" update and welcome is ON
-    if (m.action === 'add' && global.db.data.chats[m.chat]?.welcome) {
-        const metadata = await conn.groupMetadata(m.chat);
-        const groupIcon = await conn.profilePictureUrl(m.chat, 'image').catch(_ => 'https://raw.githubusercontent.com/tysavage163/Savage-Pair/main/bg.png');
-        
-        for (let user of m.participants) {
-            let welcomeText = `┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓\n`;
-            welcomeText += `┃  ✨  《 GӨӨD ӨПΣ 》  ✨  ┃\n`;
-            welcomeText += `┠━━━━━━━━━━━━━━━━━━━━━━━━━━┨\n`;
-            welcomeText += `┃ 👤 UƧΣЯ: @${user.split('@')[0]}\n`;
-            welcomeText += `┃ 👋 ЩΣLCӨMΣ ƬӨ ƬHΣ GЯӨЦP\n`;
-            welcomeText += `┃ 👥 MΣMΣBΣЯƧ: ${metadata.participants.length}\n`;
-            welcomeText += `┃ ©PӨЩΣЯΣD BY SΛVΛGΞ-TECH ⛓️\n`;
-            welcomeText += `┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛`;
-
-            await conn.sendMessage(m.chat, { 
-                image: { url: groupIcon }, 
-                caption: welcomeText,
-                mentions: [user] 
-            });
-        }
-    }
-};
-
-handler.command = ['welcome'];
-handler.group = true;
-module.exports = handler;

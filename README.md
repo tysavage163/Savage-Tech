@@ -21,12 +21,8 @@
 ### 🧬 System Origin: The Forged Series
 > `Savage-Tech Protocol: Active`
 
-* **Forged from artificial intelligence**
 * **Forged from neural networks**
-* **Forged from machine logic**
-* **Forged from automated precision**
-* **Forged from self-learning code**
-* **Forged from synthetic thought**
+
 
 ---
 

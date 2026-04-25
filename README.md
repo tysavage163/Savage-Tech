@@ -35,7 +35,7 @@
   </a>
 </p>
 <p align="center">
-  <a href="https://spencers-quantam-core.onrender.com">
+  <a href="#">
     <img src="https://img.shields.io/badge/PAIR_CODE_2-FF8C00?style=for-the-badge&logo=connection&logoColor=white" alt="Pair 2">
   </a>
 </p>

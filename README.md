@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/tysavage163/Savage-Tech"><img src="https://readme-typing-svg.herokuapp.com?font=Courier+New&weight=600&size=24&pause=1000&color=A020F0&center=true&vCenter=true&width=500&lines=a+baileys+multidevice+WhatsApp+bot;created+by+Beck;inspired+by+Meryl;a+masterpiece+in+creation" alt="Typing SVG" /></a>
+<a href="https://github.com/tysavage163/Savage-Tech"><img src="https://readme-typing-svg.herokuapp.com?font=Courier+New&weight=800&size=30&pause=1000&color=A020F0&center=true&vCenter=true&width=600&lines=a+baileys+multidevice+WhatsApp+bot;created+by+Beck;inspired+by+Meryl;a+masterpiece+in+creation" alt="Typing SVG" /></a>
 </p>
 
 ---
@@ -22,8 +22,14 @@
   </a>
 </p>
 
+<p align="center">
+  <a href="https://wa.me/254798841125">
+    <img src="https://img.shields.io/badge/CONTACT_DEV-5D3FD3?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Contact">
+  </a>
+</p>
+
 ---
 
 <p align="center">
-<a href="https://github.com/tysavage163/Savage-Tech"><img src="https://readme-typing-svg.herokuapp.com?font=Courier+New&weight=600&size=20&pause=1500&color=FF69B4&center=true&vCenter=true&width=800&lines=Programs+must+be+written+for+people+to+read;and+only+incidentally+for+machines+to+execute" alt="Typing SVG" /></a>
+<a href="https://github.com/tysavage163/Savage-Tech"><img src="https://readme-typing-svg.herokuapp.com?font=Courier+New&weight=800&size=25&pause=1500&color=FF69B4&center=true&vCenter=true&width=900&lines=Programs+must+be+written+for+people+to+read;and+only+incidentally+for+machines+to+execute" alt="Typing SVG" /></a>
 </p>

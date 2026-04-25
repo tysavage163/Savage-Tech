@@ -19,8 +19,8 @@ global.autoViewStatus = "on";
 global.antitag = "on"; 
 const messageStore = new Map(); 
 
-// Paste your Session ID here after forging it on your site
-const SESSION_ID = "PASTE_YOUR_ID_HERE"; 
+// This allows Render/Koyeb to feed the ID directly into the bot
+const SESSION_ID = process.env.SESSION_ID || "PASTE_YOUR_ID_HERE"; 
 
 const savageReplies = [
     "Don't tag me unless it's a life or death situation.",
@@ -50,17 +50,16 @@ const loadCommands = () => {
 
 // ===== 3. START SYSTEM =====
 async function startSavage() {
-    // FIX 1: Improved Session Decoding
+    // Decode Session ID if provided via Env or Hardcoded string
     if (SESSION_ID && SESSION_ID !== "PASTE_YOUR_ID_HERE" && !fs.existsSync("./session/creds.json")) {
         if (!fs.existsSync("./session")) fs.mkdirSync("./session");
         try {
-            // Added check to ensure the ID contains the separator
             const base64Data = SESSION_ID.includes("SΛVΛGΞ-MD~") ? SESSION_ID.split("SΛVΛGΞ-MD~")[1] : SESSION_ID;
             const credsData = Buffer.from(base64Data, "base64").toString("utf-8");
             fs.writeFileSync("./session/creds.json", credsData);
-            console.log("💎 SESSION ID INSTALLED SUCCESSFULLY.");
+            console.log("💎 SESSION ID INSTALLED: Authenticating...");
         } catch (e) {
-            console.log("⚠️ Session ID invalid. Falling back to QR mode.");
+            console.log("⚠️ Session ID invalid or corrupted.");
         }
     }
 
@@ -75,7 +74,6 @@ async function startSavage() {
         },
         printQRInTerminal: false,
         logger: pino({ level: "silent" }),
-        // FIX 2: Stronger Browser Identity for Render/Termux
         browser: ["Ubuntu", "Chrome", "121.0.6167.85"] 
     });
 
@@ -83,30 +81,86 @@ async function startSavage() {
         const { connection, qr, lastDisconnect } = update;
         
         if (qr && (!SESSION_ID || SESSION_ID === "PASTE_YOUR_ID_HERE") && !fs.existsSync("./session/creds.json")) {
-            console.log("\n📸 SCAN THE QR CODE BELOW:\n");
+            console.log("\n📸 SCAN QR OR USE YOUR PAIR SITE:\n");
             qrcode.generate(qr, { small: true });
         }
 
         if (connection === "open") {
-            console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
+            console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE AND CONNECTED!");
         }
         
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
-            // FIX 3: Robust Reconnection Logic
             if (reason !== DisconnectReason.loggedOut) {
                 console.log("🔄 Connection lost. Reconnecting...");
-                setTimeout(() => startSavage(), 5000); // 5-second buffer to prevent loop
+                setTimeout(() => startSavage(), 5000);
             } else {
-                console.log("❌ Logged out. Delete 'session' folder to reset.");
+                console.log("❌ Logged out. Clearing session...");
+                fs.rmSync("./session", { recursive: true, force: true });
             }
         }
     });
 
     sock.ev.on("creds.update", saveCreds);
 
-    // [Rest of your Message Handler and Anti-Delete Engine remain the same]
-    // ... (Handler code here)
+    // ===== 4. MESSAGE HANDLER =====
+    sock.ev.on("messages.upsert", async (m) => {
+        const msg = m.messages?.[0];
+        if (!msg || !msg.message || msg.key.remoteJid === 'status@broadcast') return;
+
+        const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
+
+        // ANTITAG
+        if (global.antitag === 'on' && !msg.key.fromMe) {
+            const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+            if (mentions.includes(sock.user.id.split(':')[0] + '@s.whatsapp.net')) {
+                const reply = savageReplies[Math.floor(Math.random() * savageReplies.length)];
+                await sock.sendMessage(from, { text: `*SΛVΛGΞ-TECH:* ${reply}`, mentions: [sender] }, { quoted: msg });
+            }
+        }
+
+        // AUTO-VIEW STATUS
+        if (from === "status@broadcast" && global.autoViewStatus === "on") {
+            try { await sock.readMessages([msg.key]); } catch (e) {}
+            return; 
+        }
+
+        messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
+        setTimeout(() => messageStore.delete(msg.key.id), 3600000);
+
+        if (!text.startsWith(global.prefix)) return;
+
+        const args = text.slice(global.prefix.length).trim().split(/\s+/);
+        const commandName = args.shift().toLowerCase();
+        const cmd = global.commands.get(commandName);
+        
+        if (cmd) {
+            const isArchitect = sender.includes(global.architect);
+            const isMe = msg.key.fromMe;
+            try {
+                await cmd.execute(sock, msg, args, { isArchitect, isMe, hasAccess: (isArchitect || isMe) });
+            } catch (e) { console.error(`❌ Error:`, e); }
+        }
+    });
+
+    // ===== 5. ANTI-DELETE ENGINE =====
+    sock.ev.on("messages.update", async (updates) => {
+        for (const update of updates) {
+            const isDelete = update.update.protocolMessage?.type === 0;
+            if (isDelete && global.antideleteMode === "on") {
+                const key = update.key || update.update.protocolMessage?.key;
+                const prevMsg = messageStore.get(key.id);
+                if (prevMsg) {
+                    const senderJid = prevMsg.key.participant || prevMsg.key.remoteJid;
+                    const content = prevMsg.message?.conversation || prevMsg.message?.extendedTextMessage?.text || "Media Content";
+                    const log = `━━ SAVAGE-RECOVERY ━━\n\nSENDER: @${senderJid.split("@")[0]}\nDELETED: ${content}\n\n━━━━━━━━━━━━━━`;
+                    await sock.sendMessage(sock.user.id.split(':')[0] + '@s.whatsapp.net', { text: log, mentions: [senderJid] });
+                }
+            }
+        }
+    });
 }
 
 loadCommands();

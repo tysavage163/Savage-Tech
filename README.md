@@ -10,21 +10,51 @@
 
 ---
 
+### 📂 FORK SΛVΛGΞ-TECH
 <p align="center">
   <a href="https://github.com/tysavage163/Savage-Tech/fork">
-    <img src="https://img.shields.io/badge/FORK_REPO-5D3FD3?style=for-the-badge&logo=github&logoColor=white" alt="Fork Repo">
+    <img src="https://img.shields.io/badge/FORK_REPO-000080?style=for-the-badge&logo=github&logoColor=white" alt="Fork Repo">
   </a>
 </p>
 
+---
+
+### 🚀 DEPLOY SΛVΛGΞ-TECH
+<p align="center">
+  <a href="https://dashboard.render.com/static/new">
+    <img src="https://img.shields.io/badge/RENDER_DEPLOY-800080?style=for-the-badge&logo=render&logoColor=white" alt="Render Deploy">
+  </a>
+</p>
+
+---
+
+### 🔑 SESSION PAIRING
 <p align="center">
   <a href="https://spencers-quantam-core.onrender.com">
-    <img src="https://img.shields.io/badge/PAIR_SITE-5D3FD3?style=for-the-badge&logo=render&logoColor=white" alt="Pair Site">
+    <img src="https://img.shields.io/badge/PAIR_CODE_1-FF8C00?style=for-the-badge&logo=connection&logoColor=white" alt="Pair 1">
+  </a>
+</p>
+<p align="center">
+  <a href="https://spencers-quantam-core.onrender.com">
+    <img src="https://img.shields.io/badge/PAIR_CODE_2-FF8C00?style=for-the-badge&logo=connection&logoColor=white" alt="Pair 2">
   </a>
 </p>
 
+---
+
+### 📦 SΛVΛGΞ-TECH ZIP
+<p align="center">
+  <a href="https://github.com/tysavage163/Savage-Tech/archive/refs/heads/main.zip">
+    <img src="https://img.shields.io/badge/DOWNLOAD_ZIP-006400?style=for-the-badge&logo=github&logoColor=white" alt="Download Zip">
+  </a>
+</p>
+
+---
+
+### 👤 SUPPORT
 <p align="center">
   <a href="https://wa.me/254798841125">
-    <img src="https://img.shields.io/badge/CONTACT_DEV-5D3FD3?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Contact">
+    <img src="https://img.shields.io/badge/CONTACT_SPENCER-5D3FD3?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Contact">
   </a>
 </p>
 

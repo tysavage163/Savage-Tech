@@ -9,7 +9,6 @@ const {
 const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
-const os = require("os");
 
 // ===== 1. SETTINGS & HIERARCHY =====
 global.prefix = "."; 
@@ -17,8 +16,11 @@ global.architect = "254798841125";
 global.commands = new Map();
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
-global.antitag = "on"; // Cold response system active by default
+global.antitag = "on"; 
 const messageStore = new Map(); 
+
+// Paste your Session ID here after forging it on your site
+const SESSION_ID = "PASTE_YOUR_ID_HERE"; 
 
 const savageReplies = [
     "Don't tag me unless it's a life or death situation. Even then, think twice.",
@@ -29,7 +31,6 @@ const savageReplies = [
     "You're screaming in a void I've already left.",
     "My time is expensive. You're currently wasting it.",
     "Error 403: Access to my attention is denied.",
-    "Did you mention me to feel important, or was there an actual point?",
     "If I wanted your opinion, I would have programmed it into myself.",
     "Tags are for followers. I don't follow.",
     "You're a guest in this chat. Act like one.",
@@ -43,14 +44,15 @@ const savageReplies = [
     "Connection terminated. Your input was unnecessary."
 ];
 
-// ===== 2. COMMAND LOADER (AUTO-SYNC ENABLED) =====
+// ===== 2. COMMAND LOADER =====
 const loadCommands = () => {
     global.commands.clear();
+    if (!fs.existsSync("./commands")) fs.mkdirSync("./commands");
     const files = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
     for (const file of files) {
         try {
             const fullPath = require.resolve(`./commands/${file}`);
-            delete require.cache[fullPath]; // Clears cache for instant syncing
+            delete require.cache[fullPath]; 
             const cmd = require(`./commands/${file}`);
             if (cmd.name) global.commands.set(cmd.name, cmd);
         } catch (e) {
@@ -62,6 +64,18 @@ const loadCommands = () => {
 
 // ===== 3. START SYSTEM =====
 async function startSavage() {
+    // Check for Session ID and convert it back to credentials
+    if (SESSION_ID && SESSION_ID !== "PASTE_YOUR_ID_HERE" && !fs.existsSync("./session/creds.json")) {
+        if (!fs.existsSync("./session")) fs.mkdirSync("./session");
+        try {
+            const credsData = Buffer.from(SESSION_ID.split("SΛVΛGΞ-MD~")[1], "base64").toString("utf-8");
+            fs.writeFileSync("./session/creds.json", credsData);
+            console.log("💎 SESSION ID DETECTED: Authenticating...");
+        } catch (e) {
+            console.log("⚠️ Session ID invalid or corrupted.");
+        }
+    }
+
     const { state, saveCreds } = await useMultiFileAuthState("session");
     const { version } = await fetchLatestBaileysVersion();
 
@@ -71,21 +85,34 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
         },
-        printQRInTerminal: false,
+        printQRInTerminal: false, // Handled manually for dual-mode
         logger: pino({ level: "silent" }),
-        browser: ["Savage-Tech", "Safari", "1.0.0"]
+        browser: ["SΛVΛGΞ TECH", "Safari", "1.0.0"]
     });
 
     sock.ev.on("connection.update", (update) => {
         const { connection, qr, lastDisconnect } = update;
-        if (qr) {
-            console.log("\n📸 SESSION NOT FOUND. SCAN TO CONNECT:\n");
+        
+        // DUAL MODE: Show QR only if no session exists and no Session ID is provided
+        if (qr && (!SESSION_ID || SESSION_ID === "PASTE_YOUR_ID_HERE") && !fs.existsSync("./session/creds.json")) {
+            console.log("\n📸 NO SESSION FOUND. SCAN QR OR USE PAIR SITE:\n");
             qrcode.generate(qr, { small: true });
         }
-        if (connection === "open") console.log("\n🚀 SAVAGE-TECH CONNECTED & READY!");
+
+        if (connection === "open") {
+            console.log("\n🚀 SΛVΛGΞ-TECH CONNECTED & READY!");
+            console.log(`Protocol active for: ${sock.user.id.split(":")[0]}\n`);
+        }
+        
         if (connection === "close") {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            if (shouldReconnect) startSavage();
+            const reason = lastDisconnect?.error?.output?.statusCode;
+            if (reason !== DisconnectReason.loggedOut) {
+                console.log("🔄 Connection lost. Re-establishing protocol...");
+                startSavage();
+            } else {
+                console.log("❌ Device logged out. Clear session folder and restart.");
+                fs.rmSync("./session", { recursive: true, force: true });
+            }
         }
     });
 
@@ -94,7 +121,7 @@ async function startSavage() {
     // ===== 4. MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
-        if (!msg || !msg.message) return;
+        if (!msg || !msg.message || msg.key.remoteJid === 'status@broadcast') return;
 
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
@@ -111,15 +138,12 @@ async function startSavage() {
                     text: `*SΛVΛGΞ-TECH:* ${reply}`,
                     mentions: [sender]
                 }, { quoted: msg });
-                console.log(`❄️ Antitag triggered by: ${sender}`);
             }
         }
 
         // --- AUTO-VIEW STATUS ---
-        if (from === "status@broadcast") {
-            if (global.autoViewStatus === "on") {
-                try { await sock.readMessages([msg.key]); } catch (e) {}
-            }
+        if (from === "status@broadcast" && global.autoViewStatus === "on") {
+            try { await sock.readMessages([msg.key]); } catch (e) {}
             return; 
         }
 
@@ -146,13 +170,12 @@ async function startSavage() {
     sock.ev.on("messages.update", async (updates) => {
         for (const update of updates) {
             const isDelete = update.update.protocolMessage?.type === 0 || update.update.message === null;
-            if (isDelete) {
-                if (!global.antideleteMode || global.antideleteMode === "off") return;
+            if (isDelete && global.antideleteMode === "on") {
                 const key = update.key || update.update.protocolMessage?.key;
                 const prevMsg = messageStore.get(key.id);
                 if (prevMsg) {
                     const senderJid = prevMsg.key.participant || prevMsg.key.remoteJid;
-                    const content = prevMsg.message?.conversation || prevMsg.message?.extendedTextMessage?.text || "Media Content";
+                    const content = prevMsg.message?.conversation || prevMsg.message?.extendedTextMessage?.text || "Media Content (Image/Video/Audio)";
                     const log = `━━━ SAVAGE-RECOVERY ━━━\n\nSENDER: @${senderJid.split("@")[0]}\nCONTENT: ${content}\n\n━━━━━━━━━━━━━━━━━━━━`;
                     const hostJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
                     await sock.sendMessage(hostJid, { text: log, mentions: [senderJid] });

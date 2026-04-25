@@ -12,24 +12,32 @@
   <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&pause=1500&color=FF1493&center=true&vCenter=true&width=500&height=40&lines=Created+with+undivided+attention;Silence+is+the+ultimate+sophistication;Moving+in+shadows+executing+with+light;The+code+remembers+what+the+mind+forgets;Authority+is+carved+in+binary" alt="Typing SVG" />
 </a>
 
-[![Fork Repository](https://img.shields.io/badge/FORK-REPOSITORY-8A2BE2?style=for-the-badge&logo=github)](https://github.com/tysavage163/Savage-Tech/fork)
+---
+
+### ☢️ SESSION AUTHORIZATION
+Generate your session string to activate the protocol. Tap the core below:
+
+<a href="https://savage-pair-0d19.onrender.com">
+  <img src="https://img.shields.io/badge/FORGE_SESSION_KEY-8A2BE2?style=for-the-badge&logo=codepen&logoColor=white" width="300" />
+</a>
 
 ---
+
+[![Fork Repository](https://img.shields.io/badge/FORK-REPOSITORY-8A2BE2?style=for-the-badge&logo=github)](https://github.com/tysavage163/Savage-Tech/fork)
 
 </div>
 
 ### 🧬 System Origin: The Forged Series
 > `Savage-Tech Protocol: Active`
 
-* **Forged from artificial intelligence**
-* **Forged from neural networks**
-* **Forged from machine logic**
-* **Forged from automated precision**
-* **Forged from self-learning code**
-* **Forged from synthetic thought**
+* **Session Linking:** Fast, secure, and encrypted pairing.
+* **Neural Execution:** Bot handles messages with zero-latency response.
+* **Stealth Operations:** Antidelete and Warn systems integrated into the core.
 
----
-
-<div align="center">
-  <sub>Proprietary system under Spencer's command. Zero-footprint execution enabled.</sub>
-</div>
+### ⛓️ Deployment Protocol (Termux)
+```bash
+pkg update && pkg upgrade -y
+pkg install nodejs git -y
+git clone [https://github.com/tysavage163/Savage-Tech](https://github.com/tysavage163/Savage-Tech)
+cd Savage-Tech
+npm install

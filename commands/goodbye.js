@@ -2,7 +2,11 @@ module.exports = {
     name: 'goodbye',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        if (!from.endsWith('@g.us')) return;
+
+        // 1. Group Check
+        if (!from.endsWith('@g.us')) {
+            return sock.sendMessage(from, { text: '❌ This command is for Groups only.' }, { quoted: msg });
+        }
 
         const status = args[0]?.toLowerCase();
 
@@ -13,11 +17,6 @@ module.exports = {
 ║
 ┣┫ 🛠️ **SYSTEM:** Goodbye
 ┣┫ ⚡ **STATUS:** ACTIVATED
-║
-┣━━◇ 【 **IПFӨ** 】 ◇━━┫
-║
-┣┫ 👋 Bot will now notify when 
-┣┫    someone leaves the group.
 ║
 ╚════════════════════╝
    © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;

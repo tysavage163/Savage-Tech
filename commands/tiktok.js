@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 module.exports = {
+    category: 'tools',
     name: 'tt',
     async execute(sock, m, args) {
         const url = args[0];

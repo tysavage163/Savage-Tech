@@ -1,6 +1,7 @@
 const { exec } = require("child_process");
 
 module.exports = {
+    category: 'owner',
     name: "update",
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;

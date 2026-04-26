@@ -1,4 +1,5 @@
 module.exports = {
+    category: 'tools',
     name: 'setgcname',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;

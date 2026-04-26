@@ -1,4 +1,5 @@
 module.exports = {
+    category: 'owner',
     name: "setprefix",
     async execute(sock, msg, args, { hasAccess }) {
         const from = msg.key.remoteJid;

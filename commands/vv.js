@@ -1,6 +1,7 @@
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
 module.exports = {
+    category: 'tools',
     name: 'vv',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;

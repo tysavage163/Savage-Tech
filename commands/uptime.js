@@ -1,4 +1,5 @@
 module.exports = {
+    category: 'engine',
     name: "uptime",
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;

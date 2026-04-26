@@ -26,7 +26,7 @@ module.exports = {
 
             await sock.sendMessage(from, { image: { url: ppUrl }, caption: info }, { quoted: msg });
         } catch (e) {
-            console.log(e);
+            console.log("❌ Whois Error:", e);
         }
     }
 };

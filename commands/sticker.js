@@ -1,6 +1,7 @@
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
 module.exports = {
+    category: 'tools',
     name: 'sticker',
     async execute(sock, m, args) {
         const quoted = m.message.extendedTextMessage?.contextInfo?.quotedMessage;

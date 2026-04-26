@@ -1,4 +1,5 @@
 module.exports = {
+    category: 'group',
     name: 'kick',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;

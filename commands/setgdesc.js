@@ -1,4 +1,5 @@
 module.exports = {
+    category: 'group',
     name: 'setgdesc',
     async execute(sock, m, args) {
         if (!m.key.remoteJid.endsWith('@g.us')) return;

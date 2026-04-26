@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 module.exports = {
+    category: 'tools',
     name: 'dl',
     description: 'Download videos from YouTube/TikTok/IG',
     async execute(sock, m, args) {

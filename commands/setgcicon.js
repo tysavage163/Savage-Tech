@@ -1,6 +1,7 @@
 const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
 module.exports = {
+    category: 'group',
     name: 'setgcicon',
     async execute(sock, msg, args, { isArchitect, isMe }) {
         const from = msg.key.remoteJid;

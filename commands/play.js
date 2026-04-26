@@ -2,6 +2,7 @@ const yts = require('yt-search');
 const axios = require('axios');
 
 module.exports = {
+    category: 'tools',
     name: 'play',
     category: 'media',
     execute: async (sock, msg, args) => {

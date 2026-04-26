@@ -2,12 +2,11 @@ const os = require('os');
 
 module.exports = {
     name: 'menu',
-    category: 'main',
+    category: 'engine',
     execute: async (sock, msg, args) => {
         const from = msg.key.remoteJid;
         
         try {
-            // 1. DYNAMIC SYSTEM CALCULATIONS
             const uptimeSeconds = process.uptime();
             const hours = Math.floor(uptimeSeconds / 3600);
             const minutes = Math.floor((uptimeSeconds % 3600) / 60);
@@ -18,23 +17,20 @@ module.exports = {
             const ramPercentage = Math.floor((usedMem / totalMem) * 100);
             const ramBar = "█".repeat(Math.floor(ramPercentage / 10)) + "░".repeat(Math.floor(10 - (ramPercentage / 10)));
 
-            // 2. SELF-UPDATING COMMAND SORTER
-            // This pulls every command in global.commands and groups them
             const getCategorizedMenu = (catName, title) => {
                 const filtered = Array.from(global.commands.values())
                     .filter(cmd => cmd.category === catName)
-                    .sort((a, b) => (a.order || 99) - (b.order || 99)); // Manual arrangement logic
+                    .sort((a, b) => (a.order || 99) - (b.order || 99));
 
-                if (filtered.length === 0) return ""; // Don't show empty categories
+                if (filtered.length === 0) return ""; 
 
-                return `┌───◇  **${title}**\n${filtered.map(cmd => `┃  ➥ ${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
+                return `┌───◇  * ${title} *\n${filtered.map(cmd => `┃  ➥ .${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
             };
 
-            const header = `┌───◇  **SΛVΛGΞ-TECH**
+            const header = `┌───◇  *SΛVΛGΞ-TECH*
 ┃
 ┃ **OWNER** : Savage Architect
 ┃ **PREFIX** : [ ${global.prefix} ]
-┃ **PLUGINS** : ${global.commands.size}
 ┃ **UPTIME** : ${hours}h ${minutes}m
 ┃ **SPEED** : ${speed} ms
 ┃ **RAM** : [${ramBar}] ${ramPercentage}%
@@ -42,15 +38,16 @@ module.exports = {
 ┕━━━━━━━━━━━━━━━╼\n\n`;
 
             const ownerMenu = getCategorizedMenu('owner', 'OWNER MENU');
-            const adminMenu = getCategorizedMenu('admin', 'ADMIN MENU');
+            const groupMenu = getCategorizedMenu('group', 'GROUP MENU');
+            const aiMenu = getCategorizedMenu('ai', 'AI MENU');
+            const toolsMenu = getCategorizedMenu('tools', 'TOOLS MENU');
+            const audioMenu = getCategorizedMenu('audio', 'AUDIO MENU');
             const engineMenu = getCategorizedMenu('engine', 'ENGINE MENU');
-            const mainMenu = getCategorizedMenu('main', 'MAIN MENU');
 
-            const footer = `*Master your tools or be deleted.*`;
-            const fullMenu = header + ownerMenu + adminMenu + engineMenu + mainMenu + footer;
+            const footer = `_Master your tools or be deleted._`;
+            const fullMenu = header + ownerMenu + groupMenu + aiMenu + toolsMenu + audioMenu + engineMenu + footer;
 
-            // 3. YOUR SPECIFIC IMAGE LINK
-            const menuImage = 'https://i.ibb.co/5WJmsXjT/abedeb26fb62e27cd2fbb1292134ea1c.webp';
+            const menuImage = 'https://i.ibb.co/QF1KM5Bp/IMG-20260425-WA1076.webp';
 
             await sock.sendMessage(from, { 
                 image: { url: menuImage }, 
@@ -59,8 +56,8 @@ module.exports = {
             });
 
         } catch (error) {
-            console.error("CRITICAL MENU ERROR:", error);
-            await sock.sendMessage(from, { text: "⚠️ System Error: Menu protocol failed." });
+            console.error("MENU ERROR:", error);
+            await sock.sendMessage(from, { text: "┌───◇  *SΛVΛGΞ: ERROR*\n┃\n┃ **STATUS** : DATA FETCH FAILED 💀\n┕━━━━━━━━━━━━━━━╼" });
         }
     }
 };

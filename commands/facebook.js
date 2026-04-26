@@ -1,6 +1,7 @@
 const axios = require("axios");
 
 module.exports = {
+    category: 'tools',
     name: "facebook",
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;

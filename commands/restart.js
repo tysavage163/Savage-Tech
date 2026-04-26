@@ -1,4 +1,5 @@
 module.exports = {
+    category: 'owner',
     name: 'restart',
     async execute(sock, msg, args, { isMe }) {
         const from = msg.key.remoteJid;

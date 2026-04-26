@@ -1,4 +1,5 @@
 module.exports = {
+    category: 'group',
     name: 'block',
     async execute(sock, msg, args, { isArchitect, isMe }) {
         const from = msg.key.remoteJid;

@@ -1,4 +1,5 @@
 module.exports = {
+    category: 'tools',
     name: 'getpp',
     category: 'tools',
     desc: 'Extract profile pictures with cold precision',

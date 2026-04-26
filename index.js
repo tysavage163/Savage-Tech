@@ -17,7 +17,8 @@ global.commands = new Map();
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
 global.antitag = "on"; 
-global.welcomeStore = new Set(); // Temporary store for toggled welcome groups
+global.welcomeStore = new Set(); 
+global.goodbyeStore = new Set(); // Added for Goodbye tracking
 const messageStore = new Map(); 
 
 const SESSION_ID = process.env.SESSION_ID || "PASTE_YOUR_ID_HERE"; 
@@ -99,11 +100,8 @@ async function startSavage() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    // ===== 4. GREETING ENGINE (WELCOME) =====
+    // ===== 4. GREETING & FAREWELL ENGINE =====
     sock.ev.on('group-participants.update', async (anu) => {
-        // Only trigger if Welcome is ON for this group
-        if (!global.welcomeStore.has(anu.id)) return;
-
         try {
             const metadata = await sock.groupMetadata(anu.id);
             const participants = anu.participants;
@@ -116,7 +114,8 @@ async function startSavage() {
                     ppuser = 'https://raw.githubusercontent.com/tysavage163/Savage-Pair/main/bg.png';
                 }
 
-                if (anu.action == 'add') {
+                // WELCOME LOGIC
+                if (anu.action == 'add' && global.welcomeStore.has(anu.id)) {
                     const welcomeText = `
 ╔════◇ 【 **ЩΣLCӨMΣ** 】 ◇════╗
 ║
@@ -131,16 +130,30 @@ async function startSavage() {
 ╚════════════════════╝
    © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
 
-                    await sock.sendMessage(anu.id, { 
-                        image: { url: ppuser }, 
-                        caption: welcomeText, 
-                        mentions: [num] 
-                    });
+                    await sock.sendMessage(anu.id, { image: { url: ppuser }, caption: welcomeText, mentions: [num] });
+                }
+
+                // GOODBYE LOGIC
+                if (anu.action == 'remove' && global.goodbyeStore.has(anu.id)) {
+                    const goodbyeText = `
+╔════◇ 【 **GӨӨDBYΣ** 】 ◇════╗
+║
+┣┫ 👤 **UƧΣЯ:** @${num.split('@')[0]}
+┣┫ 🚪 **STATUS:** Left the territory
+┣┫ 👥 **MEMBERS:** ${metadata.participants.length}
+║
+┣━━◇ 【 **VIBE CHECK** 】 ◇━━┫
+║
+┣┫ ✨ Guess they couldn't handle 
+┣┫    the Savage energy. 💀
+║
+╚════════════════════╝
+   © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
+
+                    await sock.sendMessage(anu.id, { image: { url: ppuser }, caption: goodbyeText, mentions: [num] });
                 }
             }
-        } catch (err) {
-            console.log(err);
-        }
+        } catch (err) { console.log(err); }
     });
 
     // ===== 5. MESSAGE HANDLER =====
@@ -175,16 +188,17 @@ async function startSavage() {
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
         const commandName = args.shift().toLowerCase();
         
-        // Handle Welcome Toggle directly for reliability
+        // Reliability Toggles for Welcome/Goodbye
         if (commandName === 'welcome') {
             const mode = args[0]?.toLowerCase();
-            if (mode === 'on') {
-                global.welcomeStore.add(from);
-                return sock.sendMessage(from, { text: "✅ *SΛVΛGΞ Welcome System: ACTIVATED*" }, { quoted: msg });
-            } else if (mode === 'off') {
-                global.welcomeStore.delete(from);
-                return sock.sendMessage(from, { text: "❌ *SΛVΛGΞ Welcome System: DEACTIVATED*" }, { quoted: msg });
-            }
+            if (mode === 'on') { global.welcomeStore.add(from); return sock.sendMessage(from, { text: "✅ *SΛVΛGΞ Welcome System: ACTIVATED*" }, { quoted: msg }); }
+            if (mode === 'off') { global.welcomeStore.delete(from); return sock.sendMessage(from, { text: "❌ *SΛVΛGΞ Welcome System: DEACTIVATED*" }, { quoted: msg }); }
+        }
+
+        if (commandName === 'goodbye') {
+            const mode = args[0]?.toLowerCase();
+            if (mode === 'on') { global.goodbyeStore.add(from); return sock.sendMessage(from, { text: "✅ *SΛVΛGΞ Goodbye System: ACTIVATED*" }, { quoted: msg }); }
+            if (mode === 'off') { global.goodbyeStore.delete(from); return sock.sendMessage(from, { text: "❌ *SΛVΛGΞ Goodbye System: DEACTIVATED*" }, { quoted: msg }); }
         }
 
         const cmd = global.commands.get(commandName);

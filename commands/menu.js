@@ -3,7 +3,7 @@ const os = require('os');
 module.exports = {
     name: 'menu',
     category: 'engine',
-    execute: async (sock, msg, args) => {
+    execute: async (sock, msg, args, { isMe }) => {
         const from = msg.key.remoteJid;
         
         try {
@@ -19,17 +19,14 @@ module.exports = {
 
             const getCategorizedMenu = (catName, title) => {
                 const filtered = Array.from(global.commands.values())
-                    .filter(cmd => cmd.category === catName)
-                    .sort((a, b) => (a.order || 99) - (b.order || 99));
-
+                    .filter(cmd => cmd.category === catName);
                 if (filtered.length === 0) return ""; 
-
                 return `┌───◇  * ${title} *\n${filtered.map(cmd => `┃  ➥ .${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
             };
 
             const header = `┌───◇  *SΛVΛGΞ-TECH*
 ┃
-┃ **OWNER** : Spencer
+┃ **STATUS** : ${isMe ? 'MASTER RECOGNIZED 👑' : 'USER CONNECTED 👤'}
 ┃ **PREFIX** : [ ${global.prefix} ]
 ┃ **UPTIME** : ${hours}h ${minutes}m
 ┃ **SPEED** : ${speed} ms
@@ -37,6 +34,7 @@ module.exports = {
 ┃
 ┕━━━━━━━━━━━━━━━╼\n\n`;
 
+            // Maintain specified categories
             const ownerMenu = getCategorizedMenu('owner', 'OWNER MENU');
             const groupMenu = getCategorizedMenu('group', 'GROUP MENU');
             const aiMenu = getCategorizedMenu('ai', 'AI MENU');
@@ -44,20 +42,23 @@ module.exports = {
             const audioMenu = getCategorizedMenu('audio', 'AUDIO MENU');
             const engineMenu = getCategorizedMenu('engine', 'ENGINE MENU');
 
-            const footer = `_Master your tools or be deleted._`;
-            const fullMenu = header + ownerMenu + groupMenu + aiMenu + toolsMenu + audioMenu + engineMenu + footer;
+            // Catch-all for other categories
+            const otherMenu = Array.from(global.commands.values())
+                .filter(cmd => !['owner', 'group', 'ai', 'tools', 'audio', 'engine'].includes(cmd.category))
+                .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !['owner', 'group', 'ai', 'tools', 'audio', 'engine'].includes(c.category)).category, 'OTHER MODULES') : "";
 
-            const menuImage = 'https://i.ibb.co/QF1KM5Bp/IMG-20260425-WA1076.webp';
+            const footer = `_Master your tools or be deleted._`;
+            const fullMenu = header + ownerMenu + groupMenu + aiMenu + toolsMenu + audioMenu + engineMenu + otherMenu + footer;
 
             await sock.sendMessage(from, { 
-                image: { url: menuImage }, 
+                image: { url: 'https://i.ibb.co/QF1KM5Bp/IMG-20260425-WA1076.webp' }, 
                 caption: fullMenu,
                 mentions: [msg.key.participant || from]
-            });
+            }, { quoted: msg });
 
         } catch (error) {
             console.error("MENU ERROR:", error);
-            await sock.sendMessage(from, { text: "┌───◇  *SΛVΛGΞ: ERROR*\n┃\n┃ **STATUS** : DATA FETCH FAILED 💀\n┕━━━━━━━━━━━━━━━╼" });
+            await sock.sendMessage(from, { text: "❌ **SΛVΛGΞ:** DATA FETCH FAILED" });
         }
     }
 };

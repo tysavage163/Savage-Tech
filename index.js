@@ -17,9 +17,6 @@ global.blacklist = new Set();
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
 global.worktype = "public"; 
-const messageStore = new Map(); 
-
-const SESSION_ID = process.env.SESSION_ID || "PASTE_YOUR_ID_HERE"; 
 
 // ===== 2. COMMAND LOADER =====
 const loadCommands = () => {
@@ -41,6 +38,7 @@ const loadCommands = () => {
 
 // ===== 3. BOOT SEQUENCE =====
 async function startSavage() {
+    // Persistent auth state
     const { state, saveCreds } = await useMultiFileAuthState("session");
     const { version } = await fetchLatestBaileysVersion();
 
@@ -52,32 +50,43 @@ async function startSavage() {
         },
         printQRInTerminal: true,
         logger: pino({ level: "silent" }),
-        browser: ["SΛVΛGΞ-TECH", "Chrome", "121.0.6167.85"] 
+        browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
     });
+
+    // 🛠️ SESSION SAVING
+    sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", async (update) => {
         const { connection, qr, lastDisconnect } = update;
-        if (qr && (!SESSION_ID || SESSION_ID === "PASTE_YOUR_ID_HERE") && !fs.existsSync("./session/creds.json")) {
+
+        // Only show QR if we don't have a saved session
+        if (qr && !fs.existsSync("./session/creds.json")) {
             console.log("\n📸 SCAN QR TO INITIALIZE NEURAL LINK:\n");
             qrcode.generate(qr, { small: true });
         }
+
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-            await sock.sendMessage(myNumber, { text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** MASTER RECOGNIZED\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** SECURE" });
+            await sock.sendMessage(myNumber, { text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** RECONNECTED\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** SESSION SECURED" });
         }
+
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
-            if (reason !== DisconnectReason.loggedOut) {
+            const shouldReconnect = reason !== DisconnectReason.loggedOut;
+
+            console.log(`📡 Connection closed. Reason: ${reason}. Reconnecting: ${shouldReconnect}`);
+
+            if (shouldReconnect) {
+                // Wait 5 seconds before trying to resume session
                 setTimeout(() => startSavage(), 5000);
             } else {
-                console.log("❌ Logged out. Clearing session...");
-                fs.rmSync("./session", { recursive: true, force: true });
+                console.log("❌ Logged out from phone. Wiping session...");
+                if (fs.existsSync("./session")) fs.rmSync("./session", { recursive: true, force: true });
+                process.exit(0);
             }
         }
     });
-
-    sock.ev.on("creds.update", saveCreds);
 
     // ===== 4. MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
@@ -85,8 +94,7 @@ async function startSavage() {
         if (!msg || !msg.message || msg.key.remoteJid === 'status@broadcast') return;
 
         const from = msg.key.remoteJid;
-        const sender = msg.key.participant || msg.key.remoteJid;
-        const isMe = msg.key.fromMe; // The core master check
+        const isMe = msg.key.fromMe; 
 
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         if (!text.startsWith(global.prefix)) return;
@@ -96,16 +104,13 @@ async function startSavage() {
         
         const cmd = global.commands.get(commandName);
         if (cmd) {
-            // Permission Bridge
+            // Permission Firewall
             if (global.worktype === 'private' && !isMe) return;
 
             try {
                 await cmd.execute(sock, msg, args, { isArchitect: isMe, isMe });
             } catch (e) { 
                 console.error(`❌ Command Error [${commandName}]:`, e);
-                if (e.message.includes('toUpperCase')) {
-                    await sock.sendMessage(from, { text: "⚠️ **SYSTEM ERROR:** Arguments required for this command." });
-                }
             }
         }
     });

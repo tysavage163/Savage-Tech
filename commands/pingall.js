@@ -6,29 +6,35 @@ module.exports = {
         const from = msg.key.remoteJid;
         const isGroup = from.endsWith('@g.us');
 
-        // 🛡️ SECURITY GATE
-        if (!isGroup) return sock.sendMessage(from, { text: "❌ This command only works in groups." });
-        if (!isMe) return; // Only the host can ping everyone
+        // 🛡️ SECURITY GATE: Master only
+        if (!isMe) return; 
+
+        if (!isGroup) {
+            return sock.sendMessage(from, { text: "❌ *ERROR:* Group protocol only." }, { quoted: msg });
+        }
 
         try {
             const metadata = await sock.groupMetadata(from);
             const participants = metadata.participants;
+            
             let mentions = [];
-            let message = "⛓️ **SΛVΛGΞ ATTENTION PROTOCOL** ⛓️\n\n";
+            let messageText = `╔════════════════════╗\n   ⛓️ **SΛVΛGΞ ATTENTION** ⛓️\n╚════════════════════╝\n\n📢 **ANNOUNCEMENT:** ${args.length > 0 ? args.join(' ') : 'System Broadcast'}\n\n`;
 
             for (let participant of participants) {
-                message += ` @${participant.id.split('@')[0]}`;
+                messageText += `🔹 @${participant.id.split('@')[0]}\n`;
                 mentions.push(participant.id);
             }
 
+            messageText += `\n━━━━━━━━━━━━━━━\n_Architect Beck is calling._ 🌐`;
+
             await sock.sendMessage(from, { 
-                text: message.trim(), 
+                text: messageText, 
                 mentions: mentions 
             }, { quoted: msg });
 
         } catch (error) {
             console.error("PINGALL ERROR:", error);
-            await sock.sendMessage(from, { text: "❌ Failed to retrieve group members." });
+            await sock.sendMessage(from, { text: "❌ **FAILED:** Metadata extraction error." });
         }
     }
 };

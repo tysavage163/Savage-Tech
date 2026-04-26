@@ -17,9 +17,9 @@ global.commands = new Map();
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
 global.antitag = "on"; 
+global.welcomeStore = new Set(); // Temporary store for toggled welcome groups
 const messageStore = new Map(); 
 
-// This allows Render/Koyeb to feed the ID directly into the bot
 const SESSION_ID = process.env.SESSION_ID || "PASTE_YOUR_ID_HERE"; 
 
 const savageReplies = [
@@ -50,7 +50,6 @@ const loadCommands = () => {
 
 // ===== 3. START SYSTEM =====
 async function startSavage() {
-    // Decode Session ID if provided via Env or Hardcoded string
     if (SESSION_ID && SESSION_ID !== "PASTE_YOUR_ID_HERE" && !fs.existsSync("./session/creds.json")) {
         if (!fs.existsSync("./session")) fs.mkdirSync("./session");
         try {
@@ -79,16 +78,13 @@ async function startSavage() {
 
     sock.ev.on("connection.update", (update) => {
         const { connection, qr, lastDisconnect } = update;
-        
         if (qr && (!SESSION_ID || SESSION_ID === "PASTE_YOUR_ID_HERE") && !fs.existsSync("./session/creds.json")) {
             console.log("\n📸 SCAN QR OR USE YOUR PAIR SITE:\n");
             qrcode.generate(qr, { small: true });
         }
-
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE AND CONNECTED!");
         }
-        
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
             if (reason !== DisconnectReason.loggedOut) {
@@ -103,7 +99,51 @@ async function startSavage() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    // ===== 4. MESSAGE HANDLER =====
+    // ===== 4. GREETING ENGINE (WELCOME) =====
+    sock.ev.on('group-participants.update', async (anu) => {
+        // Only trigger if Welcome is ON for this group
+        if (!global.welcomeStore.has(anu.id)) return;
+
+        try {
+            const metadata = await sock.groupMetadata(anu.id);
+            const participants = anu.participants;
+            
+            for (let num of participants) {
+                let ppuser;
+                try {
+                    ppuser = await sock.profilePictureUrl(num, 'image');
+                } catch {
+                    ppuser = 'https://raw.githubusercontent.com/tysavage163/Savage-Pair/main/bg.png';
+                }
+
+                if (anu.action == 'add') {
+                    const welcomeText = `
+╔════◇ 【 **ЩΣLCӨMΣ** 】 ◇════╗
+║
+┣┫ 👤 **UƧΣЯ:** @${num.split('@')[0]}
+┣┫ 👋 **STATUS:** Joined the territory
+┣┫ 👥 **MEMBERS:** ${metadata.participants.length}
+║
+┣━━◇ 【 **VIBE CHECK** 】 ◇━━┫
+║
+┣┫ ✨ Hope you're the "Savage" type.
+║
+╚════════════════════╝
+   © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
+
+                    await sock.sendMessage(anu.id, { 
+                        image: { url: ppuser }, 
+                        caption: welcomeText, 
+                        mentions: [num] 
+                    });
+                }
+            }
+        } catch (err) {
+            console.log(err);
+        }
+    });
+
+    // ===== 5. MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message || msg.key.remoteJid === 'status@broadcast') return;
@@ -134,8 +174,20 @@ async function startSavage() {
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
         const commandName = args.shift().toLowerCase();
-        const cmd = global.commands.get(commandName);
         
+        // Handle Welcome Toggle directly for reliability
+        if (commandName === 'welcome') {
+            const mode = args[0]?.toLowerCase();
+            if (mode === 'on') {
+                global.welcomeStore.add(from);
+                return sock.sendMessage(from, { text: "✅ *SΛVΛGΞ Welcome System: ACTIVATED*" }, { quoted: msg });
+            } else if (mode === 'off') {
+                global.welcomeStore.delete(from);
+                return sock.sendMessage(from, { text: "❌ *SΛVΛGΞ Welcome System: DEACTIVATED*" }, { quoted: msg });
+            }
+        }
+
+        const cmd = global.commands.get(commandName);
         if (cmd) {
             const isArchitect = sender.includes(global.architect);
             const isMe = msg.key.fromMe;
@@ -145,7 +197,7 @@ async function startSavage() {
         }
     });
 
-    // ===== 5. ANTI-DELETE ENGINE =====
+    // ===== 6. ANTI-DELETE ENGINE =====
     sock.ev.on("messages.update", async (updates) => {
         for (const update of updates) {
             const isDelete = update.update.protocolMessage?.type === 0;

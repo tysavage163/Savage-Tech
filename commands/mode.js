@@ -5,10 +5,8 @@ module.exports = {
     async execute(sock, msg, args, { isMe }) {
         const from = msg.key.remoteJid;
 
-        // 🛡️ HARD LOCK: Only the Host (isMe) can change the bot's existence
-        if (!isMe) {
-            return; // Silent fail so randoms don't even get a response
-        }
+        // 🛡️ THE FIREWALL: If it's not the person who paired (isMe), the bot stays silent.
+        if (!isMe) return; 
 
         if (!args[0]) {
             const currentMode = global.worktype === 'public' ? '🔓 PUBLIC' : '🔐 PRIVATE';
@@ -18,15 +16,12 @@ module.exports = {
         }
 
         const newMode = args[0].toLowerCase();
-
         if (newMode === "public") {
             global.worktype = "public";
-            await sock.sendMessage(from, { text: "🔓 **SYSTEM UPDATE:** Bot is now in PUBLIC mode. Commands are open to all." }, { quoted: msg });
+            await sock.sendMessage(from, { text: "🔓 **SYSTEM UPDATE:** Bot is now in PUBLIC mode." });
         } else if (newMode === "private") {
             global.worktype = "private";
-            await sock.sendMessage(from, { text: "🔐 **SYSTEM UPDATE:** Bot is now in PRIVATE mode. Only the Architect can command me." }, { quoted: msg });
-        } else {
-            await sock.sendMessage(from, { text: "⚠️ **ERROR:** Use 'public' or 'private'." }, { quoted: msg });
+            await sock.sendMessage(from, { text: "🔐 **SYSTEM UPDATE:** Bot is now in PRIVATE mode." });
         }
     }
 };

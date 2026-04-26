@@ -11,6 +11,9 @@ module.exports = {
         const status = args[0]?.toLowerCase();
 
         if (status === 'on') {
+            // Add the current group ID to the global Welcome Store
+            global.welcomeStore.add(from);
+
             const welcomeOn = `
 ╔════◇ 【 **ЩΣLCӨMΣ ΣΣƬЦP** 】 ◇════╗
 ║
@@ -27,6 +30,9 @@ module.exports = {
             return sock.sendMessage(from, { text: welcomeOn }, { quoted: msg });
 
         } else if (status === 'off') {
+            // Remove the group ID from the global Welcome Store
+            global.welcomeStore.delete(from);
+
             const welcomeOff = `
 ╔════◇ 【 **ЩΣLCӨMΣ ΣΣƬЦP** 】 ◇════╗
 ║
@@ -38,7 +44,6 @@ module.exports = {
             return sock.sendMessage(from, { text: welcomeOff }, { quoted: msg });
 
         } else {
-            // Help Menu if they just type .welcome
             const welcomeHelp = `
 ╔════◇ 【 **ЩΣLCӨMΣ ΣΣƬЦP** 】 ◇════╗
 ║

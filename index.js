@@ -14,6 +14,7 @@ const qrcode = require("qrcode-terminal");
 global.prefix = "."; 
 global.architect = "254798841125"; 
 global.commands = new Map();
+global.blacklist = new Set(); // 🛡️ Blacklist Protocol initialized
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
 global.antitag = "on"; 
@@ -94,7 +95,7 @@ async function startSavage() {
 
 📡 **CONNECTION:** SECURE
 🛡️ **DEFENSE PROTOCOLS:** ACTIVE
-👤 **HOST:** @${myNumber.split('@')[0]}
+👤 **HOST:** SPENCER
 ⚡ **LATENCY:** STABLE
 
 *The system has recognized its master.*
@@ -177,6 +178,12 @@ async function startSavage() {
 
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
+
+        // 🛡️ BLACKLIST FIREWALL: Ignore users in the restricted list
+        if (global.blacklist.has(sender) && !msg.key.fromMe) {
+            return; 
+        }
+
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
 
         if (global.antitag === 'on' && !msg.key.fromMe) {

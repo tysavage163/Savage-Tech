@@ -3,7 +3,7 @@ module.exports = {
     async execute(sock, msg, args, { isArchitect, isMe }) {
         const from = msg.key.remoteJid;
 
-        // Security Check: Only the Architect or Bot Owner can block
+        // Only the Architect (You) or the Bot can use this
         if (!isArchitect && !isMe) {
             return sock.sendMessage(from, { text: '❌ *Access Denied:* Only the Architect can use this.' }, { quoted: msg });
         }

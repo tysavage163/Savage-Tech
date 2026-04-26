@@ -18,7 +18,7 @@ global.antideleteMode = "on";
 global.autoViewStatus = "on"; 
 global.antitag = "on"; 
 global.welcomeStore = new Set(); 
-global.goodbyeStore = new Set(); // Added for Goodbye tracking
+global.goodbyeStore = new Set(); 
 const messageStore = new Map(); 
 
 const SESSION_ID = process.env.SESSION_ID || "PASTE_YOUR_ID_HERE"; 
@@ -77,7 +77,7 @@ async function startSavage() {
         browser: ["Ubuntu", "Chrome", "121.0.6167.85"] 
     });
 
-    sock.ev.on("connection.update", (update) => {
+    sock.ev.on("connection.update", async (update) => {
         const { connection, qr, lastDisconnect } = update;
         if (qr && (!SESSION_ID || SESSION_ID === "PASTE_YOUR_ID_HERE") && !fs.existsSync("./session/creds.json")) {
             console.log("\n📸 SCAN QR OR USE YOUR PAIR SITE:\n");
@@ -85,6 +85,24 @@ async function startSavage() {
         }
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE AND CONNECTED!");
+            
+            const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+            const loginMsg = `
+╔════════════════════╗
+      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️
+╚════════════════════╝
+
+📡 **CONNECTION:** SECURE
+🛡️ **DEFENSE PROTOCOLS:** ACTIVE
+👤 **HOST:** @${myNumber.split('@')[0]}
+⚡ **LATENCY:** STABLE
+
+*The system has recognized its master.*
+*Surveillance and enforcement initiated.* 🌐
+
+> _Neural Link established successfully._`.trim();
+
+            await sock.sendMessage(myNumber, { text: loginMsg, mentions: [myNumber] });
         }
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
@@ -114,7 +132,6 @@ async function startSavage() {
                     ppuser = 'https://raw.githubusercontent.com/tysavage163/Savage-Pair/main/bg.png';
                 }
 
-                // WELCOME LOGIC
                 if (anu.action == 'add' && global.welcomeStore.has(anu.id)) {
                     const welcomeText = `
 ╔════◇ 【 **ЩΣLCӨMΣ** 】 ◇════╗
@@ -129,11 +146,9 @@ async function startSavage() {
 ║
 ╚════════════════════╝
    © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
-
                     await sock.sendMessage(anu.id, { image: { url: ppuser }, caption: welcomeText, mentions: [num] });
                 }
 
-                // GOODBYE LOGIC
                 if (anu.action == 'remove' && global.goodbyeStore.has(anu.id)) {
                     const goodbyeText = `
 ╔════◇ 【 **GӨӨDBYΣ** 】 ◇════╗
@@ -149,7 +164,6 @@ async function startSavage() {
 ║
 ╚════════════════════╝
    © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
-
                     await sock.sendMessage(anu.id, { image: { url: ppuser }, caption: goodbyeText, mentions: [num] });
                 }
             }
@@ -165,7 +179,6 @@ async function startSavage() {
         const sender = msg.key.participant || msg.key.remoteJid;
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
 
-        // ANTITAG
         if (global.antitag === 'on' && !msg.key.fromMe) {
             const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
             if (mentions.includes(sock.user.id.split(':')[0] + '@s.whatsapp.net')) {
@@ -174,7 +187,6 @@ async function startSavage() {
             }
         }
 
-        // AUTO-VIEW STATUS
         if (from === "status@broadcast" && global.autoViewStatus === "on") {
             try { await sock.readMessages([msg.key]); } catch (e) {}
             return; 
@@ -188,7 +200,6 @@ async function startSavage() {
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
         const commandName = args.shift().toLowerCase();
         
-        // Reliability Toggles for Welcome/Goodbye
         if (commandName === 'welcome') {
             const mode = args[0]?.toLowerCase();
             if (mode === 'on') { global.welcomeStore.add(from); return sock.sendMessage(from, { text: "✅ *SΛVΛGΞ Welcome System: ACTIVATED*" }, { quoted: msg }); }
@@ -211,18 +222,38 @@ async function startSavage() {
         }
     });
 
-    // ===== 6. ANTI-DELETE ENGINE =====
+    // ===== 6. ANTI-DELETE ENGINE (FORENSIC) =====
     sock.ev.on("messages.update", async (updates) => {
         for (const update of updates) {
             const isDelete = update.update.protocolMessage?.type === 0;
             if (isDelete && global.antideleteMode === "on") {
-                const key = update.key || update.update.protocolMessage?.key;
+                const key = update.update.protocolMessage?.key;
                 const prevMsg = messageStore.get(key.id);
                 if (prevMsg) {
                     const senderJid = prevMsg.key.participant || prevMsg.key.remoteJid;
-                    const content = prevMsg.message?.conversation || prevMsg.message?.extendedTextMessage?.text || "Media Content";
-                    const log = `━━ SAVAGE-RECOVERY ━━\n\nSENDER: @${senderJid.split("@")[0]}\nDELETED: ${content}\n\n━━━━━━━━━━━━━━`;
-                    await sock.sendMessage(sock.user.id.split(':')[0] + '@s.whatsapp.net', { text: log, mentions: [senderJid] });
+                    const isGroup = prevMsg.key.remoteJid.endsWith('@g.us');
+                    const content = prevMsg.message?.conversation || 
+                                    prevMsg.message?.extendedTextMessage?.text || 
+                                    "📎 [Encrypted Media/Attachment]";
+
+                    const forensicLog = `
+╔════════════════════╗
+   ⛓️ **DELETION DETECTED** ⛓️
+╚════════════════════╝
+
+📡 **STATUS:** RECOVERED
+👤 **SENDER:** @${senderJid.split("@")[0]}
+🌐 **ORIGIN:** ${isGroup ? "Group Chat" : "Private DM"}
+🛡️ **PROTOCOL:** ARCHIVED
+
+--- **EXTRACTED DATA** ---
+> ${content}
+
+━━━━━━━━━━━━━━━
+_System memory is absolute._`.trim();
+
+                    const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+                    await sock.sendMessage(myNumber, { text: forensicLog, mentions: [senderJid] });
                 }
             }
         }

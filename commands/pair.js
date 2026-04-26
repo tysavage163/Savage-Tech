@@ -3,31 +3,25 @@ module.exports = {
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         
-        const pairMsg = `
-╔════◇ 【 **SΛVΛGΞ PΛIЯIПG** 】 ◇════╗
-║
-┣┫ 🌐 **SITE:** https://savage-pair.onrender.com
-┣┫ ⚡ **METHOD:** Linking Code
-║
-┣━━◇ 【 **VΣЯDICƬ** 】 ◇━━┫
-║
-┣┫ *Stop struggling with legacy*
-┣┫ *connection methods. Use the*
-┣┫ *interface to bridge the gap.*
-┣┫ 
-┣┫ *Master the link...*
-┣┫ *...or remain disconnected.*
-║
-╚════════════════════╝
-   © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
+        const surgicalFrame = `
+« ꜱᴀᴠᴀɢᴇ-ᴛᴇᴄʜ // ᴄᴏʀᴇ-ɪɴɪᴛ »
+┌────────────────────────┐
+  ID: Q-CORE.0x992
+  LINK: spencers-quantam-core
+  PATH: /establish/bridge
+└────────────────────────┘
+ [ ▓▓▓▓▓▓▓▓▓▓▓▓ ] 100%
+ 
+🔗 https://spencers-quantam-core.onrender.com
+*Master the tools or be deleted.*`;
 
         await sock.sendMessage(from, { 
-            text: pairMsg,
+            text: surgicalFrame,
             contextInfo: {
                 externalAdReply: {
-                    title: "SΛVΛGΞ-TECH PΛIЯIПG",
-                    body: "Connect to the Engine",
-                    sourceUrl: "https://savage-pair.onrender.com",
+                    title: "SΛVΛGΞ: QUANTUM CORE",
+                    body: "Protocol: 0x992 Establish",
+                    sourceUrl: "https://spencers-quantam-core.onrender.com",
                     mediaType: 1,
                     renderLargerThumbnail: true
                 }

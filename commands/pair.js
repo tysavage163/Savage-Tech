@@ -3,6 +3,9 @@ module.exports = {
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         
+        // The image link you provided
+        const pairImg = "https://i.ibb.co/5WJmsXjT/abedeb26fb62e27cd2fbb1292134ea1c.webp";
+
         const surgicalFrame = `
 « ꜱᴀᴠᴀɢᴇ-ᴛᴇᴄʜ // ᴄᴏʀᴇ-ɪɴɪᴛ »
 ┌────────────────────────┐
@@ -23,7 +26,9 @@ module.exports = {
                     body: "Protocol: 0x992 Establish",
                     sourceUrl: "https://spencers-quantam-core.onrender.com",
                     mediaType: 1,
-                    renderLargerThumbnail: true
+                    thumbnailUrl: pairImg, // Direct thumbnail link
+                    renderLargerThumbnail: true,
+                    showAdAttribution: true // Adds a "sponsored" or "bot" vibe
                 }
             }
         }, { quoted: msg });

@@ -10,27 +10,16 @@ const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 
-// ===== 1. SETTINGS & HIERARCHY =====
+// ===== 1. CORE SYSTEM SETTINGS =====
 global.prefix = "."; 
-global.architect = "254798841125"; 
 global.commands = new Map();
-global.blacklist = new Set(); // 🛡️ Blacklist Protocol initialized
+global.blacklist = new Set(); 
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
-global.antitag = "on"; 
-global.welcomeStore = new Set(); 
-global.goodbyeStore = new Set(); 
+global.worktype = "public"; 
 const messageStore = new Map(); 
 
 const SESSION_ID = process.env.SESSION_ID || "PASTE_YOUR_ID_HERE"; 
-
-const savageReplies = [
-    "Don't tag me unless it's a life or death situation.",
-    "Your notification isn't worth my attention.",
-    "I'm busy building; you're busy tagging. We aren't the same.",
-    "Error 403: Access to my attention is denied.",
-    "Connection terminated. Your input was unnecessary."
-];
 
 // ===== 2. COMMAND LOADER =====
 const loadCommands = () => {
@@ -50,20 +39,8 @@ const loadCommands = () => {
     console.log(`✅ ${global.commands.size} Commands loaded successfully.`);
 };
 
-// ===== 3. START SYSTEM =====
+// ===== 3. BOOT SEQUENCE =====
 async function startSavage() {
-    if (SESSION_ID && SESSION_ID !== "PASTE_YOUR_ID_HERE" && !fs.existsSync("./session/creds.json")) {
-        if (!fs.existsSync("./session")) fs.mkdirSync("./session");
-        try {
-            const base64Data = SESSION_ID.includes("SΛVΛGΞ-MD~") ? SESSION_ID.split("SΛVΛGΞ-MD~")[1] : SESSION_ID;
-            const credsData = Buffer.from(base64Data, "base64").toString("utf-8");
-            fs.writeFileSync("./session/creds.json", credsData);
-            console.log("💎 SESSION ID INSTALLED: Authenticating...");
-        } catch (e) {
-            console.log("⚠️ Session ID invalid or corrupted.");
-        }
-    }
-
     const { state, saveCreds } = await useMultiFileAuthState("session");
     const { version } = await fetchLatestBaileysVersion();
 
@@ -73,42 +50,25 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
         },
-        printQRInTerminal: false,
+        printQRInTerminal: true,
         logger: pino({ level: "silent" }),
-        browser: ["Ubuntu", "Chrome", "121.0.6167.85"] 
+        browser: ["SΛVΛGΞ-TECH", "Chrome", "121.0.6167.85"] 
     });
 
     sock.ev.on("connection.update", async (update) => {
         const { connection, qr, lastDisconnect } = update;
         if (qr && (!SESSION_ID || SESSION_ID === "PASTE_YOUR_ID_HERE") && !fs.existsSync("./session/creds.json")) {
-            console.log("\n📸 SCAN QR OR USE YOUR PAIR SITE:\n");
+            console.log("\n📸 SCAN QR TO INITIALIZE NEURAL LINK:\n");
             qrcode.generate(qr, { small: true });
         }
         if (connection === "open") {
-            console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE AND CONNECTED!");
-            
+            console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-            const loginMsg = `
-╔════════════════════╗
-      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️
-╚════════════════════╝
-
-📡 **CONNECTION:** SECURE
-🛡️ **DEFENSE PROTOCOLS:** ACTIVE
-👤 **HOST:** SPENCER
-⚡ **LATENCY:** STABLE
-
-*The system has recognized its master.*
-*Surveillance and enforcement initiated.* 🌐
-
-> _Neural Link established successfully._`.trim();
-
-            await sock.sendMessage(myNumber, { text: loginMsg, mentions: [myNumber] });
+            await sock.sendMessage(myNumber, { text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** MASTER RECOGNIZED\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** SECURE" });
         }
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
             if (reason !== DisconnectReason.loggedOut) {
-                console.log("🔄 Connection lost. Reconnecting...");
                 setTimeout(() => startSavage(), 5000);
             } else {
                 console.log("❌ Logged out. Clearing session...");
@@ -119,148 +79,32 @@ async function startSavage() {
 
     sock.ev.on("creds.update", saveCreds);
 
-    // ===== 4. GREETING & FAREWELL ENGINE =====
-    sock.ev.on('group-participants.update', async (anu) => {
-        try {
-            const metadata = await sock.groupMetadata(anu.id);
-            const participants = anu.participants;
-            
-            for (let num of participants) {
-                let ppuser;
-                try {
-                    ppuser = await sock.profilePictureUrl(num, 'image');
-                } catch {
-                    ppuser = 'https://raw.githubusercontent.com/tysavage163/Savage-Pair/main/bg.png';
-                }
-
-                if (anu.action == 'add' && global.welcomeStore.has(anu.id)) {
-                    const welcomeText = `
-╔════◇ 【 **ЩΣLCӨMΣ** 】 ◇════╗
-║
-┣┫ 👤 **UƧΣЯ:** @${num.split('@')[0]}
-┣┫ 👋 **STATUS:** Joined the territory
-┣┫ 👥 **MEMBERS:** ${metadata.participants.length}
-║
-┣━━◇ 【 **VIBE CHECK** 】 ◇━━┫
-║
-┣┫ ✨ Hope you're the "Savage" type.
-║
-╚════════════════════╝
-   © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
-                    await sock.sendMessage(anu.id, { image: { url: ppuser }, caption: welcomeText, mentions: [num] });
-                }
-
-                if (anu.action == 'remove' && global.goodbyeStore.has(anu.id)) {
-                    const goodbyeText = `
-╔════◇ 【 **GӨӨDBYΣ** 】 ◇════╗
-║
-┣┫ 👤 **UƧΣЯ:** @${num.split('@')[0]}
-┣┫ 🚪 **STATUS:** Left the territory
-┣┫ 👥 **MEMBERS:** ${metadata.participants.length}
-║
-┣━━◇ 【 **VIBE CHECK** 】 ◇━━┫
-║
-┣┫ ✨ Guess they couldn't handle 
-┣┫    the Savage energy. 💀
-║
-╚════════════════════╝
-   © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
-                    await sock.sendMessage(anu.id, { image: { url: ppuser }, caption: goodbyeText, mentions: [num] });
-                }
-            }
-        } catch (err) { console.log(err); }
-    });
-
-    // ===== 5. MESSAGE HANDLER =====
+    // ===== 4. MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message || msg.key.remoteJid === 'status@broadcast') return;
 
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
-
-        // 🛡️ BLACKLIST FIREWALL: Ignore users in the restricted list
-        if (global.blacklist.has(sender) && !msg.key.fromMe) {
-            return; 
-        }
+        const isMe = msg.key.fromMe; // The core master check
 
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
-
-        if (global.antitag === 'on' && !msg.key.fromMe) {
-            const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-            if (mentions.includes(sock.user.id.split(':')[0] + '@s.whatsapp.net')) {
-                const reply = savageReplies[Math.floor(Math.random() * savageReplies.length)];
-                await sock.sendMessage(from, { text: `*SΛVΛGΞ-TECH:* ${reply}`, mentions: [sender] }, { quoted: msg });
-            }
-        }
-
-        if (from === "status@broadcast" && global.autoViewStatus === "on") {
-            try { await sock.readMessages([msg.key]); } catch (e) {}
-            return; 
-        }
-
-        messageStore.set(msg.key.id, JSON.parse(JSON.stringify(msg)));
-        setTimeout(() => messageStore.delete(msg.key.id), 3600000);
-
         if (!text.startsWith(global.prefix)) return;
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
         const commandName = args.shift().toLowerCase();
         
-        if (commandName === 'welcome') {
-            const mode = args[0]?.toLowerCase();
-            if (mode === 'on') { global.welcomeStore.add(from); return sock.sendMessage(from, { text: "✅ *SΛVΛGΞ Welcome System: ACTIVATED*" }, { quoted: msg }); }
-            if (mode === 'off') { global.welcomeStore.delete(from); return sock.sendMessage(from, { text: "❌ *SΛVΛGΞ Welcome System: DEACTIVATED*" }, { quoted: msg }); }
-        }
-
-        if (commandName === 'goodbye') {
-            const mode = args[0]?.toLowerCase();
-            if (mode === 'on') { global.goodbyeStore.add(from); return sock.sendMessage(from, { text: "✅ *SΛVΛGΞ Goodbye System: ACTIVATED*" }, { quoted: msg }); }
-            if (mode === 'off') { global.goodbyeStore.delete(from); return sock.sendMessage(from, { text: "❌ *SΛVΛGΞ Goodbye System: DEACTIVATED*" }, { quoted: msg }); }
-        }
-
         const cmd = global.commands.get(commandName);
         if (cmd) {
-            const isArchitect = sender.includes(global.architect);
-            const isMe = msg.key.fromMe;
+            // Permission Bridge
+            if (global.worktype === 'private' && !isMe) return;
+
             try {
-                await cmd.execute(sock, msg, args, { isArchitect, isMe, hasAccess: (isArchitect || isMe) });
-            } catch (e) { console.error(`❌ Error:`, e); }
-        }
-    });
-
-    // ===== 6. ANTI-DELETE ENGINE (FORENSIC) =====
-    sock.ev.on("messages.update", async (updates) => {
-        for (const update of updates) {
-            const isDelete = update.update.protocolMessage?.type === 0;
-            if (isDelete && global.antideleteMode === "on") {
-                const key = update.update.protocolMessage?.key;
-                const prevMsg = messageStore.get(key.id);
-                if (prevMsg) {
-                    const senderJid = prevMsg.key.participant || prevMsg.key.remoteJid;
-                    const isGroup = prevMsg.key.remoteJid.endsWith('@g.us');
-                    const content = prevMsg.message?.conversation || 
-                                    prevMsg.message?.extendedTextMessage?.text || 
-                                    "📎 [Encrypted Media/Attachment]";
-
-                    const forensicLog = `
-╔════════════════════╗
-   ⛓️ **DELETION DETECTED** ⛓️
-╚════════════════════╝
-
-📡 **STATUS:** RECOVERED
-👤 **SENDER:** @${senderJid.split("@")[0]}
-🌐 **ORIGIN:** ${isGroup ? "Group Chat" : "Private DM"}
-🛡️ **PROTOCOL:** ARCHIVED
-
---- **EXTRACTED DATA** ---
-> ${content}
-
-━━━━━━━━━━━━━━━
-_System memory is absolute._`.trim();
-
-                    const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-                    await sock.sendMessage(myNumber, { text: forensicLog, mentions: [senderJid] });
+                await cmd.execute(sock, msg, args, { isArchitect: isMe, isMe });
+            } catch (e) { 
+                console.error(`❌ Command Error [${commandName}]:`, e);
+                if (e.message.includes('toUpperCase')) {
+                    await sock.sendMessage(from, { text: "⚠️ **SYSTEM ERROR:** Arguments required for this command." });
                 }
             }
         }

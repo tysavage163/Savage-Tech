@@ -1,54 +1,37 @@
-const { default: makeWASocket, useMultiFileAuthState, delay, makeCacheableSignalKeyStore } = require("@whiskeysockets/baileys");
-const pino = require("pino");
-
 module.exports = {
-    name: "pair",
+    name: 'pair',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        let target = args[0]?.replace(/[^0-9]/g, "");
-        if (!target) return sock.sendMessage(from, { text: "⚡ *SYSTEM:* Target Required." });
-
-        await sock.sendMessage(from, { text: "🛡️ *SAVAGE-V3:* Initiating secure handshake..." });
-
-        try {
-            const { state } = await useMultiFileAuthState("./temp_pairs/" + target);
-            const tempSock = makeWASocket({
-                auth: {
-                    creds: state.creds,
-                    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
-                },
-                logger: pino({ level: "silent" }),
-                printQRInTerminal: false
-            });
-
-            if (!tempSock.authState.creds.registered) {
-                await delay(3000);
-                const code = await tempSock.requestPairingCode(target);
-                
-                // 💎 ELITE DOUBLE-LINE BLUEPRINT
-                const responseText = `
-╔════════════════════════╗
-     ⚡ *SAVAGE CONNECTION* ⚡
-╠════════════════════════╣
+        
+        const pairMsg = `
+╔════◇ 【 **SΛVΛGΞ PΛIЯIПG** 】 ◇════╗
 ║
-║  💠 *NODE:* +${target}
-║  🧬 *CODE:* \`${code.toUpperCase().split("").join("  ")}\`
-║  🛡️ *RANK:* ARCHITECT
+┣┫ 🌐 **SITE:** https://savage-pair.onrender.com
+┣┫ ⚡ **METHOD:** Linking Code
 ║
-╠════════════════════════╣
-║     *ACCESS PROTOCOLS* ║
-╠════════════════════════╣
-║ 1. Linked Devices      ║
-║ 2. Link with Number    ║
-║ 3. Enter Neural Key    ║
-╚════════════════════════╝
-   *“FORGING THE SYNDICATE”*
-                `.trim();
+┣━━◇ 【 **VΣЯDICƬ** 】 ◇━━┫
+║
+┣┫ *Stop struggling with legacy*
+┣┫ *connection methods. Use the*
+┣┫ *interface to bridge the gap.*
+┣┫ 
+┣┫ *Master the link...*
+┣┫ *...or remain disconnected.*
+║
+╚════════════════════╝
+   © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
 
-                await sock.sendMessage(from, { text: responseText }, { quoted: msg });
+        await sock.sendMessage(from, { 
+            text: pairMsg,
+            contextInfo: {
+                externalAdReply: {
+                    title: "SΛVΛGΞ-TECH PΛIЯIПG",
+                    body: "Connect to the Engine",
+                    sourceUrl: "https://savage-pair.onrender.com",
+                    mediaType: 1,
+                    renderLargerThumbnail: true
+                }
             }
-        } catch (err) {
-            await sock.sendMessage(from, { text: "💀 *FATAL:* Link Interrupted." });
-        }
+        }, { quoted: msg });
     }
 };

@@ -29,7 +29,7 @@ module.exports = {
 
             const header = `┌───◇  *SΛVΛGΞ-TECH*
 ┃
-┃ **OWNER** : Savage Architect
+┃ **OWNER** : Spencer
 ┃ **PREFIX** : [ ${global.prefix} ]
 ┃ **UPTIME** : ${hours}h ${minutes}m
 ┃ **SPEED** : ${speed} ms

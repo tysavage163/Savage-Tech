@@ -1,15 +1,12 @@
-// status.js
-// Saves or re-posts status updates
-
-const handler = async (m, { conn, text }) => {
-    if (!m.quoted) return m.reply('Reply to a status update to save it.')
-    try {
-        let buffer = await m.quoted.download()
-        await conn.sendFile(m.chat, buffer, 'status.mp4', '✅ SΛVΛGΞ-TECH Status Saved', m)
-    } catch (e) {
-        m.reply('Error: Could not download media.')
+module.exports = {
+    name: 'status',
+    category: 'engine',
+    async execute(sock, msg, args, { hasAccess }) {
+        if (!hasAccess) return;
+        const os = require('os');
+        const uptime = process.uptime();
+        const runtime = new Date(uptime * 1000).toISOString().substr(11, 8);
+        const statusText = "*SΛVΛGΞ-TECH STATUS*\n\n📡 **UPLINK:** STABLE\n⏳ **RUNTIME:** " + runtime + "\n⛓️ **SYSTEM:** ABSOLUTE";
+        await sock.sendMessage(msg.key.remoteJid, { text: statusText }, { quoted: msg });
     }
-}
-
-handler.command = ['getstatus', 'save']
-module.exports = handler
+};

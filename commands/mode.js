@@ -1,34 +1,28 @@
 module.exports = {
-    category: 'owner',
     name: 'mode',
-    async execute(sock, msg, args) {
+    category: 'owner',
+    async execute(sock, msg, args, { isArchitect, isMe }) {
+        // Step 1: Restriction. Only the Host/Architect can toggle visibility.
+        if (!isArchitect && !isMe) {
+            return sock.sendMessage(msg.key.remoteJid, { 
+                text: '❌ **Access Denied.** Only the Bot Host can toggle visibility.' 
+            }, { quoted: msg });
+        }
+
         const from = msg.key.remoteJid;
-        const sender = msg.key.participant || msg.key.remoteJid;
-        
-        // 🆔 IDENTITY DETECTION
-        const supremeDeveloper = '254798841125@s.whatsapp.net'; // Spencer
-        const localOwner = sock.user.id.split(':')[0] + '@s.whatsapp.net'; // Current Paired Number
+        const newMode = args[0]?.toLowerCase();
 
-        const isAuthorized = (sender === supremeDeveloper || sender === localOwner);
-
-        if (!isAuthorized) {
-            return sock.sendMessage(from, { text: "❌ *Access Denied.* Only the Bot Host can toggle visibility." });
-        }
-
-        if (!args[0]) {
-            return sock.sendMessage(from, { text: `🛰️ *Current Status:* ${global.isPublic ? "PUBLIC" : "PRIVATE"}\n\nUse *.mode public* or *.mode private*` });
-        }
-
-        const modeInput = args[0].toLowerCase();
-
-        if (modeInput === 'public') {
-            global.isPublic = true;
-            await sock.sendMessage(from, { text: "🌐 *SYSTEM UPDATE:* Bot is now in PUBLIC mode. Commands accessible to all." });
-        } else if (modeInput === 'private' || modeInput === 'self') {
-            global.isPublic = false;
-            await sock.sendMessage(from, { text: "🔒 *SYSTEM UPDATE:* Bot is now in PRIVATE mode. Commands restricted to Host." });
+        // Step 2: Logic for toggling modes
+        if (newMode === 'public') {
+            global.mode = 'public';
+            await sock.sendMessage(from, { text: '🌐 **SYSTEM MODE:** PUBLIC\n_Neural Link open to all units._' }, { quoted: msg });
+        } else if (newMode === 'self') {
+            global.mode = 'self';
+            await sock.sendMessage(from, { text: '🔐 **SYSTEM MODE:** SELF\n_Neural Link restricted to authorized Host only._' }, { quoted: msg });
         } else {
-            await sock.sendMessage(from, { text: "Usage: *.mode public* or *.mode private*" });
+            await sock.sendMessage(from, { 
+                text: `💡 **Usage:** .mode [public/self]\n**Current Status:** ${global.mode.toUpperCase()}` 
+            }, { quoted: msg });
         }
     }
 };

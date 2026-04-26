@@ -1,18 +1,10 @@
-// ss.js
-// Takes a screenshot of a website
-
-const handler = async (m, { conn, text }) => {
-    if (!text) return m.reply('Provide a URL (e.g. .ss google.com)')
-    
-    m.reply('📸 Capturing site... please wait.')
-    let ssUrl = `https://api.screenshotmachine.com?key=free&url=${encodeURIComponent(text)}&dimension=1024x768`
-    
-    try {
-        await conn.sendFile(m.chat, ssUrl, 'screenshot.png', `🌐 Preview for: ${text}`, m)
-    } catch (e) {
-        m.reply('Failed to capture screenshot. Link might be dead.')
+module.exports = {
+    name: 'ss',
+    category: 'tools',
+    async execute(sock, msg, args, { hasAccess }) {
+        if (!hasAccess) return;
+        const url = args[0];
+        if (!url) return sock.sendMessage(msg.key.remoteJid, { text: '📎 Provide a URL.' });
+        await sock.sendMessage(msg.key.remoteJid, { text: '📸 *SΛVΛGΞ:* Capturing...' });
     }
-}
-
-handler.command = ['ss', 'screenshot']
-module.exports = handler
+};

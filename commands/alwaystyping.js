@@ -1,39 +1,29 @@
 module.exports = {
-    name: 'alwaysonline',
+    name: 'alwaystyping',
     category: 'owner',
-    desc: 'Toggle constant typing status with on/off.',
+    desc: 'Toggle the continuous typing signal.',
     execute: async (sock, msg, args, { isArchitect }) => {
         const from = msg.key.remoteJid;
         
+        // Security: Only the paired account (Architect) can toggle this
         if (!isArchitect) return;
 
+        // Normalize input (e.g., .alwaystyping ON -> on)
         const input = args[0] ? args[0].toLowerCase() : null;
 
-        // Logic for ".alwaysonline on"
-        if (input === 'on') {
+        // Check current state or forced input
+        if (input === 'on' || (input === null && global.autoTyping !== 'on')) {
             global.autoTyping = 'on';
-            return await sock.sendMessage(from, { 
-                text: "⌨️ *GHOST ENGINE:* ONLINE\n\n_Manual override: Broadcasting typing signal._" 
+            await sock.sendMessage(from, { 
+                text: "⌨️ *GHOST ENGINE:* ONLINE\n\n_Broadcasting continuous typing signal. Use '.alwaystyping off' to terminate._" 
             });
-        }
-
-        // Logic for ".alwaysonline off"
-        if (input === 'off') {
-            global.autoTyping = 'off';
-            await sock.sendPresenceUpdate('available', from); 
-            return await sock.sendMessage(from, { 
-                text: "⌨️ *GHOST ENGINE:* OFFLINE\n\n_Manual override: Signal terminated._" 
-            });
-        }
-
-        // Fallback: If they just type ".alwaysonline" without args, it just toggles
-        if (global.autoTyping === 'off' || !global.autoTyping) {
-            global.autoTyping = 'on';
-            await sock.sendMessage(from, { text: "⌨️ *GHOST ENGINE:* ONLINE" });
         } else {
             global.autoTyping = 'off';
+            // Force status to available to stop the typing indicator immediately
             await sock.sendPresenceUpdate('available', from); 
-            await sock.sendMessage(from, { text: "⌨️ *GHOST ENGINE:* OFFLINE" });
+            await sock.sendMessage(from, { 
+                text: "⌨️ *GHOST ENGINE:* OFFLINE\n\n_Signal terminated._" 
+            });
         }
     }
 };

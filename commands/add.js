@@ -1,20 +1,21 @@
 module.exports = {
     name: "add",
     category: "group",
-    description: "Add a user to the group",
-    async execute(sock, msg, args, { isMe }) {
+    description: "Add a user by number",
+    async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        if (!isMe || !from.endsWith('@g.us')) return;
+        if (!from.endsWith('@g.us')) return;
 
-        const num = args[0]?.replace(/[^0-9]/g, '');
-        if (!num) return sock.sendMessage(from, { text: "👤 *SΛVΛGΞ:* Provide a number to integrate. (Example: .add 254123456789)" });
+        const input = args[0]?.replace(/[^0-9]/g, '');
+        if (!input) return sock.sendMessage(from, { text: "👤 *SΛVΛGΞ:* Provide a number. (e.g. .add 254...)" });
 
         try {
-            const jid = num + '@s.whatsapp.net';
+            const jid = input + '@s.whatsapp.net';
+            // Using the precise socket update for participants
             await sock.groupParticipantsUpdate(from, [jid], "add");
-            await sock.sendMessage(from, { text: `✅ **USER INTEGRATED:** +${num} has been added.` });
+            await sock.sendMessage(from, { text: `✅ **SΛVΛGΞ:** User +${input} added.` });
         } catch (e) {
-            await sock.sendMessage(from, { text: "❌ *ERROR:* Failed to add user. Ensure I am an Admin." });
+            await sock.sendMessage(from, { text: "❌ **FAIL:** Check if I am Admin or if the number is valid." });
         }
     }
 };

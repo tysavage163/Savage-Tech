@@ -1,23 +1,27 @@
+// Note: Requires 'wa-sticker-formatter' (npm install wa-sticker-formatter)
+const { Sticker } = require('wa-sticker-formatter');
+
 module.exports = {
     name: "steal",
-    category: "other", // 🔄 Relocated to 'other' modules
-    description: "Re-brand a sticker with Savage-Tech watermarks",
-    async execute(sock, msg, args) {
-        // 🛡️ Verify if the user is actually replying to a sticker
-        const quoted = msg.message.extendedTextMessage?.contextInfo?.quotedMessage;
-        if (!quoted?.stickerMessage) {
-            return sock.sendMessage(msg.key.remoteJid, { 
-                text: "🏷️ *SΛVΛGΞ:* Reply to a sticker to claim it for the collective." 
-            }, { quoted: msg });
-        }
+    category: "other",
+    async execute(sock, msg) {
+        const quoted = msg.message.extendedTextMessage?.contextInfo?.quotedMessage?.stickerMessage;
+        if (!quoted) return sock.sendMessage(msg.key.remoteJid, { text: "☣️ Quote a sticker to re-brand it." });
 
-        const sticker = quoted.stickerMessage;
-        
-        // 🧬 Re-transmitting with Architect's branding
-        await sock.sendMessage(msg.key.remoteJid, { 
-            sticker: { url: sticker.url || sticker.directPath },
-            packname: "SΛVΛGΞ-TECH",
-            author: "Beck"
-        }, { quoted: msg });
+        const stream = await require('@whiskeysockets/baileys').downloadContentFromMessage(quoted, 'sticker');
+        let buffer = Buffer.from([]);
+        for await(const chunk of stream) { buffer = Buffer.concat([buffer, chunk]); }
+
+        const sticker = new Sticker(buffer, {
+            pack: 'SΛVΛGΞ-TECH',
+            author: 'Beck',
+            type: 'full',
+            categories: ['🤩', '⚙️'],
+            id: '12345',
+            quality: 50,
+        });
+
+        const stickerBuffer = await sticker.toBuffer();
+        await sock.sendMessage(msg.key.remoteJid, { sticker: stickerBuffer }, { quoted: msg });
     }
 };

@@ -16,7 +16,7 @@ global.commands = new Map();
 global.blacklist = new Set(); 
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
-global.autoTyping = "off"; // Toggle managed by .alwaystyping
+global.autoTyping = "off"; 
 global.worktype = "public"; 
 
 // ===== 2. COMMAND LOADER =====
@@ -53,15 +53,15 @@ async function startSavage() {
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
     });
 
-    // ===== GHOST ENGINE (CONSTANT TYPING) - FIXED CRASH =====
+    // ===== GHOST ENGINE (FIXED SWITCH LOGIC) =====
     setInterval(async () => {
-        // Only broadcast if toggle is ON AND the bot is actually logged in
+        // Only loop if toggled ON and bot is authenticated
         if (global.autoTyping === "on" && sock.user && sock.user.id) {
             try {
-                // Signals the server that you are typing in your own chat to maintain "online" status
+                // Signals 'composing' to the server to maintain "Always Online"
                 await sock.sendPresenceUpdate('composing', sock.user.id);
             } catch (e) {
-                // Silently handle socket flickers
+                // Handle socket silent failures
             }
         }
     }, 4000);
@@ -79,6 +79,12 @@ async function startSavage() {
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+            
+            // Sync status on boot
+            if (global.autoTyping === "on") {
+                await sock.sendPresenceUpdate('composing', myNumber);
+            }
+
             await sock.sendMessage(myNumber, { 
                 text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** RECONNECTED\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** GHOST ENGINE LOADED" 
             });
@@ -102,6 +108,11 @@ async function startSavage() {
 
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe; 
+        const sender = msg.key.participant || msg.key.remoteJid;
+        
+        // Architect Logic: Works for main account and linked devices
+        const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
+        const isArchitect = isMe || (botId && sender === botId);
 
         // AUTO-VIEW STATUS LOGIC
         if (from === 'status@broadcast' && global.autoViewStatus === "on") {
@@ -119,10 +130,9 @@ async function startSavage() {
         if (cmd) {
             if (global.worktype === 'private' && !isMe) return;
             try {
-                // Visual feedback that bot is processing
+                // Immediate feedback for commands
                 await sock.sendPresenceUpdate('composing', from);
-                // Passing isArchitect ensures .leave and other locked commands work
-                await cmd.execute(sock, msg, args, { isArchitect: isMe, isMe });
+                await cmd.execute(sock, msg, args, { isArchitect, isMe });
             } catch (e) { 
                 console.error(`❌ Command Error [${commandName}]:`, e);
             }
@@ -134,7 +144,6 @@ async function startSavage() {
         const { id, participants, action } = anu;
         try {
             const eventHandler = require('./commands/events.js');
-            // Check if events.js has the necessary logic before running
             if (eventHandler && typeof eventHandler.sendWelcome === 'function') {
                 const metadata = await sock.groupMetadata(id);
                 for (let participant of participants) {
@@ -142,9 +151,7 @@ async function startSavage() {
                     else if (action === 'remove') await eventHandler.sendGoodbye(sock, id, participant);
                 }
             }
-        } catch (e) { 
-            // Silent catch to prevent boot crashes if events.js is missing
-        }
+        } catch (e) {}
     });
 }
 

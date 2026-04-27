@@ -1,6 +1,6 @@
 module.exports = {
     name: "quote",
-    category: "other",
+    category: "owner",
     description: "Generate a SΛVΛGΞ-TECH industrial quote",
     async execute(sock, msg) {
         const from = msg.key.remoteJid;

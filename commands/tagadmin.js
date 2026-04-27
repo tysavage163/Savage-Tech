@@ -6,29 +6,32 @@ module.exports = {
         if (!from.endsWith('@g.us')) return;
 
         try {
-            // ⚡ Pull from internal cache instead of a full fetch
-            const groupMetadata = await sock.groupMetadata(from);
-            const participants = groupMetadata.participants;
+            const metadata = await sock.groupMetadata(from);
+            // Filter to get only admins
+            const admins = metadata.participants
+                .filter(v => v.admin !== null)
+                .map(v => v.id);
+
+            if (admins.length === 0) return;
+
+            let messageText = `⛓️ **SΛVΛGΞ ADMIN ALERT** ⛓️\n\n`;
             
-            // Filter only those with 'admin' or 'superadmin' status
-            const admins = participants
-                .filter(p => p.admin === 'admin' || p.admin === 'superadmin')
-                .map(p => p.id);
+            // Build the visible text part
+            admins.forEach((admin) => {
+                messageText += `🔹 @${admin.split('@')[0]}\n`;
+            });
 
-            if (admins.length === 0) {
-                return sock.sendMessage(from, { text: "⚠️ **SYSTEM:** No admins detected or cache empty." });
-            }
+            if (args.join(" ")) messageText += `\n📝 **MESSAGE:** ${args.join(" ")}`;
 
-            const mentionText = args.join(" ") || "Admin attention required!";
-
+            // The 'mentions' field MUST contain the full JIDs (e.g. 123@s.whatsapp.net)
             await sock.sendMessage(from, { 
-                text: `⛓️ **SΛVΛGΞ ADMIN ALERT** ⛓️\n\n${mentionText}`, 
+                text: messageText, 
                 mentions: admins 
             }, { quoted: msg });
 
         } catch (e) {
-            console.error("TagAdmin Error:", e);
-            await sock.sendMessage(from, { text: "❌ **LINK FAILURE:** Bot must be admin to read the participant list." });
+            console.error(e);
+            await sock.sendMessage(from, { text: "❌ **LINK ERROR:** I need Admin rights to read the participant list." });
         }
     }
 };

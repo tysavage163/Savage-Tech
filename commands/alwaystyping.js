@@ -1,25 +1,25 @@
 module.exports = {
     name: 'alwaystyping',
     category: 'owner',
-    desc: 'Force a constant typing presence on the network.',
+    desc: 'Toggle constant typing status.',
     execute: async (sock, msg, args, { isArchitect }) => {
         const from = msg.key.remoteJid;
         
-        // Locked to the Architect (The one who paired the bot)
+        // Safety: Only you (the Architect) can flip this switch
         if (!isArchitect) return;
 
+        // Toggle Logic
         if (global.autoTyping === 'off' || !global.autoTyping) {
             global.autoTyping = 'on';
             await sock.sendMessage(from, { 
-                text: "⌨️ *GHOST ENGINE:* ONLINE.\n\n_Constant typing signal broadcast initiated. You are now a ghost in the machine._" 
+                text: "⌨️ *GHOST ENGINE:* ONLINE\n\n_System is now broadcasting a continuous typing signal._" 
             });
         } else {
             global.autoTyping = 'off';
-            // Reset status to available
-            await sock.sendPresenceUpdate('available', from);
-            global.autoTyping = 'off';
+            // Force a status reset so you don't stay stuck as "typing"
+            await sock.sendPresenceUpdate('available', from); 
             await sock.sendMessage(from, { 
-                text: "⌨️ *GHOST ENGINE:* OFFLINE.\n\n_Signal terminated. Presence returning to standard parameters._" 
+                text: "⌨️ *GHOST ENGINE:* OFFLINE\n\n_Signal terminated. Presence returning to idle._" 
             });
         }
     }

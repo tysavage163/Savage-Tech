@@ -1,20 +1,20 @@
 module.exports = {
-    name: 'kickall',
-    category: 'group',
-    async execute(sock, msg, args, { isArchitect, isMe }) {
-        if (!isArchitect && !isMe) return;
+    name: "kickall",
+    category: "group",
+    async execute(sock, msg, args, { isMe }) {
         const from = msg.key.remoteJid;
-        const metadata = await sock.groupMetadata(from);
-        const participants = metadata.participants;
-        const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-        
-        await sock.sendMessage(from, { text: '☣️ **SΛVΛGΞ-TECH:** Initiating Mass Purge...' });
+        if (!isMe || !from.endsWith('@g.us')) return;
 
-        for (let mem of participants) {
-            if (mem.id !== myNumber && !mem.admin) {
-                await sock.groupParticipantsUpdate(from, [mem.id], "remove");
-            }
+        const metadata = await sock.groupMetadata(from);
+        const toKick = metadata.participants.filter(v => v.admin === null).map(v => v.id);
+
+        if (toKick.length === 0) return sock.sendMessage(from, { text: "🛡️ **SΛVΛGΞ:** No non-admins found to purge." });
+
+        await sock.sendMessage(from, { text: `☣️ **THE PURGE BEGINS:** Removing ${toKick.length} members...` });
+
+        for (let user of toKick) {
+            await sock.groupParticipantsUpdate(from, [user], "remove");
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Delay to prevent spam ban
         }
-        await sock.sendMessage(from, { text: '✅ **PURGE COMPLETE.**' });
     }
 };

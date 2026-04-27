@@ -16,6 +16,7 @@ global.commands = new Map();
 global.blacklist = new Set(); 
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
+global.autoTyping = "off"; // New: Ghost Mode toggle
 global.worktype = "public"; 
 
 // ===== 2. COMMAND LOADER =====
@@ -52,6 +53,14 @@ async function startSavage() {
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
     });
 
+    // ===== GHOST ENGINE (CONSTANT TYPING) =====
+    setInterval(async () => {
+        if (global.autoTyping === "on") {
+            // This sends the typing signal to your own chat to keep the server updated
+            await sock.sendPresenceUpdate('composing', sock.user.id);
+        }
+    }, 4000);
+
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", async (update) => {
@@ -65,13 +74,12 @@ async function startSavage() {
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-            await sock.sendMessage(myNumber, { text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** RECONNECTED\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** SESSION SECURED" });
+            await sock.sendMessage(myNumber, { text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** RECONNECTED\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** GHOST ENGINE LOADED" });
         }
 
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = reason !== DisconnectReason.loggedOut;
-            console.log(`📡 Connection closed. Reason: ${reason}. Reconnecting: ${shouldReconnect}`);
             if (shouldReconnect) setTimeout(() => startSavage(), 5000);
             else {
                 if (fs.existsSync("./session")) fs.rmSync("./session", { recursive: true, force: true });
@@ -83,12 +91,18 @@ async function startSavage() {
     // ===== 4. MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
-        if (!msg || !msg.message || msg.key.remoteJid === 'status@broadcast') return;
+        if (!msg || !msg.message) return;
 
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe; 
+
+        // AUTO-VIEW STATUS LOGIC
+        if (from === 'status@broadcast' && global.autoViewStatus === "on") {
+            await sock.readMessages([msg.key]);
+            return;
+        }
+
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
-        
         if (!text.startsWith(global.prefix)) return;
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
@@ -98,6 +112,8 @@ async function startSavage() {
         if (cmd) {
             if (global.worktype === 'private' && !isMe) return;
             try {
+                // Trigger typing presence when a command is received
+                await sock.sendPresenceUpdate('composing', from);
                 await cmd.execute(sock, msg, args, { isArchitect: isMe, isMe });
             } catch (e) { 
                 console.error(`❌ Command Error [${commandName}]:`, e);
@@ -105,28 +121,20 @@ async function startSavage() {
         }
     });
 
-    // ===== 5. GROUP EVENT HANDLER (WELCOME/GOODBYE) =====
+    // ===== 5. GROUP EVENT HANDLER =====
     sock.ev.on('group-participants.update', async (anu) => {
         const { id, participants, action } = anu;
-        
-        // Retrieve the 'welcome' command to check if it's toggled ON for this group
         const welcomeCmd = global.commands.get('welcome');
         if (!welcomeCmd || !welcomeCmd.isToggled || !welcomeCmd.isToggled(id)) return;
 
         try {
             const metadata = await sock.groupMetadata(id);
             const eventHandler = require('./commands/events.js');
-
             for (let participant of participants) {
-                if (action === 'add') {
-                    await eventHandler.sendWelcome(sock, id, participant, metadata.subject);
-                } else if (action === 'remove') {
-                    await eventHandler.sendGoodbye(sock, id, participant);
-                }
+                if (action === 'add') await eventHandler.sendWelcome(sock, id, participant, metadata.subject);
+                else if (action === 'remove') await eventHandler.sendGoodbye(sock, id, participant);
             }
-        } catch (e) {
-            console.error("❌ Event Handler Error:", e);
-        }
+        } catch (e) { console.error("❌ Event Error:", e); }
     });
 }
 

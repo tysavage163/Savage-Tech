@@ -8,11 +8,15 @@ module.exports = {
         const metadata = await sock.groupMetadata(from);
         const participants = metadata.participants;
         const sender = msg.key.participant || msg.key.remoteJid;
+        
+        // Dynamic cleaning for owner verification
         const ownerNumber = '254798841125@s.whatsapp.net';
+        const cleanSender = sender.split(':')[0] + '@s.whatsapp.net';
 
-        // 1. Permission Check: Is the sender an Admin or the Owner?
+        // 1. Permission Check
         const isSenderAdmin = participants.find(p => p.id === sender)?.admin !== null;
-        const isOwner = sender === ownerNumber;
+        const isOwner = cleanSender === ownerNumber || msg.key.fromMe;
+        
         if (!isSenderAdmin && !isOwner) {
             return sock.sendMessage(from, { text: "❌ *Access Denied.* You lack the clearance to strip authority." });
         }
@@ -29,7 +33,7 @@ module.exports = {
             return sock.sendMessage(from, { text: "⚠️ *System Fault:* Spencer's authority is absolute. It cannot be revoked." });
         }
 
-        // 🛰️ DEMOTE QUOTES (Sci-Fi X Style)
+        // 🛰️ DEMOTE QUOTES
         const demoteQuotes = [
             "Back to the shadows. Your time in the light is over.",
             "Authority revoked. You have been downgraded to civilian status.",
@@ -43,8 +47,13 @@ module.exports = {
 
         try {
             await sock.groupParticipantsUpdate(from, targets, "demote");
+
+            // Build the mention tag for the first target
+            const mentionTag = `@${targets[0].split('@')[0]}`;
+
             await sock.sendMessage(from, { 
-                text: `📉 *RANK REVOKED*\n\n"${quote}"` 
+                text: `📉 *RANK REVOKED*\n\n${mentionTag}\n"${quote}"`,
+                mentions: targets // This makes the tag blue and active
             });
         } catch (e) {
             await sock.sendMessage(from, { text: "Demotion failed. Check my Admin status." });

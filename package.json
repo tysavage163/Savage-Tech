@@ -1,18 +1,12 @@
 {
   "name": "savage-tech",
   "version": "1.0.0",
-  "description": "SΛVΛGΞ-TECH Engine by Beck",
   "main": "index.js",
   "type": "commonjs",
-  "scripts": {
-    "start": "node index.js"
-  },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.6.0",
     "axios": "^1.6.0",
     "pino": "^8.19.0",
-    "qrcode-terminal": "^0.12.0",
-    "yt-search": "^2.13.1",
-    "ytdl-core": "^4.11.5"
+    "qrcode-terminal": "^0.12.0"
   }
 }

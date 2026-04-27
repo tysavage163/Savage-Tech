@@ -38,7 +38,6 @@ const loadCommands = () => {
 
 // ===== 3. BOOT SEQUENCE =====
 async function startSavage() {
-    // Persistent auth state
     const { state, saveCreds } = await useMultiFileAuthState("session");
     const { version } = await fetchLatestBaileysVersion();
 
@@ -53,13 +52,11 @@ async function startSavage() {
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
     });
 
-    // 🛠️ SESSION SAVING
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", async (update) => {
         const { connection, qr, lastDisconnect } = update;
 
-        // Only show QR if we don't have a saved session
         if (qr && !fs.existsSync("./session/creds.json")) {
             console.log("\n📸 SCAN QR TO INITIALIZE NEURAL LINK:\n");
             qrcode.generate(qr, { small: true });
@@ -74,14 +71,9 @@ async function startSavage() {
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = reason !== DisconnectReason.loggedOut;
-
             console.log(`📡 Connection closed. Reason: ${reason}. Reconnecting: ${shouldReconnect}`);
-
-            if (shouldReconnect) {
-                // Wait 5 seconds before trying to resume session
-                setTimeout(() => startSavage(), 5000);
-            } else {
-                console.log("❌ Logged out from phone. Wiping session...");
+            if (shouldReconnect) setTimeout(() => startSavage(), 5000);
+            else {
                 if (fs.existsSync("./session")) fs.rmSync("./session", { recursive: true, force: true });
                 process.exit(0);
             }
@@ -95,8 +87,8 @@ async function startSavage() {
 
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe; 
-
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
+        
         if (!text.startsWith(global.prefix)) return;
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
@@ -104,14 +96,36 @@ async function startSavage() {
         
         const cmd = global.commands.get(commandName);
         if (cmd) {
-            // Permission Firewall
             if (global.worktype === 'private' && !isMe) return;
-
             try {
                 await cmd.execute(sock, msg, args, { isArchitect: isMe, isMe });
             } catch (e) { 
                 console.error(`❌ Command Error [${commandName}]:`, e);
             }
+        }
+    });
+
+    // ===== 5. GROUP EVENT HANDLER (WELCOME/GOODBYE) =====
+    sock.ev.on('group-participants.update', async (anu) => {
+        const { id, participants, action } = anu;
+        
+        // Retrieve the 'welcome' command to check if it's toggled ON for this group
+        const welcomeCmd = global.commands.get('welcome');
+        if (!welcomeCmd || !welcomeCmd.isToggled || !welcomeCmd.isToggled(id)) return;
+
+        try {
+            const metadata = await sock.groupMetadata(id);
+            const eventHandler = require('./commands/events.js');
+
+            for (let participant of participants) {
+                if (action === 'add') {
+                    await eventHandler.sendWelcome(sock, id, participant, metadata.subject);
+                } else if (action === 'remove') {
+                    await eventHandler.sendGoodbye(sock, id, participant);
+                }
+            }
+        } catch (e) {
+            console.error("❌ Event Handler Error:", e);
         }
     });
 }

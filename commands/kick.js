@@ -8,11 +8,15 @@ module.exports = {
         const metadata = await sock.groupMetadata(from);
         const participants = metadata.participants;
         const sender = msg.key.participant || msg.key.remoteJid;
+        
+        // Dynamic cleaning for owner verification
         const ownerNumber = '254798841125@s.whatsapp.net';
+        const cleanSender = sender.split(':')[0] + '@s.whatsapp.net';
 
-        // 1. Permission Check: Is the sender an Admin or the Owner?
+        // 1. Permission Check
         const isSenderAdmin = participants.find(p => p.id === sender)?.admin !== null;
-        const isOwner = sender === ownerNumber;
+        const isOwner = cleanSender === ownerNumber || msg.key.fromMe;
+
         if (!isSenderAdmin && !isOwner) {
             return sock.sendMessage(from, { text: "❌ *Access Denied.* You lack the clearance to initiate an execution." });
         }
@@ -35,7 +39,7 @@ module.exports = {
             "You were a glitch in the system. Deleted.",
             "The hierarchy has no room for the weak.",
             "Execution successful. Don't look back.",
-            "Spencer's bot doesn't tolerate noise. Goodbye.",
+            "SΛVΛGΞ-TECH doesn't tolerate noise. Goodbye.",
             "Connection severed. Your presence was an error.",
             "Access revoked permanently. The system is clean now."
         ];
@@ -43,8 +47,13 @@ module.exports = {
 
         try {
             await sock.groupParticipantsUpdate(from, targets, "remove");
+
+            // Build the mention tag for the first victim
+            const mentionTag = `@${targets[0].split('@')[0]}`;
+
             await sock.sendMessage(from, { 
-                text: `👤 *ELIMINATION COMPLETE*\n\n"${quote}"` 
+                text: `👤 *ELIMINATION COMPLETE*\n\n${mentionTag}\n"${quote}"`,
+                mentions: targets // Tags them so everyone sees who was purged
             });
         } catch (e) {
             await sock.sendMessage(from, { text: "Action failed. I likely lack Admin rights to execute this command." });

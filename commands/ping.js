@@ -1,39 +1,30 @@
 module.exports = {
-    category: 'engine',
-    name: 'ping',
-    async execute(sock, msg, args) {
-        const from = msg.key.remoteJid;
-        
+    name: "ping",
+    category: "utility",
+    async execute(sock, msg) {
         const start = Date.now();
-        const pingMsg = await sock.sendMessage(from, { text: '📡 *Savage-Tech Diagnostic...*' });
+        
+        // Industrial Quote Database
+        const quotes = [
+            "☢️ Progress requires sacrifice.",
+            "⚙️ The machine does not feel, but it always remembers.",
+            "☣️ Safety is a secondary protocol.",
+            "⛓️ Innovation is the only escape.",
+            "💀 Master your tools or be deleted.",
+            "🔋 System heart-beat detected."
+        ];
+        
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        
+        // First message to initiate the scan
+        await sock.sendMessage(msg.key.remoteJid, { text: "🚀 *SΛVΛGΞ:* Scanning signal..." });
+        
         const end = Date.now();
         const latency = end - start;
 
-        // Spencer-Centric Perfection Quotes
-        const perfectionLines = [
-            "Spencer created me. Perfection is a must.",
-            "Engineered by Spencer. Lag is for the weak.",
-            "Built for speed, forged by Spencer.",
-            "My creator Spencer doesn't do 'average'.",
-            "Diagnostic complete: Spencer's perfection detected.",
-            "Pure speed. Pure Spencer. Pure perfection.",
-            "I respond this fast because Spencer coded me to lead.",
-            "Standard check: Flawless. Architect: Spencer."
-        ];
-        
-        const savageLine = perfectionLines[Math.floor(Math.random() * perfectionLines.length)];
-
-        const responseText = `
-*───「 PERFORMANCE 」───*
-⚡ *Latency:* ${latency}ms
-🛰️ *Server:* Stable
-🛠️ *Creator:* Beck Spencer
-
-"${savageLine}"`;
-
-        await sock.sendMessage(from, { 
-            text: responseText, 
-            edit: pingMsg.key 
+        // Final response with the quote and speed
+        await sock.sendMessage(msg.key.remoteJid, { 
+            text: `🛰️ **PONG:** ${latency}ms\n\n_${randomQuote}_` 
         }, { quoted: msg });
     }
 };

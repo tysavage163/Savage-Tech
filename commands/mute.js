@@ -1,15 +1,15 @@
 module.exports = {
     name: "mute",
     category: "group",
-    async execute(sock, msg, args, { isMe }) {
+    async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        if (!isMe || !from.endsWith('@g.us')) return;
+        if (!from.endsWith('@g.us')) return;
 
         try {
             await sock.groupSettingUpdate(from, 'announcement');
-            await sock.sendMessage(from, { text: "🔒 **SΛVΛGΞ:** Group Muted." });
+            await sock.sendMessage(from, { text: "🔒 **SΛVΛGΞ-TECH:** Group Muted." });
         } catch (e) {
-            await sock.sendMessage(from, { text: "❌ **FAIL:** Ensure I am Admin." });
+            await sock.sendMessage(from, { text: "❌ **ADMIN REQUIRED:** Elevate the bot to Admin." });
         }
     }
 };

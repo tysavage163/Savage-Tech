@@ -1,34 +1,24 @@
 module.exports = {
-    category: 'engine',
     name: "uptime",
-    async execute(sock, msg, args) {
+    category: "engine",
+    async execute(sock, msg) {
         const from = msg.key.remoteJid;
 
-        // Calculate time from seconds
-        const uptimeSeconds = process.uptime();
-        const days = Math.floor(uptimeSeconds / (24 * 60 * 60));
-        const hours = Math.floor((uptimeSeconds % (24 * 60 * 60)) / (60 * 60));
-        const minutes = Math.floor((uptimeSeconds % (60 * 60)) / 60);
-        const seconds = Math.floor(uptimeSeconds % 60);
+        // Calculate time logic
+        const uptimeInSeconds = Math.floor(process.uptime());
+        const days = Math.floor(uptimeInSeconds / 86400);
+        const hours = Math.floor((uptimeInSeconds % 86400) / 3600);
+        const minutes = Math.floor((uptimeInSeconds % 3600) / 60);
+        const seconds = uptimeInSeconds % 60;
 
-        // Savage Design
-        const uptimeText = `
-┏━━━━ ✨ *SYSTEM UPTIME* ✨ ━━━━┓
-┃
-┃ ❄️ *Status:* Online & Savage
-┃ ⏱️ *Duration:* ┃    ▢ ${days} Days
-┃    ▢ ${hours} Hours
-┃    ▢ ${minutes} Minutes
-┃    ▢ ${seconds} Seconds
-┃
-┃ 📶 *Speed:* Faster than your brain
-┃ 🛠️ *Stability:* 100%
-┃
-┗━━━━━━━━━━━━━━━━━━━━━━┛
-        `.trim();
+        const runtime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        
+        // Host detection
+        const host = process.env.RENDER ? "Render Cloud" : "Termux";
 
-        await sock.sendMessage(from, { 
-            text: uptimeText 
-        }, { quoted: msg });
+        const statusMessage = `⏳ **UPTIME:** ${runtime}\n` +
+                              `📍 **HOST:** ${host}`;
+
+        await sock.sendMessage(from, { text: statusMessage }, { quoted: msg });
     }
 };

@@ -16,7 +16,7 @@ global.commands = new Map();
 global.blacklist = new Set(); 
 global.antideleteMode = "on"; 
 global.autoViewStatus = "on"; 
-global.autoTyping = "off"; // New: Ghost Mode toggle
+global.autoTyping = "off"; // Toggle managed by .alwaystyping
 global.worktype = "public"; 
 
 // ===== 2. COMMAND LOADER =====
@@ -53,11 +53,16 @@ async function startSavage() {
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
     });
 
-    // ===== GHOST ENGINE (CONSTANT TYPING) =====
+    // ===== GHOST ENGINE (CONSTANT TYPING) - FIXED CRASH =====
     setInterval(async () => {
-        if (global.autoTyping === "on") {
-            // This sends the typing signal to your own chat to keep the server updated
-            await sock.sendPresenceUpdate('composing', sock.user.id);
+        // Only broadcast if toggle is ON AND the bot is actually logged in
+        if (global.autoTyping === "on" && sock.user && sock.user.id) {
+            try {
+                // Signals the server that you are typing in your own chat to maintain "online" status
+                await sock.sendPresenceUpdate('composing', sock.user.id);
+            } catch (e) {
+                // Silently handle socket flickers
+            }
         }
     }, 4000);
 
@@ -74,7 +79,9 @@ async function startSavage() {
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-            await sock.sendMessage(myNumber, { text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** RECONNECTED\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** GHOST ENGINE LOADED" });
+            await sock.sendMessage(myNumber, { 
+                text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** RECONNECTED\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** GHOST ENGINE LOADED" 
+            });
         }
 
         if (connection === "close") {
@@ -112,8 +119,9 @@ async function startSavage() {
         if (cmd) {
             if (global.worktype === 'private' && !isMe) return;
             try {
-                // Trigger typing presence when a command is received
+                // Visual feedback that bot is processing
                 await sock.sendPresenceUpdate('composing', from);
+                // Passing isArchitect ensures .leave and other locked commands work
                 await cmd.execute(sock, msg, args, { isArchitect: isMe, isMe });
             } catch (e) { 
                 console.error(`❌ Command Error [${commandName}]:`, e);
@@ -124,17 +132,19 @@ async function startSavage() {
     // ===== 5. GROUP EVENT HANDLER =====
     sock.ev.on('group-participants.update', async (anu) => {
         const { id, participants, action } = anu;
-        const welcomeCmd = global.commands.get('welcome');
-        if (!welcomeCmd || !welcomeCmd.isToggled || !welcomeCmd.isToggled(id)) return;
-
         try {
-            const metadata = await sock.groupMetadata(id);
             const eventHandler = require('./commands/events.js');
-            for (let participant of participants) {
-                if (action === 'add') await eventHandler.sendWelcome(sock, id, participant, metadata.subject);
-                else if (action === 'remove') await eventHandler.sendGoodbye(sock, id, participant);
+            // Check if events.js has the necessary logic before running
+            if (eventHandler && typeof eventHandler.sendWelcome === 'function') {
+                const metadata = await sock.groupMetadata(id);
+                for (let participant of participants) {
+                    if (action === 'add') await eventHandler.sendWelcome(sock, id, participant, metadata.subject);
+                    else if (action === 'remove') await eventHandler.sendGoodbye(sock, id, participant);
+                }
             }
-        } catch (e) { console.error("❌ Event Error:", e); }
+        } catch (e) { 
+            // Silent catch to prevent boot crashes if events.js is missing
+        }
     });
 }
 

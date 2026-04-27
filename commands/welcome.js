@@ -1,60 +1,32 @@
+// Local memory to store which groups have the sequence active
+let activeGroups = new Set(); 
+
 module.exports = {
-    category: 'group',
     name: 'welcome',
+    category: 'group',
+    desc: 'Toggle the welcome/goodbye sequence for this sector.',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
+        if (!from.endsWith('@g.us')) return;
 
-        // 1. Group Check
-        if (!from.endsWith('@g.us')) {
-            return sock.sendMessage(from, { text: '❌ This command is for Groups only.' }, { quoted: msg });
+        // Check for Admin/Owner clearance
+        const metadata = await sock.groupMetadata(from);
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const isAdmin = metadata.participants.find(p => p.id === sender)?.admin !== null;
+        const isOwner = sender === '254798841125@s.whatsapp.net';
+
+        if (!isAdmin && !isOwner) {
+            return sock.sendMessage(from, { text: "❌ *Access Denied.* Only those with high clearance can toggle the perimeter." });
         }
 
-        const status = args[0]?.toLowerCase();
-
-        if (status === 'on') {
-            // Add the current group ID to the global Welcome Store
-            global.welcomeStore.add(from);
-
-            const welcomeOn = `
-╔════◇ 【 **ЩΣLCӨMΣ ΣΣƬЦP** 】 ◇════╗
-║
-┣┫ 🛠️ **SYSTEM:** Welcome
-┣┫ ⚡ **STATUS:** ACTIVATED
-║
-┣━━◇ 【 **IПFӨ** 】 ◇━━┫
-║
-┣┫ ✨ New members will now be 
-┣┫    greeted upon arrival.
-║
-╚════════════════════╝
-   © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
-            return sock.sendMessage(from, { text: welcomeOn }, { quoted: msg });
-
-        } else if (status === 'off') {
-            // Remove the group ID from the global Welcome Store
-            global.welcomeStore.delete(from);
-
-            const welcomeOff = `
-╔════◇ 【 **ЩΣLCӨMΣ ΣΣƬЦP** 】 ◇════╗
-║
-┣┫ 🛠️ **SYSTEM:** Welcome
-┣┫ ❌ **STATUS:** DEACTIVATED
-║
-╚════════════════════╝
-   © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
-            return sock.sendMessage(from, { text: welcomeOff }, { quoted: msg });
-
+        if (activeGroups.has(from)) {
+            activeGroups.delete(from);
+            await sock.sendMessage(from, { text: "☢️ *PERIMETER SILENCED:* Welcome/Goodbye sequences are now **OFF**." });
         } else {
-            const welcomeHelp = `
-╔════◇ 【 **ЩΣLCӨMΣ ΣΣƬЦP** 】 ◇════╗
-║
-┣┫ 💡 **USAGE:**
-┣┫ ↳ *.welcome on*
-┣┫ ↳ *.welcome off*
-║
-╚════════════════════╝
-   © *PӨЩΣЯΣD BY SΛVΛGΞ-TECH* ⛓️`;
-            return sock.sendMessage(from, { text: welcomeHelp }, { quoted: msg });
+            activeGroups.add(from);
+            await sock.sendMessage(from, { text: "☣️ *PERIMETER SECURED:* Welcome/Goodbye sequences are now **ON**." });
         }
-    }
+    },
+    // This allows index.js to check if the group is "ON"
+    isToggled: (groupId) => activeGroups.has(groupId)
 };

@@ -1,26 +1,39 @@
 module.exports = {
-    name: 'alwaystyping',
+    name: 'alwaysonline',
     category: 'owner',
-    desc: 'Toggle constant typing status.',
+    desc: 'Toggle constant typing status with on/off.',
     execute: async (sock, msg, args, { isArchitect }) => {
         const from = msg.key.remoteJid;
         
-        // Safety: Only you (the Architect) can flip this switch
         if (!isArchitect) return;
 
-        // Toggle Logic
+        const input = args[0] ? args[0].toLowerCase() : null;
+
+        // Logic for ".alwaysonline on"
+        if (input === 'on') {
+            global.autoTyping = 'on';
+            return await sock.sendMessage(from, { 
+                text: "⌨️ *GHOST ENGINE:* ONLINE\n\n_Manual override: Broadcasting typing signal._" 
+            });
+        }
+
+        // Logic for ".alwaysonline off"
+        if (input === 'off') {
+            global.autoTyping = 'off';
+            await sock.sendPresenceUpdate('available', from); 
+            return await sock.sendMessage(from, { 
+                text: "⌨️ *GHOST ENGINE:* OFFLINE\n\n_Manual override: Signal terminated._" 
+            });
+        }
+
+        // Fallback: If they just type ".alwaysonline" without args, it just toggles
         if (global.autoTyping === 'off' || !global.autoTyping) {
             global.autoTyping = 'on';
-            await sock.sendMessage(from, { 
-                text: "⌨️ *GHOST ENGINE:* ONLINE\n\n_System is now broadcasting a continuous typing signal._" 
-            });
+            await sock.sendMessage(from, { text: "⌨️ *GHOST ENGINE:* ONLINE" });
         } else {
             global.autoTyping = 'off';
-            // Force a status reset so you don't stay stuck as "typing"
             await sock.sendPresenceUpdate('available', from); 
-            await sock.sendMessage(from, { 
-                text: "⌨️ *GHOST ENGINE:* OFFLINE\n\n_Signal terminated. Presence returning to idle._" 
-            });
+            await sock.sendMessage(from, { text: "⌨️ *GHOST ENGINE:* OFFLINE" });
         }
     }
 };

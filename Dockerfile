@@ -1,5 +1,5 @@
-# Use the official Node.js image (pre-built)
-FROM node:16
+# Use Node 20 to fix the 'ReadableStream is not defined' error
+FROM node:20
 
 # Set where the bot lives inside the server
 WORKDIR /usr/src/app
@@ -10,6 +10,9 @@ RUN npm install
 
 # Copy your actual bot code
 COPY . .
+
+# Tell Render which port the app is using (matches your index.js)
+EXPOSE 10000
 
 # Start the engine
 CMD ["node", "index.js"]

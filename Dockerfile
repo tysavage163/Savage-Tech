@@ -1,17 +1,17 @@
-# Use a more stable base image
-FROM node:16-buster
+# Use a slim, stable Node.js environment
+FROM node:16-slim
 
-# Install dependencies with extra retry logic
+# Install only the absolute essentials and clear cache immediately
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    ffmpeg \
-    imagemagick \
-    webp && \
+    apt-get install -y ffmpeg imagemagick webp --no-install-recommends && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /root/SavageTech
-COPY package.json .
+# Standard project setup
+WORKDIR /usr/src/app
+COPY package*.json ./
 RUN npm install
 COPY . .
+
+# Launch the engine
 CMD ["node", "index.js"]

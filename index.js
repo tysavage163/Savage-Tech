@@ -23,7 +23,7 @@ global.worktype = "public";
 // ===== 2. COMMAND LOADER =====
 const loadCommands = () => {
     global.commands.clear();
-    if (!fs.existsSync("./commands")) fs.mkdirSync("./commands");
+    if (!fs.existsSync("./commands")) fs.mkdirSync("./commands", { recursive: true });
     const files = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
     for (const file of files) {
         try {
@@ -42,16 +42,25 @@ const loadCommands = () => {
 async function startSavage() {
     const sessionPath = "./session";
 
-    // 🛰️ SESSION ID DECODER (For Wide Deployment)
-    // Checks if SESSION_ID exists in Environment Variables and builds creds.json
-    if (process.env.SESSION_ID && !fs.existsSync(path.join(sessionPath, 'creds.json'))) {
+    // 🛰️ SMART SESSION ID DECODER (V2)
+    if (process.env.SESSION_ID) {
         console.log("📡 SESSION_ID detected. Rebuilding biometric credentials...");
         try {
-            const authData = Buffer.from(process.env.SESSION_ID, 'base64').toString('utf-8');
-            if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath);
+            let sessionData = process.env.SESSION_ID;
+            
+            // Auto-clean prefix if it exists
+            if (sessionData.includes(";;;")) {
+                sessionData = sessionData.split(";;;")[1];
+            }
+            
+            const authData = Buffer.from(sessionData, 'base64').toString('utf-8');
+            
+            // Force create folder and overwrite old creds
+            if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
             fs.writeFileSync(path.join(sessionPath, 'creds.json'), authData);
+            console.log("✅ Session file written to disk successfully.");
         } catch (e) {
-            console.log("⚠️ Session ID invalid or corrupt. Falling back to manual pairing.");
+            console.log("⚠️ Session decoding failed: " + e.message);
         }
     }
 

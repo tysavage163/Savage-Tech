@@ -1,17 +1,15 @@
-# Use a slim, stable Node.js environment
-FROM node:16-slim
+# Use the official Node.js image (pre-built)
+FROM node:16
 
-# Install only the absolute essentials and clear cache immediately
-RUN apt-get update && \
-    apt-get install -y ffmpeg imagemagick webp --no-install-recommends && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Standard project setup
+# Set where the bot lives inside the server
 WORKDIR /usr/src/app
+
+# Install dependencies first (better for caching)
 COPY package*.json ./
 RUN npm install
+
+# Copy your actual bot code
 COPY . .
 
-# Launch the engine
+# Start the engine
 CMD ["node", "index.js"]

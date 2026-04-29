@@ -6,44 +6,46 @@ const path = require('path');
 module.exports = {
     name: 'play',
     category: 'tools',
-    description: 'Download audio from YouTube by searching for a song name.',
+    description: 'Download audio from YouTube',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         const query = args.join(' ');
-        
         if (!query) {
-            return await sock.sendMessage(from, { text: '❌ Provide a song name or YouTube link.\nExample: .play Ed Sheeran Shape of You' });
+            return await sock.sendMessage(from, { text: '❌ Usage: .play song name or YouTube link' });
         }
 
-        await sock.sendMessage(from, { text: `⏳ Searching \`${query}\` on YouTube...` });
+        await sock.sendMessage(from, { text: `🔍 Searching \`${query}\` on YouTube...` });
 
         try {
             let videoUrl = query;
             let videoTitle = '';
 
+            // If it's not a YouTube link, search
             if (!query.includes('youtube.com/watch?v=') && !query.includes('youtu.be/')) {
                 const searchResults = await yts(query);
-                const firstResult = searchResults.videos[0];
-                if (!firstResult) throw new Error('No results');
-                videoUrl = firstResult.url;
-                videoTitle = firstResult.title;
+                if (!searchResults.videos.length) throw new Error('No results');
+                const first = searchResults.videos[0];
+                videoUrl = first.url;
+                videoTitle = first.title;
             } else {
-                const videoInfo = await ytdl.getInfo(videoUrl);
-                videoTitle = videoInfo.videoDetails.title;
+                const info = await ytdl.getInfo(videoUrl);
+                videoTitle = info.videoDetails.title;
             }
 
-            const audioOutputPath = path.resolve(__dirname, `../temp_audio_${Date.now()}.mp3`);
-            const audioStream = ytdl(videoUrl, { filter: 'audioonly', quality: 'lowestaudio' });
-            const writeStream = fs.createWriteStream(audioOutputPath);
-            audioStream.pipe(writeStream);
+            // Create temp file
+            const tempPath = path.join(__dirname, `../temp_${Date.now()}.mp3`);
+            const stream = ytdl(videoUrl, { filter: 'audioonly', quality: 'lowestaudio' });
+            const writeStream = fs.createWriteStream(tempPath);
+            stream.pipe(writeStream);
 
-            await new Promise((resolve, reject) => {
-                writeStream.on('finish', resolve);
-                writeStream.on('error', reject);
-                audioStream.on('error', reject);
+            await new Promise((res, rej) => {
+                writeStream.on('finish', res);
+                writeStream.on('error', rej);
+                stream.on('error', rej);
             });
 
-            const musicQuotes = [
+            // Savage quotes (music themed)
+            const quotes = [
                 "Every beat is a step closer to greatness. 🎶",
                 "Stay savage, keep the bass heavy.",
                 "Music is the weapon of the future.",
@@ -63,29 +65,30 @@ module.exports = {
                 "From the streets to the speakers – savage mode.",
                 "Let the rhythm remind you who you are.",
                 "Don't chase the vibe – be the vibe.",
-                "The same fire that burns the weak melts the fearful.",
+                "The same fire that melts butter hardens steel.",
                 "Turn it up. They'll hear you coming.",
                 "Beat drops. Haters stop.",
                 "Savage by nature, loud by choice.",
                 "Every lyric is a lesson.",
                 "Your playlist is your autobiography – make it savage."
             ];
-            const randomQuote = musicQuotes[Math.floor(Math.random() * musicQuotes.length)];
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
             const watermark = `╭━━━━━━━━━━━━━━━╮\n┃ 🔥 𝕾𝕬𝖁𝕬𝕲𝕰 𝕭𝖔𝖙 🔥\n╰━━━━━━━━━━━━━━━╯`;
             const caption = `🎵 *Now Playing:* ${videoTitle}\n📥 *Requested by:* @${msg.key.participant?.split('@')[0] || 'You'}\n\n“${randomQuote}”\n\n${watermark}`;
 
             await sock.sendMessage(from, {
-                audio: { url: audioOutputPath },
+                audio: { url: tempPath },
                 mimetype: 'audio/mpeg',
                 fileName: `${videoTitle}.mp3`,
                 caption: caption,
                 mentions: [msg.key.participant || msg.key.remoteJid]
             });
 
-            fs.unlink(audioOutputPath).catch(console.error);
-        } catch (error) {
-            console.error(error);
-            await sock.sendMessage(from, { text: '❌ Failed to play. YouTube may be blocking or try again later.' });
+            // Cleanup
+            await fs.unlink(tempPath).catch(console.error);
+        } catch (err) {
+            console.error(err);
+            await sock.sendMessage(from, { text: '❌ Failed to play. Try again or use a different song name.' });
         }
     }
 };

@@ -1,5 +1,4 @@
-const yts = require('yt-search');
-const ytdl = require('ytdl-core');
+const play = require('play-dl');
 const fs = require('fs-extra');
 const path = require('path');
 
@@ -17,91 +16,72 @@ module.exports = {
 
         await sock.sendMessage(from, { text: `⏳ Searching \`${query}\` on YouTube...` });
 
-        let videoUrl = query;
-        let videoTitle = '';
-        let videoInfo = null;
-
-        if (!query.includes('youtube.com/watch?v=') && !query.includes('youtu.be/')) {
-            try {
-                const searchResults = await yts(query);
-                const firstResult = searchResults.videos[0];
-                if (!firstResult) return await sock.sendMessage(from, { text: `❌ No results for \`${query}\`.` });
-                videoUrl = firstResult.url;
-                videoTitle = firstResult.title;
-            } catch (searchError) {
-                console.error(searchError);
-                return await sock.sendMessage(from, { text: '❌ Search failed. Try again later.' });
-            }
-        } else {
-            try {
-                videoInfo = await ytdl.getInfo(videoUrl);
-                videoTitle = videoInfo.videoDetails.title;
-            } catch (infoError) {
-                console.error(infoError);
-                videoTitle = 'your video';
-            }
-        }
-
-        const audioOutputPath = path.resolve(__dirname, `../temp_audio_${Date.now()}.mp3`);
-        let audioStream;
-
         try {
-            audioStream = ytdl(videoUrl, { filter: 'audioonly', quality: 'lowestaudio' });
-        } catch (streamError) {
-            console.error(streamError);
-            return await sock.sendMessage(from, { text: '❌ Failed to download audio.' });
+            let video;
+            if (query.includes('youtube.com') || query.includes('youtu.be')) {
+                const videoInfo = await play.video_info(query);
+                video = videoInfo.video_details;
+            } else {
+                const searchResults = await play.search(query, { limit: 1 });
+                if (!searchResults.length) throw new Error('No results');
+                video = searchResults[0];
+            }
+            
+            const videoTitle = video.title;
+            const audioStream = await play.stream(video.url, { quality: 2 });
+            const audioOutputPath = path.resolve(__dirname, `../temp_audio_${Date.now()}.mp3`);
+            const writeStream = fs.createWriteStream(audioOutputPath);
+            audioStream.stream.pipe(writeStream);
+            
+            await new Promise((resolve, reject) => {
+                writeStream.on('finish', resolve);
+                writeStream.on('error', reject);
+                audioStream.stream.on('error', reject);
+            });
+            
+            const musicQuotes = [
+                "Every beat is a step closer to greatness. 🎶",
+                "Stay savage, keep the bass heavy.",
+                "Music is the weapon of the future.",
+                "Rhythm is the heartbeat of the savage.",
+                "Play it loud, play it proud.",
+                "Legends are made of bass drops and grind.",
+                "Your vibe attracts your tribe – drop the track.",
+                "Silence is broken by the savage's anthem.",
+                "Don't just listen – feel the frequency.",
+                "Hustle in silence, let the music speak.",
+                "Every dream has its own soundtrack.",
+                "Wake up. Drop the beat. Dominate.",
+                "The savage doesn't wait for the drop – he creates it.",
+                "Your only limit is the volume knob.",
+                "Pain fades, but a great track is forever.",
+                "No pressure, no diamonds – no bass, no fire.",
+                "From the streets to the speakers – savage mode.",
+                "Let the rhythm remind you who you are.",
+                "Don't chase the vibe – be the vibe.",
+                "The same fire that burns the weak melts the fearful.",
+                "Turn it up. They'll hear you coming.",
+                "Beat drops. Haters stop.",
+                "Savage by nature, loud by choice.",
+                "Every lyric is a lesson.",
+                "Your playlist is your autobiography – make it savage."
+            ];
+            const randomQuote = musicQuotes[Math.floor(Math.random() * musicQuotes.length)];
+            const watermark = `╭━━━━━━━━━━━━━━━╮\n┃ 🔥 𝕾𝕬𝖁𝕬𝕲𝕰 𝕭𝖔𝖙 🔥\n╰━━━━━━━━━━━━━━━╯`;
+            const caption = `🎵 *Now Playing:* ${videoTitle}\n📥 *Requested by:* @${msg.key.participant?.split('@')[0] || 'You'}\n\n“${randomQuote}”\n\n${watermark}`;
+            
+            await sock.sendMessage(from, {
+                audio: { url: audioOutputPath },
+                mimetype: 'audio/mpeg',
+                fileName: `${videoTitle}.mp3`,
+                caption: caption,
+                mentions: [msg.key.participant || msg.key.remoteJid]
+            });
+            
+            fs.unlink(audioOutputPath).catch(console.error);
+        } catch (error) {
+            console.error(error);
+            await sock.sendMessage(from, { text: '❌ Failed to play. YouTube may be blocking or try again later.' });
         }
-
-        const writeStream = fs.createWriteStream(audioOutputPath);
-        audioStream.pipe(writeStream);
-
-        await new Promise((resolve, reject) => {
-            writeStream.on('finish', resolve);
-            writeStream.on('error', reject);
-            audioStream.on('error', reject);
-        });
-
-        // Savage Music Quotes (20+)
-        const musicQuotes = [
-            "Every beat is a step closer to greatness. 🎶",
-            "Stay savage, keep the bass heavy.",
-            "Music is the weapon of the future.",
-            "Rhythm is the heartbeat of the savage.",
-            "Play it loud, play it proud.",
-            "Legends are made of bass drops and grind.",
-            "Your vibe attracts your tribe – drop the track.",
-            "Silence is broken by the savage's anthem.",
-            "Don't just listen – feel the frequency.",
-            "Hustle in silence, let the music speak.",
-            "Every dream has its own soundtrack.",
-            "Wake up. Drop the beat. Dominate.",
-            "The savage doesn't wait for the drop – he creates it.",
-            "Your only limit is the volume knob.",
-            "Pain fades, but a great track is forever.",
-            "No pressure, no diamonds – no bass, no fire.",
-            "From the streets to the speakers – savage mode.",
-            "Let the rhythm remind you who you are.",
-            "Don't chase the vibe – be the vibe.",
-            "The same fire that burns the weak melts the fearful.",
-            "Turn it up. They'll hear you coming.",
-            "Beat drops. Haters stop.",
-            "Savage by nature, loud by choice.",
-            "Every lyric is a lesson.",
-            "Your playlist is your autobiography – make it savage."
-        ];
-        const randomQuote = musicQuotes[Math.floor(Math.random() * musicQuotes.length)];
-        const watermark = `╭━━━━━━━━━━━━━━━╮\n┃ 🔥 𝕾𝕬𝖁𝕬𝕲𝕰 𝕭𝖔𝖙 🔥\n╰━━━━━━━━━━━━━━━╯`;
-
-        const caption = `🎵 *Now Playing:* ${videoTitle}\n📥 *Requested by:* @${msg.key.participant?.split('@')[0] || 'You'}\n\n“${randomQuote}”\n\n${watermark}`;
-
-        await sock.sendMessage(from, {
-            audio: { url: audioOutputPath },
-            mimetype: 'audio/mpeg',
-            fileName: `${videoTitle}.mp3`,
-            caption: caption,
-            mentions: [msg.key.participant || msg.key.remoteJid]
-        });
-
-        fs.unlink(audioOutputPath).catch(console.error);
     }
 };

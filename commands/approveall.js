@@ -1,34 +1,40 @@
+const { jidNormalizedUser } = require("@whiskeysockets/baileys");
+
 module.exports = {
-    name: 'approveall',
-    category: 'group',
-    description: 'Approve all pending join requests (Admin only)',
-    async execute(sock, msg, args) {
-        const from = msg.key.remoteJid;
-        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only.' });
+    name: "approveall",
+    description: "Approve all pending group join requests",
+    category: "group", // This ensures it appears in your Group Menu category
+    useLimit: true,
+    async execute(sock, m, { from, isGroup, isAdmins, isBotAdmins, reply, metadata }) {
+        try {
+            // 🛡️ Security Check Layer
+            if (!isGroup) return reply('This command is for groups only.');
+            if (!isAdmins) return reply('Only admins can use this.');
+            if (!isBotAdmins) return reply('I need to be an admin to approve requests.');
 
-        // Force fresh metadata (bypass cache)
-        const group = await sock.groupMetadata(from);
-        const sender = msg.key.participant || msg.key.remoteJid;
-        const isAdmin = group.participants.some(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin'));
-        if (!isAdmin) return sock.sendMessage(from, { text: '❌ Only group admins can use this.' });
+            // 🔍 Fetch pending participants
+            const response = await sock.groupRequestParticipantsList(from);
 
-        // Get bot's phone number (without suffix or @)
-        const botNumber = sock.user.id.split(':')[0].split('@')[0];
-        
-        // Find bot in participants by matching phone number (relaxed comparison)
-        const botParticipant = group.participants.find(p => p.id.includes(botNumber));
-        
-        if (!botParticipant) {
-            return sock.sendMessage(from, { text: '❌ Could not find bot in group. Try removing and re-adding me as admin.' });
+            if (!response || response.length === 0) {
+                return reply('There are no pending join requests in this group.');
+            }
+
+            // ⚡ Map JIDs and Approve
+            const participants = response.map(user => user.jid);
+            await sock.groupRequestParticipantsUpdate(from, participants, "approve");
+
+            // ✅ Group Success Message
+            reply(`⛓️ *SΛVΛGΞ-TECH STATUS*\nSuccessfully approved *${participants.length}* pending members.`);
+
+            // 📝 Log to your private Session DM
+            const logUser = jidNormalizedUser(sock.user.id);
+            await sock.sendMessage(logUser, { 
+                text: `⛓️ *SΛVΛGΞ-TECH ADMIN LOG*\n*Action:* Bulk Approval\n*Group:* ${metadata.subject}\n*Count:* ${participants.length}\n*Status:* Success ✅` 
+            });
+
+        } catch (err) {
+            console.error("Approve All Error:", err);
+            reply('Failed to process requests. Ensure "Approve New Participants" is ON in group settings.');
         }
-        
-        const isBotAdmin = botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin';
-        if (!isBotAdmin) return sock.sendMessage(from, { text: '❌ Make me admin first.' });
-
-        const pending = group.participants.filter(p => p.isPending === true);
-        if (!pending.length) return sock.sendMessage(from, { text: '✅ No pending requests.' });
-
-        await sock.groupParticipantsUpdate(from, pending.map(p => p.id), 'approve');
-        await sock.sendMessage(from, { text: `✅ Approved ${pending.length} request(s).` });
     }
 };

@@ -2,6 +2,7 @@ const axios = require('axios');
 
 module.exports = {
     name: 'repo',
+    category: 'owner',      // This places it under Owner menu
     description: 'Shows the bot\'s GitHub repository information',
     async execute(sock, msg, args, { isArchitect, isMe }) {
         const from = msg.key.remoteJid;

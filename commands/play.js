@@ -1,66 +1,65 @@
 const yts = require('yt-search');
 const ytdl = require('ytdl-core');
 const fs = require('fs');
-const { jidNormalizedUser } = require("@whiskeysockets/baileys");
+const path = require('path');
 
 module.exports = {
     name: "play",
-    description: "Search and play music from YouTube",
-    category: "download",
+    description: "Search and download audio from YouTube",
+    category: "tools", // Integrated into your Tools menu
     async execute(sock, m, { args, from, reply, text }) {
-        if (!text) return reply("❌ Please provide a song name.\nExample: .play Bruno Mars Die With A Smile");
+        if (!text) return reply("⛓️ *SΛVΛGΞ-TECH*\nProvide a song name to search.\nExample: .play Bruno Mars");
 
         try {
-            reply(`⏳ *SΛVΛGΞ-TECH is searching...*`);
-
             // 🔍 Search YouTube
             const search = await yts(text);
             const video = search.videos[0];
+            if (!video) return reply("❌ No results found for that query.");
 
-            if (!video) return reply("❌ Song not found. Try a different title.");
+            reply(`⏳ *Fetching:* ${video.title}...`);
 
-            let playMsg = `⛓️ *SΛVΛGΞ-TECH MUSIC* ⛓️\n\n` +
-                          `📝 *Title:* ${video.title}\n` +
-                          `⏱️ *Duration:* ${video.timestamp}\n` +
-                          `👁️ *Views:* ${video.views}\n` +
-                          `🔗 *Link:* ${video.url}\n\n` +
-                          `*Sending audio... stay still...*`;
+            // 📸 Send Preview Card
+            const infoText = `⛓️ *SΛVΛGΞ TOOLS: AUDIO*\n\n` +
+                             `*Title:* ${video.title}\n` +
+                             `*Author:* ${video.author.name}\n` +
+                             `*Duration:* ${video.timestamp}\n\n` +
+                             `_Processing high-quality stream..._`;
 
-            // Send Thumbnail + Info
             await sock.sendMessage(from, { 
                 image: { url: video.thumbnail }, 
-                caption: playMsg 
+                caption: infoText 
             }, { quoted: m });
 
-            // 📥 Download Audio
-            const stream = ytdl(video.url, { filter: 'audioonly', quality: 'highestaudio' });
-            const filePath = `./${Date.now()}.mp3`;
-
-            // Pipe to temporary file
+            // 📥 Download Path (Optimized for Termux)
+            const filePath = path.join(__dirname, `../${Date.now()}.mp3`);
+            const stream = ytdl(video.url, { 
+                filter: 'audioonly', 
+                quality: 'highestaudio' 
+            });
+            
             const writer = fs.createWriteStream(filePath);
             stream.pipe(writer);
 
             writer.on('finish', async () => {
-                // 📤 Send Audio to Group/Chat
+                // 📤 Upload to WhatsApp
                 await sock.sendMessage(from, { 
                     audio: { url: filePath }, 
                     mimetype: 'audio/mp4', 
                     ptt: false 
                 }, { quoted: m });
 
-                // 📝 Log to Private DM
-                const logUser = jidNormalizedUser(sock.user.id);
-                await sock.sendMessage(logUser, { 
-                    text: `⛓️ *SΛVΛGΞ-TECH DOWNLOAD LOG*\n*Song:* ${video.title}\n*Requested in:* ${from}\n*Status:* Delivered ✅` 
-                });
+                // 🗑️ Termux Storage Cleanup
+                if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+            });
 
-                // Delete temp file to save Termux storage
-                fs.unlinkSync(filePath);
+            writer.on('error', (err) => {
+                console.error(err);
+                reply("❌ Stream interrupted. Try again.");
             });
 
         } catch (err) {
             console.error(err);
-            reply("❌ Error processing audio. YouTube might be blocking the request.");
+            reply("❌ YouTube System Error. Ensure ytdl-core is updated.");
         }
     }
 };

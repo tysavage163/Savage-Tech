@@ -11,11 +11,12 @@ module.exports = {
         const isAdmin = group.participants.some(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin'));
         if (!isAdmin) return sock.sendMessage(from, { text: '❌ Only group admins can use this.' });
 
-        const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+        // ✅ FIX: Use sock.user.id directly – includes device suffix like :0
+        const botId = sock.user.id;
         const isBotAdmin = group.participants.some(p => p.id === botId && (p.admin === 'admin' || p.admin === 'superadmin'));
         if (!isBotAdmin) return sock.sendMessage(from, { text: '❌ Make me admin first.' });
 
-        const pending = group.participants.filter(p => p.isPending);
+        const pending = group.participants.filter(p => p.isPending === true);
         if (!pending.length) return sock.sendMessage(from, { text: '✅ No pending requests.' });
 
         await sock.groupParticipantsUpdate(from, pending.map(p => p.id), 'approve');

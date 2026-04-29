@@ -1,9 +1,13 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// REPLACE WITH YOUR KEY (but better to use env variable)
-const API_KEY = "AIzaSyC8wvW31y7HJqyBIUd3qLfHoemndUJxf4c";
+// Read API key from environment variable (set in Termux)
+const API_KEY = process.env.GEMINI_KEY;
 
-const genAI = new GoogleGenerativeAI(API_KEY);
+if (!API_KEY) {
+    console.error("❌ GEMINI_KEY environment variable not set. AI commands will not work.");
+}
+
+const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 
 module.exports = {
     name: 'ai',
@@ -14,6 +18,10 @@ module.exports = {
         const question = args.join(' ');
         if (!question) {
             return await sock.sendMessage(from, { text: '❌ Usage: .ai What is the meaning of life?' });
+        }
+
+        if (!genAI) {
+            return await sock.sendMessage(from, { text: '❌ AI service not configured. Contact bot owner.' });
         }
 
         await sock.sendMessage(from, { text: `🤖 *Thinking...*\n_${question}_` });

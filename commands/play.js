@@ -1,68 +1,107 @@
 const yts = require('yt-search');
-const axios = require('axios');
+const ytdl = require('ytdl-core');
+const fs = require('fs-extra');
+const path = require('path');
 
 module.exports = {
-    category: 'tools',
     name: 'play',
-    category: 'media',
-    execute: async (sock, msg, args) => {
+    category: 'tools',
+    description: 'Download audio from YouTube by searching for a song name.',
+    async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         const query = args.join(' ');
+        
+        if (!query) {
+            return await sock.sendMessage(from, { text: '❌ Provide a song name or YouTube link.\nExample: .play Ed Sheeran Shape of You' });
+        }
 
-        if (!query) return sock.sendMessage(from, { text: '𝄞 *SΛVΛGΞ*: What are we playing?' });
+        await sock.sendMessage(from, { text: `⏳ Searching \`${query}\` on YouTube...` });
 
-        try {
-            const search = await yts(query);
-            const video = search.videos[0];
-            if (!video) return sock.sendMessage(from, { text: '❌ Video not found.' });
+        let videoUrl = query;
+        let videoTitle = '';
+        let videoInfo = null;
 
-            // 1. Fully Surrounded Musical Table
-            const infoText = `
-    𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡
-    𝄞 ━━━ 「 *SAVAGE-PLAY* 」 ━━━ 𝄡
-    𝄞                                   𝄡
-    𝄞 🎵 *Title:* ${video.title} 𝄢
-    𝄞 ⏳ *Duration:* ${video.timestamp} 𝄢
-    𝄞 🔗 *Link:* ${video.url} 𝄢
-    𝄞                                   𝄡
-    𝄞 ━━━━━━━━━━━━━━━━━━━━ 𝄡
-    𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡 𝄞 𝄢 𝄡`;
-
-            await sock.sendMessage(from, { 
-                image: { url: video.thumbnail }, 
-                caption: infoText 
-            }, { quoted: msg });
-
-            // 2. Fetch using a Public High-Stability API
-            // This endpoint currently bypasses the need for a private key
-            const res = await axios.get(`https://api.vreden.my.id/api/ytmp3?url=${video.url}`);
-            
-            if (!res.data || !res.data.result || !res.data.result.download) {
-                throw new Error("API Route Blocked");
-            }
-
-            const audioUrl = res.data.result.download;
-
-            // 3. Direct Delivery
-            await sock.sendMessage(from, { 
-                audio: { url: audioUrl }, 
-                mimetype: 'audio/mp4',
-                fileName: `${video.title}.mp3`
-            }, { quoted: msg });
-
-        } catch (e) {
-            console.error('Savage-Play Error:', e);
-            
-            // Fallback for when the first API is down
+        if (!query.includes('youtube.com/watch?v=') && !query.includes('youtu.be/')) {
             try {
-                const fallback = await axios.get(`https://api.agatz.xyz/api/ytmp3?url=${encodeURIComponent(query)}`);
-                await sock.sendMessage(from, { 
-                    audio: { url: fallback.data.data.url }, 
-                    mimetype: 'audio/mp4' 
-                }, { quoted: msg });
-            } catch (err) {
-                sock.sendMessage(from, { text: '💀 *SYSTEM ERROR:* All music nodes are currently congested. Try again in a minute.' });
+                const searchResults = await yts(query);
+                const firstResult = searchResults.videos[0];
+                if (!firstResult) return await sock.sendMessage(from, { text: `❌ No results for \`${query}\`.` });
+                videoUrl = firstResult.url;
+                videoTitle = firstResult.title;
+            } catch (searchError) {
+                console.error(searchError);
+                return await sock.sendMessage(from, { text: '❌ Search failed. Try again later.' });
+            }
+        } else {
+            try {
+                videoInfo = await ytdl.getInfo(videoUrl);
+                videoTitle = videoInfo.videoDetails.title;
+            } catch (infoError) {
+                console.error(infoError);
+                videoTitle = 'your video';
             }
         }
+
+        const audioOutputPath = path.resolve(__dirname, `../temp_audio_${Date.now()}.mp3`);
+        let audioStream;
+
+        try {
+            audioStream = ytdl(videoUrl, { filter: 'audioonly', quality: 'lowestaudio' });
+        } catch (streamError) {
+            console.error(streamError);
+            return await sock.sendMessage(from, { text: '❌ Failed to download audio.' });
+        }
+
+        const writeStream = fs.createWriteStream(audioOutputPath);
+        audioStream.pipe(writeStream);
+
+        await new Promise((resolve, reject) => {
+            writeStream.on('finish', resolve);
+            writeStream.on('error', reject);
+            audioStream.on('error', reject);
+        });
+
+        // Savage Music Quotes (20+)
+        const musicQuotes = [
+            "Every beat is a step closer to greatness. 🎶",
+            "Stay savage, keep the bass heavy.",
+            "Music is the weapon of the future.",
+            "Rhythm is the heartbeat of the savage.",
+            "Play it loud, play it proud.",
+            "Legends are made of bass drops and grind.",
+            "Your vibe attracts your tribe – drop the track.",
+            "Silence is broken by the savage's anthem.",
+            "Don't just listen – feel the frequency.",
+            "Hustle in silence, let the music speak.",
+            "Every dream has its own soundtrack.",
+            "Wake up. Drop the beat. Dominate.",
+            "The savage doesn't wait for the drop – he creates it.",
+            "Your only limit is the volume knob.",
+            "Pain fades, but a great track is forever.",
+            "No pressure, no diamonds – no bass, no fire.",
+            "From the streets to the speakers – savage mode.",
+            "Let the rhythm remind you who you are.",
+            "Don't chase the vibe – be the vibe.",
+            "The same fire that burns the weak melts the fearful.",
+            "Turn it up. They'll hear you coming.",
+            "Beat drops. Haters stop.",
+            "Savage by nature, loud by choice.",
+            "Every lyric is a lesson.",
+            "Your playlist is your autobiography – make it savage."
+        ];
+        const randomQuote = musicQuotes[Math.floor(Math.random() * musicQuotes.length)];
+        const watermark = `╭━━━━━━━━━━━━━━━╮\n┃ 🔥 𝕾𝕬𝖁𝕬𝕲𝕰 𝕭𝖔𝖙 🔥\n╰━━━━━━━━━━━━━━━╯`;
+
+        const caption = `🎵 *Now Playing:* ${videoTitle}\n📥 *Requested by:* @${msg.key.participant?.split('@')[0] || 'You'}\n\n“${randomQuote}”\n\n${watermark}`;
+
+        await sock.sendMessage(from, {
+            audio: { url: audioOutputPath },
+            mimetype: 'audio/mpeg',
+            fileName: `${videoTitle}.mp3`,
+            caption: caption,
+            mentions: [msg.key.participant || msg.key.remoteJid]
+        });
+
+        fs.unlink(audioOutputPath).catch(console.error);
     }
 };

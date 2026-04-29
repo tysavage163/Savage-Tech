@@ -9,6 +9,7 @@ const {
 const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
+const path = require("path");
 
 // ===== 1. CORE SYSTEM SETTINGS =====
 global.prefix = "."; 
@@ -22,7 +23,7 @@ global.worktype = "public";
 // ===== 2. COMMAND LOADER =====
 const loadCommands = () => {
     global.commands.clear();
-    if (!fs.existsSync("./commands")) fs.mkdirSync("./commands");
+    if (!fs.existsSync("./commands")) fs.mkdirSync("./commands", { recursive: true });
     const files = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
     for (const file of files) {
         try {
@@ -39,7 +40,31 @@ const loadCommands = () => {
 
 // ===== 3. BOOT SEQUENCE =====
 async function startSavage() {
-    const { state, saveCreds } = await useMultiFileAuthState("session");
+    const sessionPath = "./session";
+
+    // 🛰️ SMART SESSION ID DECODER (V2)
+    if (process.env.SESSION_ID) {
+        console.log("📡 SESSION_ID detected. Rebuilding biometric credentials...");
+        try {
+            let sessionData = process.env.SESSION_ID;
+            
+            // Auto-clean prefix if it exists
+            if (sessionData.includes(";;;")) {
+                sessionData = sessionData.split(";;;")[1];
+            }
+            
+            const authData = Buffer.from(sessionData, 'base64').toString('utf-8');
+            
+            // Force create folder and overwrite old creds
+            if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
+            fs.writeFileSync(path.join(sessionPath, 'creds.json'), authData);
+            console.log("✅ Session file written to disk successfully.");
+        } catch (e) {
+            console.log("⚠️ Session decoding failed: " + e.message);
+        }
+    }
+
+    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
@@ -53,16 +78,12 @@ async function startSavage() {
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
     });
 
-    // ===== GHOST ENGINE (FIXED SWITCH LOGIC) =====
+    // ===== GHOST ENGINE =====
     setInterval(async () => {
-        // Only loop if toggled ON and bot is authenticated
         if (global.autoTyping === "on" && sock.user && sock.user.id) {
             try {
-                // Signals 'composing' to the server to maintain "Always Online"
                 await sock.sendPresenceUpdate('composing', sock.user.id);
-            } catch (e) {
-                // Handle socket silent failures
-            }
+            } catch (e) {}
         }
     }, 4000);
 
@@ -80,13 +101,12 @@ async function startSavage() {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
             
-            // Sync status on boot
             if (global.autoTyping === "on") {
                 await sock.sendPresenceUpdate('composing', myNumber);
             }
 
             await sock.sendMessage(myNumber, { 
-                text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** RECONNECTED\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** GHOST ENGINE LOADED" 
+                text: "╔════════════════════╗\n      ⛓️ **SΛVΛGΞ-TECH V1** ⛓️\n╚════════════════════╝\n\n📡 **STATUS:** ONLINE\n👤 **ROLE:** ARCHITECT\n🛡️ **SYSTEM:** CLOUD DEPLOYMENT READY" 
             });
         }
 
@@ -95,7 +115,7 @@ async function startSavage() {
             const shouldReconnect = reason !== DisconnectReason.loggedOut;
             if (shouldReconnect) setTimeout(() => startSavage(), 5000);
             else {
-                if (fs.existsSync("./session")) fs.rmSync("./session", { recursive: true, force: true });
+                if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
                 process.exit(0);
             }
         }
@@ -110,11 +130,9 @@ async function startSavage() {
         const isMe = msg.key.fromMe; 
         const sender = msg.key.participant || msg.key.remoteJid;
         
-        // Architect Logic: Works for main account and linked devices
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
         const isArchitect = isMe || (botId && sender === botId);
 
-        // AUTO-VIEW STATUS LOGIC
         if (from === 'status@broadcast' && global.autoViewStatus === "on") {
             await sock.readMessages([msg.key]);
             return;
@@ -130,7 +148,6 @@ async function startSavage() {
         if (cmd) {
             if (global.worktype === 'private' && !isMe) return;
             try {
-                // Immediate feedback for commands
                 await sock.sendPresenceUpdate('composing', from);
                 await cmd.execute(sock, msg, args, { isArchitect, isMe });
             } catch (e) { 

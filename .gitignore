@@ -1,3 +1,5 @@
 node_modules
-savage_session
+session
+auth_info_baileys
 .env
+creds.json

@@ -1,4 +1,5 @@
-const play = require('play-dl');
+const ytdl = require('@distube/ytdl-core');
+const yts = require('yt-search');
 const fs = require('fs-extra');
 const path = require('path');
 
@@ -17,28 +18,31 @@ module.exports = {
         await sock.sendMessage(from, { text: `⏳ Searching \`${query}\` on YouTube...` });
 
         try {
-            let video;
-            if (query.includes('youtube.com') || query.includes('youtu.be')) {
-                const videoInfo = await play.video_info(query);
-                video = videoInfo.video_details;
+            let videoUrl = query;
+            let videoTitle = '';
+
+            if (!query.includes('youtube.com/watch?v=') && !query.includes('youtu.be/')) {
+                const searchResults = await yts(query);
+                const firstResult = searchResults.videos[0];
+                if (!firstResult) throw new Error('No results');
+                videoUrl = firstResult.url;
+                videoTitle = firstResult.title;
             } else {
-                const searchResults = await play.search(query, { limit: 1 });
-                if (!searchResults.length) throw new Error('No results');
-                video = searchResults[0];
+                const videoInfo = await ytdl.getInfo(videoUrl);
+                videoTitle = videoInfo.videoDetails.title;
             }
-            
-            const videoTitle = video.title;
-            const audioStream = await play.stream(video.url, { quality: 2 });
+
             const audioOutputPath = path.resolve(__dirname, `../temp_audio_${Date.now()}.mp3`);
+            const audioStream = ytdl(videoUrl, { filter: 'audioonly', quality: 'lowestaudio' });
             const writeStream = fs.createWriteStream(audioOutputPath);
-            audioStream.stream.pipe(writeStream);
-            
+            audioStream.pipe(writeStream);
+
             await new Promise((resolve, reject) => {
                 writeStream.on('finish', resolve);
                 writeStream.on('error', reject);
-                audioStream.stream.on('error', reject);
+                audioStream.on('error', reject);
             });
-            
+
             const musicQuotes = [
                 "Every beat is a step closer to greatness. 🎶",
                 "Stay savage, keep the bass heavy.",
@@ -69,7 +73,7 @@ module.exports = {
             const randomQuote = musicQuotes[Math.floor(Math.random() * musicQuotes.length)];
             const watermark = `╭━━━━━━━━━━━━━━━╮\n┃ 🔥 𝕾𝕬𝖁𝕬𝕲𝕰 𝕭𝖔𝖙 🔥\n╰━━━━━━━━━━━━━━━╯`;
             const caption = `🎵 *Now Playing:* ${videoTitle}\n📥 *Requested by:* @${msg.key.participant?.split('@')[0] || 'You'}\n\n“${randomQuote}”\n\n${watermark}`;
-            
+
             await sock.sendMessage(from, {
                 audio: { url: audioOutputPath },
                 mimetype: 'audio/mpeg',
@@ -77,7 +81,7 @@ module.exports = {
                 caption: caption,
                 mentions: [msg.key.participant || msg.key.remoteJid]
             });
-            
+
             fs.unlink(audioOutputPath).catch(console.error);
         } catch (error) {
             console.error(error);

@@ -1,23 +1,30 @@
 const axios = require('axios');
+
 module.exports = {
     name: 'weather',
     category: 'tools',
-    description: 'Get current weather for a city',
+    description: 'Get current weather for a city (no API key needed)',
     async execute(sock, msg, args) {
         const city = args.join(' ');
         if (!city) {
             return sock.sendMessage(msg.key.remoteJid, { text: '❌ Usage: .weather London' });
         }
-        const apiKey = 'a634f0c982fc8317862b1a4a58aebf65';
-        const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`;
+
         try {
-            const res = await axios.get(url);
-            const data = res.data;
-            const text = `🌤️ *Weather in ${data.name}, ${data.sys.country}*\n🌡️ Temp: ${data.main.temp}°C\n💧 Humidity: ${data.main.humidity}%\n🌬️ Wind: ${data.wind.speed} m/s\n📝 ${data.weather[0].description}`;
+            // Use wttr.in with ?format to get clean text
+            const url = `https://wttr.in/${encodeURIComponent(city)}?format=%l:+%c+%t,+%w,+%h,+%p`;
+            const res = await axios.get(url, { timeout: 10000 });
+            const data = res.data.trim();
+            
+            if (data.includes('Unknown location')) {
+                return sock.sendMessage(msg.key.remoteJid, { text: '❌ City not found.' });
+            }
+            
+            const text = `🌤️ *Weather Info*\n${data}`;
             await sock.sendMessage(msg.key.remoteJid, { text });
         } catch (error) {
             console.error(error);
-            await sock.sendMessage(msg.key.remoteJid, { text: '❌ City not found or API error.' });
+            await sock.sendMessage(msg.key.remoteJid, { text: '❌ Weather service error. Try again later.' });
         }
     }
 };

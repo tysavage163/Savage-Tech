@@ -1,7 +1,7 @@
 module.exports = {
     name: 'grouplink',
     category: 'group',
-    description: 'Get group invite link + icon (Admin only)',
+    description: 'Get group invite link and icon',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only.' });
@@ -10,13 +10,6 @@ module.exports = {
         const sender = msg.key.participant || msg.key.remoteJid;
         const isAdmin = group.participants.some(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin'));
         if (!isAdmin) return sock.sendMessage(from, { text: '❌ Only admins can use this.' });
-
-        const botNumber = sock.user.id.split(':')[0].split('@')[0];
-        const botParticipant = group.participants.find(p => p.id.includes(botNumber));
-        if (!botParticipant) return sock.sendMessage(from, { text: '❌ Bot not found. Re-add me.' });
-        if (!(botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin')) {
-            return sock.sendMessage(from, { text: '❌ Make me admin first.' });
-        }
 
         try {
             const inviteCode = await sock.groupInviteCode(from);

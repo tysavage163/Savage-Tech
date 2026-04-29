@@ -1,6 +1,6 @@
+require('dotenv').config();  // <-- ADD THIS LINE
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Read API key from environment variable (set in Termux)
 const API_KEY = process.env.GEMINI_KEY;
 
 if (!API_KEY) {
@@ -30,7 +30,6 @@ module.exports = {
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
             const result = await model.generateContent(question);
             const response = result.response.text();
-
             const clean = response.length > 2000 ? response.substring(0, 1997) + '...' : response;
             const watermark = `\n\n╭━━━━━━━━━━━━━━━╮\n┃ 🔥 𝕾𝕬𝖁𝕬𝕲𝕰 𝕭𝖔𝖙 🔥\n╰━━━━━━━━━━━━━━━╯`;
             await sock.sendMessage(from, { text: `🤖 *Gemini AI:*\n${clean}${watermark}` });

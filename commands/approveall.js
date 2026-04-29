@@ -1,26 +1,28 @@
 module.exports = {
     name: 'approveall',
     category: 'group',
-    description: 'Approve pending join requests (Admin only)',
+    description: 'Approve all pending join requests (Admin only)',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only.' });
 
+        // Force fresh metadata (bypass cache)
         const group = await sock.groupMetadata(from);
         const sender = msg.key.participant || msg.key.remoteJid;
         const isAdmin = group.participants.some(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin'));
         if (!isAdmin) return sock.sendMessage(from, { text: '❌ Only group admins can use this.' });
 
-        const botJidFull = sock.user.id; // e.g., "1234567890:0@s.whatsapp.net"
-        const botJidNoDevice = botJidFull.split(':')[0] + '@s.whatsapp.net';
+        // Get bot's phone number (without suffix or @)
+        const botNumber = sock.user.id.split(':')[0].split('@')[0];
         
-        // Find bot in participants
-        let botParticipant = group.participants.find(p => p.id === botJidFull || p.id === botJidNoDevice);
+        // Find bot in participants by matching phone number (relaxed comparison)
+        const botParticipant = group.participants.find(p => p.id.includes(botNumber));
         
-        // Debug: send info to the user
-        await sock.sendMessage(from, { text: `🔍 *Debug Info*\nBot IDs:\n• ${botJidFull}\n• ${botJidNoDevice}\n\nBot found in group: ${botParticipant ? '✅ yes' : '❌ no'}\nBot admin: ${botParticipant && (botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin') ? '✅ yes' : '❌ no'}` });
+        if (!botParticipant) {
+            return sock.sendMessage(from, { text: '❌ Could not find bot in group. Try removing and re-adding me as admin.' });
+        }
         
-        const isBotAdmin = botParticipant && (botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin');
+        const isBotAdmin = botParticipant.admin === 'admin' || botParticipant.admin === 'superadmin';
         if (!isBotAdmin) return sock.sendMessage(from, { text: '❌ Make me admin first.' });
 
         const pending = group.participants.filter(p => p.isPending === true);

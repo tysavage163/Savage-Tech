@@ -1,53 +1,24 @@
-/*
-╔══════════════════════════════════════════════════════════╗
-║  approveall – Approve all pending join requests         ║
-║  Usage: .approveall                                      ║
-║  Only group admins or bot owner can use                  ║
-╚══════════════════════════════════════════════════════════╝
-*/
-
 module.exports = {
     name: 'approveall',
     category: 'group',
-    description: 'Approve all pending join requests in the group',
-    async execute(sock, msg, args, { isArchitect, isMe }) {
+    description: 'Approve all pending join requests (Admin only)',
+    async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        
-        // Check if it's a group
-        if (!from.endsWith('@g.us')) {
-            return await sock.sendMessage(from, { text: '❌ This command can only be used in groups.' });
-        }
+        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only.' });
 
-        // Check if bot is admin
-        const groupMetadata = await sock.groupMetadata(from);
+        const group = await sock.groupMetadata(from);
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const isAdmin = group.participants.some(p => p.id === sender && (p.admin === 'admin' || p.admin === 'superadmin'));
+        if (!isAdmin) return sock.sendMessage(from, { text: '❌ Only group admins can use this.' });
+
         const botId = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-        const isBotAdmin = groupMetadata.participants.some(p => p.id === botId && p.admin === 'admin' || p.admin === 'superadmin');
-        
-        if (!isBotAdmin) {
-            return await sock.sendMessage(from, { text: '❌ I need to be an admin to approve join requests.' });
-        }
+        const isBotAdmin = group.participants.some(p => p.id === botId && (p.admin === 'admin' || p.admin === 'superadmin'));
+        if (!isBotAdmin) return sock.sendMessage(from, { text: '❌ Make me admin first.' });
 
-        // Get pending participants
-        const pendingParticipants = groupMetadata.participants.filter(p => p.isPending === true);
-        
-        if (pendingParticipants.length === 0) {
-            return await sock.sendMessage(from, { text: '📭 No pending join requests in this group.' });
-        }
+        const pending = group.participants.filter(p => p.isPending);
+        if (!pending.length) return sock.sendMessage(from, { text: '✅ No pending requests.' });
 
-        const pendingIds = pendingParticipants.map(p => p.id);
-        
-        await sock.sendMessage(from, { text: `⏳ Approving ${pendingIds.length} pending request(s)...` });
-
-        try {
-            // Approve all pending participants
-            await sock.groupParticipantsUpdate(from, pendingIds, 'approve');
-            await sock.sendMessage(from, { 
-                text: `✅ Successfully approved ${pendingIds.length} participant(s)!\n\n👥 Approved:\n${pendingIds.map(id => `• @${id.split('@')[0]}`).join('\n')}`,
-                mentions: pendingIds
-            });
-        } catch (error) {
-            console.error('Approveall error:', error);
-            await sock.sendMessage(from, { text: '❌ Failed to approve pending participants. Make sure I have admin privileges and try again.' });
-        }
+        await sock.groupParticipantsUpdate(from, pending.map(p => p.id), 'approve');
+        await sock.sendMessage(from, { text: `✅ Approved ${pending.length} request(s).` });
     }
 };

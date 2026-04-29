@@ -31,8 +31,33 @@ module.exports = {
                 videoTitle = info.videoDetails.title;
             }
 
+            // Try to download with a custom agent and fallback qualities
+            const agent = ytdl.createAgent(undefined, {
+                // Mimic a real browser
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+                }
+            });
+
             const tempPath = path.join(__dirname, `../temp_${Date.now()}.mp3`);
-            const stream = ytdl(videoUrl, { filter: 'audioonly', quality: 'lowestaudio' });
+            let stream;
+
+            try {
+                // Try lowest quality first (fastest)
+                stream = ytdl(videoUrl, {
+                    filter: 'audioonly',
+                    quality: 'lowestaudio',
+                    requestOptions: { agent }
+                });
+            } catch (firstErr) {
+                // If lowest fails, try highest (older videos may only have high quality)
+                stream = ytdl(videoUrl, {
+                    filter: 'audioonly',
+                    quality: 'highestaudio',
+                    requestOptions: { agent }
+                });
+            }
+
             const writeStream = fs.createWriteStream(tempPath);
             stream.pipe(writeStream);
 
@@ -64,7 +89,13 @@ module.exports = {
             await fs.unlink(tempPath).catch(console.error);
         } catch (err) {
             console.error(err);
-            await sock.sendMessage(from, { text: '❌ Failed to play. Try a different song name.' });
+            let errorMsg = '❌ Failed to play this song.';
+            if (err.message && err.message.includes('playable formats')) {
+                errorMsg = '❌ This video is age-restricted or region-blocked.\nTry a different song.';
+            } else if (err.message && err.message.includes('No results')) {
+                errorMsg = '❌ No results found. Try a different search term.';
+            }
+            await sock.sendMessage(from, { text: errorMsg });
         }
     }
 };

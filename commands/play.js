@@ -1,92 +1,66 @@
-const { exec } = require('child_process');
-const fs = require('fs-extra');
-const path = require('path');
 const yts = require('yt-search');
-const util = require('util');
-const execPromise = util.promisify(exec);
+const ytdl = require('ytdl-core');
+const fs = require('fs');
+const { jidNormalizedUser } = require("@whiskeysockets/baileys");
 
 module.exports = {
-    name: 'play',
-    category: 'tools',
-    description: 'Download audio from YouTube (yt-dlp backend)',
-    async execute(sock, msg, args) {
-        const from = msg.key.remoteJid;
-        const query = args.join(' ');
-        if (!query) {
-            return await sock.sendMessage(from, { text: '❌ Usage: .play song name' });
-        }
-
-        await sock.sendMessage(from, { text: `🔍 Searching \`${query}\` on YouTube...` });
+    name: "play",
+    description: "Search and play music from YouTube",
+    category: "download",
+    async execute(sock, m, { args, from, reply, text }) {
+        if (!text) return reply("❌ Please provide a song name.\nExample: .play Bruno Mars Die With A Smile");
 
         try {
-            let videoUrl = query;
-            let videoTitle = '';
+            reply(`⏳ *SΛVΛGΞ-TECH is searching...*`);
 
-            // If not a direct YouTube link, search
-            if (!query.includes('youtube.com/watch?v=') && !query.includes('youtu.be/')) {
-                const searchResults = await yts(query);
-                if (!searchResults.videos.length) throw new Error('No results');
-                const first = searchResults.videos[0];
-                videoUrl = first.url;
-                videoTitle = first.title;
-            } else {
-                // Get title via yt-dlp (quick info)
-                const { stdout } = await execPromise(`yt-dlp --get-title "${videoUrl}"`);
-                videoTitle = stdout.trim();
-            }
+            // 🔍 Search YouTube
+            const search = await yts(text);
+            const video = search.videos[0];
 
-            // Temporary file path
-            const tempFile = path.join(__dirname, `../temp_${Date.now()}.mp3`);
+            if (!video) return reply("❌ Song not found. Try a different title.");
 
-            // Download audio using yt-dlp
-            await execPromise(`yt-dlp -f bestaudio --extract-audio --audio-format mp3 --output "${tempFile}" "${videoUrl}"`);
+            let playMsg = `⛓️ *SΛVΛGΞ-TECH MUSIC* ⛓️\n\n` +
+                          `📝 *Title:* ${video.title}\n` +
+                          `⏱️ *Duration:* ${video.timestamp}\n` +
+                          `👁️ *Views:* ${video.views}\n` +
+                          `🔗 *Link:* ${video.url}\n\n` +
+                          `*Sending audio... stay still...*`;
 
-            // Random savage music quote
-            const quotes = [
-                "Every beat is a step closer to greatness. 🎶",
-                "Stay savage, keep the bass heavy.",
-                "Music is the weapon of the future.",
-                "Rhythm is the heartbeat of the savage.",
-                "Play it loud, play it proud.",
-                "Legends are made of bass drops and grind.",
-                "Your vibe attracts your tribe – drop the track.",
-                "Silence is broken by the savage's anthem.",
-                "Don't just listen – feel the frequency.",
-                "Hustle in silence, let the music speak.",
-                "Every dream has its own soundtrack.",
-                "Wake up. Drop the beat. Dominate.",
-                "The savage doesn't wait for the drop – he creates it.",
-                "Your only limit is the volume knob.",
-                "Pain fades, but a great track is forever.",
-                "No pressure, no diamonds – no bass, no fire.",
-                "From the streets to the speakers – savage mode.",
-                "Let the rhythm remind you who you are.",
-                "Don't chase the vibe – be the vibe.",
-                "The same fire that melts butter hardens steel.",
-                "Turn it up. They'll hear you coming.",
-                "Beat drops. Haters stop.",
-                "Savage by nature, loud by choice.",
-                "Every lyric is a lesson.",
-                "Your playlist is your autobiography – make it savage."
-            ];
-            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-            const watermark = `╭━━━━━━━━━━━━━━━╮\n┃ 🔥 𝕾𝕬𝖁𝕬𝕲𝕰 𝕭𝖔𝖙 🔥\n╰━━━━━━━━━━━━━━━╯`;
-            const caption = `🎵 *Now Playing:* ${videoTitle}\n📥 *Requested by:* @${msg.key.participant?.split('@')[0] || 'You'}\n\n“${randomQuote}”\n\n${watermark}`;
+            // Send Thumbnail + Info
+            await sock.sendMessage(from, { 
+                image: { url: video.thumbnail }, 
+                caption: playMsg 
+            }, { quoted: m });
 
-            // Send audio
-            await sock.sendMessage(from, {
-                audio: { url: tempFile },
-                mimetype: 'audio/mpeg',
-                fileName: `${videoTitle}.mp3`,
-                caption: caption,
-                mentions: [msg.key.participant || msg.key.remoteJid]
+            // 📥 Download Audio
+            const stream = ytdl(video.url, { filter: 'audioonly', quality: 'highestaudio' });
+            const filePath = `./${Date.now()}.mp3`;
+
+            // Pipe to temporary file
+            const writer = fs.createWriteStream(filePath);
+            stream.pipe(writer);
+
+            writer.on('finish', async () => {
+                // 📤 Send Audio to Group/Chat
+                await sock.sendMessage(from, { 
+                    audio: { url: filePath }, 
+                    mimetype: 'audio/mp4', 
+                    ptt: false 
+                }, { quoted: m });
+
+                // 📝 Log to Private DM
+                const logUser = jidNormalizedUser(sock.user.id);
+                await sock.sendMessage(logUser, { 
+                    text: `⛓️ *SΛVΛGΞ-TECH DOWNLOAD LOG*\n*Song:* ${video.title}\n*Requested in:* ${from}\n*Status:* Delivered ✅` 
+                });
+
+                // Delete temp file to save Termux storage
+                fs.unlinkSync(filePath);
             });
 
-            // Clean up
-            await fs.unlink(tempFile).catch(console.error);
         } catch (err) {
             console.error(err);
-            await sock.sendMessage(from, { text: '❌ Failed to play. Try a different song or check your internet connection.' });
+            reply("❌ Error processing audio. YouTube might be blocking the request.");
         }
     }
 };

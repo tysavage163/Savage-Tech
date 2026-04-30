@@ -1,9 +1,9 @@
-// claude.js – ChatGPT style (Claude API)
+// claude.js – Claude-style AI
 const axios = require('axios');
 
 module.exports = {
   name: 'claude',
-  category: 'tools',
+  category: 'ai',
   description: 'Chat with Claude-style AI',
   async execute(sock, msg, args) {
     const query = args.join(' ');

@@ -8,6 +8,9 @@ module.exports = {
     const query = args.join(' ');
     if (!query) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .play1 song name' });
 
+    const senderName = msg.pushName || 'User';
+    await sock.sendMessage(msg.key.remoteJid, { text: `🔍 *Savage-Tech is searching for "${query}" @${senderName}...*` });
+
     try {
       const url = `https://apis.xwolf.space/api/search?q=${encodeURIComponent(query)}`;
       const res = await axios.get(url);

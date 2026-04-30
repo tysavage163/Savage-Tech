@@ -11,21 +11,19 @@ module.exports = {
     }
 
     const senderName = msg.pushName || 'User';
-    await sock.sendMessage(msg.key.remoteJid, { text: `⚡ *Savage-Tech is fetching both formats for @${senderName}...*` });
-
     try {
       const apiUrl = `https://apis.xwolf.space/download/ytmp5?url=${encodeURIComponent(url)}`;
       const res = await axios.get(apiUrl);
       if (res.data.success) {
         const mp3 = res.data.mp3 || res.data.audio;
         const mp4 = res.data.mp4 || res.data.video;
-        let reply = `🎵 MP3: ${mp3}\n📹 MP4: ${mp4}`;
+        let reply = `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n⚡ *Savage‑Tech fetched links for @${senderName}*\n\n🎵 MP3: ${mp3}\n📹 MP4: ${mp4}\n\nInspired by Meryl`;
         await sock.sendMessage(msg.key.remoteJid, { text: reply.slice(0, 2000) });
       } else {
-        await sock.sendMessage(msg.key.remoteJid, { text: `⚠️ ${res.data.error || 'Failed'}` });
+        await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n⚠️ ${res.data.error || 'Failed'}\n\nInspired by Meryl` });
       }
     } catch (error) {
-      await sock.sendMessage(msg.key.remoteJid, { text: '❌ play7 error.' });
+      await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n❌ play7 error.\n\nInspired by Meryl` });
     }
   }
 };

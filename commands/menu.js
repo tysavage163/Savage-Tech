@@ -34,44 +34,25 @@ module.exports = {
 ┃
 ┕━━━━━━━━━━━━━━━╼\n\n`;
 
-            // Categories to display in order
-            const categories = [
-                { name: 'owner', title: 'OWNER MENU' },
-                { name: 'group', title: 'GROUP MENU' },
-                { name: 'ai', title: 'AI MODULES' },
-                { name: 'fun', title: 'FUN & GAMES' },
-                { name: 'tools', title: 'TOOLS MENU' },
-                { name: 'audio', title: 'AUDIO MENU' },
-                { name: 'engine', title: 'ENGINE MENU' }
-            ];
+            // Updated category list including AI and FUN
+            const ownerMenu = getCategorizedMenu('owner', 'OWNER MENU');
+            const groupMenu = getCategorizedMenu('group', 'GROUP MENU');
+            const aiMenu = getCategorizedMenu('ai', 'AI MODULES');
+            const funMenu = getCategorizedMenu('fun', 'FUN & GAMES');
+            const toolsMenu = getCategorizedMenu('tools', 'TOOLS MENU');
+            const audioMenu = getCategorizedMenu('audio', 'AUDIO MENU');
+            const engineMenu = getCategorizedMenu('engine', 'ENGINE MENU');
 
-            let fullMenu = header;
-            const definedCatNames = categories.map(c => c.name);
+            // Defined categories for the catch-all filter
+            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'audio', 'engine'];
 
-            // Add all defined categories
-            for (const cat of categories) {
-                fullMenu += getCategorizedMenu(cat.name, cat.title);
-            }
-
-            // Catch-all for any other categories (e.g., uncategorized)
-            const otherCommands = Array.from(global.commands.values())
-                .filter(cmd => !definedCatNames.includes(cmd.category));
-            
-            if (otherCommands.length > 0) {
-                // Group by their actual category name
-                const otherGroups = new Map();
-                for (const cmd of otherCommands) {
-                    if (!otherGroups.has(cmd.category)) otherGroups.set(cmd.category, []);
-                    otherGroups.get(cmd.category).push(cmd);
-                }
-                for (const [catName, cmds] of otherGroups.entries()) {
-                    const title = `${catName.toUpperCase()} MODULES`;
-                    fullMenu += `┌───◇  * ${title} *\n${cmds.map(cmd => `┃  ➥ .${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
-                }
-            }
+            // Catch-all for other categories
+            const otherMenu = Array.from(global.commands.values())
+                .filter(cmd => !definedCats.includes(cmd.category))
+                .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !definedCats.includes(c.category)).category, 'OTHER MODULES') : "";
 
             const footer = `_Master your tools or be deleted._`;
-            fullMenu += footer;
+            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + audioMenu + engineMenu + otherMenu + footer;
 
             await sock.sendMessage(from, { 
                 image: { url: 'https://i.ibb.co/QF1KM5Bp/IMG-20260425-WA1076.webp' }, 

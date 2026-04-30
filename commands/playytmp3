@@ -17,33 +17,33 @@ async function downloadFile(url) {
 }
 
 module.exports = {
-  name: 'play6',
+  name: 'playytmp3',
   category: 'audio',
-  description: 'Convert YouTube to MP4 and send video',
+  description: 'Convert YouTube to MP3 and send audio',
   async execute(sock, msg, args) {
     const url = args[0];
     if (!url || !url.includes('youtube.com') && !url.includes('youtu.be')) {
-      return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .play6 https://youtu.be/...' });
+      return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .playytmp3 https://youtu.be/...' });
     }
 
     const senderName = msg.pushName || 'User';
     try {
-      const apiUrl = `https://apis.xwolf.space/download/ytmp4?url=${encodeURIComponent(url)}`;
+      const apiUrl = `https://apis.xwolf.space/download/ytmp3?url=${encodeURIComponent(url)}`;
       const res = await axios.get(apiUrl);
       if (!res.data.success) throw new Error(res.data.error);
 
       let downloadUrl = res.data.downloadUrl || res.data.result;
       const buffer = await downloadFile(downloadUrl);
-      if (buffer.length > 64 * 1024 * 1024) {
-        await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n⚠️ Video too large. Link:\n${downloadUrl}\n\nInspired by Meryl` });
+      if (buffer.length > 16 * 1024 * 1024) {
+        await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n⚠️ File too large. Link:\n${downloadUrl}\n\nInspired by Meryl` });
         return;
       }
 
-      const caption = `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n📹 *Savage‑Tech is converting to MP4 for @${senderName}*\n\nInspired by Meryl`;
+      const caption = `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n🎵 *SΛVΛGΞ-TECH is converting to MP3 for @${senderName}*\n\nInspired by Meryl`;
       await sock.sendMessage(msg.key.remoteJid, {
-        video: buffer,
-        mimetype: 'video/mp4',
-        fileName: 'video.mp4',
+        audio: buffer,
+        mimetype: 'audio/mpeg',
+        fileName: 'audio.mp3',
         caption: caption
       });
     } catch (error) {

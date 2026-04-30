@@ -25,8 +25,6 @@ module.exports = {
     if (!input) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .play2 <YouTube URL or song name>' });
 
     const senderName = msg.pushName || 'User';
-    await sock.sendMessage(msg.key.remoteJid, { text: `🎵 *Savage-Tech is fetching audio for @${senderName}...*` });
-
     try {
       const apiUrl = `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(input)}`;
       const res = await axios.get(apiUrl);
@@ -37,18 +35,21 @@ module.exports = {
 
       const buffer = await downloadFile(downloadUrl);
       if (buffer.length > 16 * 1024 * 1024) {
-        await sock.sendMessage(msg.key.remoteJid, { text: `⚠️ File too large (${(buffer.length/1024/1024).toFixed(1)}MB). Direct link:\n${downloadUrl}` });
+        // Fallback to link if too large
+        await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n⚠️ File too large (${(buffer.length/1024/1024).toFixed(1)}MB). Direct link:\n${downloadUrl}\n\nInspired by Meryl` });
         return;
       }
 
+      const caption = `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n🎵 *Savage‑Tech is playing @${senderName}*\n\nInspired by Meryl`;
       await sock.sendMessage(msg.key.remoteJid, {
         audio: buffer,
         mimetype: 'audio/mpeg',
-        fileName: 'audio.mp3'
+        fileName: 'audio.mp3',
+        caption: caption
       });
     } catch (error) {
       console.error(error);
-      await sock.sendMessage(msg.key.remoteJid, { text: '❌ Failed to send audio. Try again later.' });
+      await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n❌ Failed to send audio.\n\nInspired by Meryl` });
     }
   }
 };

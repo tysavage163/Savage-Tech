@@ -17,35 +17,35 @@ async function downloadFile(url) {
 }
 
 module.exports = {
-  name: 'play3',
+  name: 'playdmp3',
   category: 'audio',
-  description: 'Download MP4 and send as video',
+  description: 'Direct MP3 download and send audio',
   async execute(sock, msg, args) {
     const input = args.join(' ');
-    if (!input) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .play3 <YouTube URL or song name>' });
+    if (!input) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .playdmp3 <YouTube URL or song name>' });
 
     const senderName = msg.pushName || 'User';
     try {
-      const apiUrl = `https://apis.xwolf.space/download/mp4?url=${encodeURIComponent(input)}`;
+      const apiUrl = `https://apis.xwolf.space/download/dLmp3?url=${encodeURIComponent(input)}`;
       const res = await axios.get(apiUrl);
       if (!res.data.success) throw new Error(res.data.error);
 
-      let downloadUrl = res.data.downloadUrl || res.data.result || res.data.url;
+      let downloadUrl = res.data.downloadUrl || res.data.url;
       const buffer = await downloadFile(downloadUrl);
-      if (buffer.length > 64 * 1024 * 1024) {
-        await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n⚠️ Video too large. Link:\n${downloadUrl}\n\nInspired by Meryl` });
+      if (buffer.length > 16 * 1024 * 1024) {
+        await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n⚠️ File too large. Link:\n${downloadUrl}\n\nInspired by Meryl` });
         return;
       }
 
-      const caption = `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n🎬 *Savage‑Tech is playing @${senderName}*\n\nInspired by Meryl`;
+      const caption = `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n🎵 *SΛVΛGΞ-TECH is fetching direct MP3 for @${senderName}*\n\nInspired by Meryl`;
       await sock.sendMessage(msg.key.remoteJid, {
-        video: buffer,
-        mimetype: 'video/mp4',
-        fileName: 'video.mp4',
+        audio: buffer,
+        mimetype: 'audio/mpeg',
+        fileName: 'audio.mp3',
         caption: caption
       });
     } catch (error) {
-      await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n❌ Video send failed.\n\nInspired by Meryl` });
+      await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n❌ Direct MP3 failed.\n\nInspired by Meryl` });
     }
   }
 };

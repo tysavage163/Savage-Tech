@@ -9,19 +9,18 @@ module.exports = {
     if (!query) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .play13 song name' });
 
     const senderName = msg.pushName || 'User';
-    await sock.sendMessage(msg.key.remoteJid, { text: `📜 *Savage-Tech is fetching lyrics for @${senderName}...*` });
-
     try {
       const url = `https://apis.xwolf.space/download/Lyrics?q=${encodeURIComponent(query)}`;
       const res = await axios.get(url);
       if (res.data.success) {
         let lyrics = res.data.result || res.data.lyrics || 'Lyrics not found.';
-        await sock.sendMessage(msg.key.remoteJid, { text: `📜 *Lyrics for "${query}":*\n${lyrics.slice(0, 2000)}` });
+        const text = `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n📜 *Lyrics for "${query}" (requested by @${senderName})*\n\n${lyrics.slice(0, 1500)}\n\nInspired by Meryl`;
+        await sock.sendMessage(msg.key.remoteJid, { text: text.slice(0, 2000) });
       } else {
-        await sock.sendMessage(msg.key.remoteJid, { text: `⚠️ ${res.data.error || 'Lyrics not found'}` });
+        await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n⚠️ ${res.data.error || 'Lyrics not found'}\n\nInspired by Meryl` });
       }
     } catch (error) {
-      await sock.sendMessage(msg.key.remoteJid, { text: '❌ Lyrics API error.' });
+      await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n❌ Lyrics API error.\n\nInspired by Meryl` });
     }
   }
 };

@@ -1,41 +1,42 @@
-// translate.js – AI translation (tools category)
+// translate.js - Using MyMemory API (Free, no key required)
 const axios = require('axios');
 
 module.exports = {
   name: 'translate',
   category: 'tools',
-  description: 'Translate text to any language',
+  description: 'Translate text using MyMemory API',
   async execute(sock, msg, args) {
-    // Usage: .translate <text> --to <lang>   or   .translate <text> to <lang>
-    let fullText = args.join(' ');
-    if (!fullText) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .translate Hello world to es' });
+    // Parse arguments: .translate Hello world to es
+    let text = args.join(' ');
+    if (!text) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .translate Hello world to es' });
 
-    let targetLang = 'en'; // default
-    let text = fullText;
+    let targetLang = 'en';
+    let sourceLang = 'auto';
+    let cleanText = text;
 
-    // Detect "to <lang>" or "--to <lang>" at the end
-    const toMatch = fullText.match(/\s+(?:--to|to)\s+([a-z]{2,})$/i);
+    // Check for "to <lang>" at the end
+    const toMatch = text.match(/\s+to\s+([a-z]{2})(?:\s|$)/i);
     if (toMatch) {
-      targetLang = toMatch[1].toLowerCase();
-      text = fullText.substring(0, toMatch.index).trim();
+        targetLang = toMatch[1].toLowerCase();
+        cleanText = text.substring(0, toMatch.index).trim();
     }
 
     try {
-      const response = await axios.post('https://apis.xwolf.space/api/ai/translate', {
-        text: text,
-        to: targetLang,
-        from: 'auto'
-      });
-
-      if (response.data.status === true) {
-        const result = response.data.result || response.data.translated_text || 'Translation not found';
-        await sock.sendMessage(msg.key.remoteJid, { text: `🌐 *Translation (${targetLang}):*\n${result.slice(0, 2000)}` });
-      } else {
-        await sock.sendMessage(msg.key.remoteJid, { text: `⚠️ API error: ${response.data.error || 'Unknown'}` });
-      }
+        // Using MyMemory API (free, no key)
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=${sourceLang}|${targetLang}`;
+        const response = await axios.get(url);
+        
+        if (response.data && response.data.responseData && response.data.responseData.translatedText) {
+            let translated = response.data.responseData.translatedText;
+            // MyMemory may contain HTML entities
+            translated = translated.replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+            await sock.sendMessage(msg.key.remoteJid, { text: `🌐 *Translation (${targetLang}):*\n${translated.slice(0, 2000)}` });
+        } else {
+            await sock.sendMessage(msg.key.remoteJid, { text: '⚠️ Translation service error.' });
+        }
     } catch (error) {
-      console.error('Translate error:', error);
-      await sock.sendMessage(msg.key.remoteJid, { text: '❌ Failed to translate. Check API or network.' });
+        console.error('Translate error:', error);
+        await sock.sendMessage(msg.key.remoteJid, { text: '❌ Translation failed. Please try again later.' });
     }
   }
 };

@@ -34,21 +34,25 @@ module.exports = {
 ┃
 ┕━━━━━━━━━━━━━━━╼\n\n`;
 
-            // Maintain specified categories
+            // Updated category list including AI and FUN
             const ownerMenu = getCategorizedMenu('owner', 'OWNER MENU');
             const groupMenu = getCategorizedMenu('group', 'GROUP MENU');
-            const aiMenu = getCategorizedMenu('ai', 'AI MENU');
+            const aiMenu = getCategorizedMenu('ai', 'AI MODULES');
+            const funMenu = getCategorizedMenu('fun', 'FUN & GAMES');
             const toolsMenu = getCategorizedMenu('tools', 'TOOLS MENU');
             const audioMenu = getCategorizedMenu('audio', 'AUDIO MENU');
             const engineMenu = getCategorizedMenu('engine', 'ENGINE MENU');
 
+            // Defined categories for the catch-all filter
+            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'audio', 'engine'];
+
             // Catch-all for other categories
             const otherMenu = Array.from(global.commands.values())
-                .filter(cmd => !['owner', 'group', 'ai', 'tools', 'audio', 'engine'].includes(cmd.category))
-                .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !['owner', 'group', 'ai', 'tools', 'audio', 'engine'].includes(c.category)).category, 'OTHER MODULES') : "";
+                .filter(cmd => !definedCats.includes(cmd.category))
+                .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !definedCats.includes(c.category)).category, 'OTHER MODULES') : "";
 
             const footer = `_Master your tools or be deleted._`;
-            const fullMenu = header + ownerMenu + groupMenu + aiMenu + toolsMenu + audioMenu + engineMenu + otherMenu + footer;
+            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + audioMenu + engineMenu + otherMenu + footer;
 
             await sock.sendMessage(from, { 
                 image: { url: 'https://i.ibb.co/QF1KM5Bp/IMG-20260425-WA1076.webp' }, 

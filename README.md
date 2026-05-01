@@ -1,7 +1,7 @@
 # ⛓ SΛVΛGΞ-TECH ☢
 
 <p align="center">
-  <img src="https://i.ibb.co/mC0MB68z/IMG-20260425-WA1076.webp" width="300" alt="SΛVΛGΞ-TECH">
+  <img src="https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/501ff903-5bbd-42d4-85b3-e599bb732dcd.png" width="300" alt="SΛVΛGΞ-TECH">
 </p>
 
 <p align="center">

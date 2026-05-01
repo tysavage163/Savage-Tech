@@ -18,12 +18,12 @@ async function downloadFile(url) {
 }
 
 module.exports = {
-  name: 'facebook',
+  name: 'facebooksnap',
   category: 'download',
-  description: 'Download from facebook',
+  description: 'Download from facebooksnap',
   async execute(sock, msg, args) {
     const url = args[0];
-    if (!url) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .facebook <URL>' });
+    if (!url) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .facebooksnap <URL>' });
     if (!url.startsWith('http')) return sock.sendMessage(msg.key.remoteJid, { text: '❌ Provide a valid URL starting with http:// or https://' });
 
     const senderName = msg.pushName || 'User';
@@ -31,20 +31,20 @@ module.exports = {
     const mention = [senderJid];
 
     try {
-      const apiUrl = `https://apis.xwolf.space/download/facebook?url=${encodeURIComponent(url)}`;
+      const apiUrl = `https://apis.xwolf.space/download/facebook/snap?url=${encodeURIComponent(url)}`;
       const response = await axios.get(apiUrl, { httpsAgent });
       const data = response.data;
 
       if (!data.success) throw new Error(data.error || 'Download failed');
 
       // Determine content type based on command name
-      const isVideo = 'facebook'.includes('video') || 'facebook'.includes('mp4') || 'facebook' === 'tiktok' || 'facebook' === 'instagram' || 'facebook' === 'facebook' || 'facebook' === 'twitter' || 'facebook' === 'snapchat';
-      const isAudio = 'facebook'.includes('mp3') || 'facebook'.includes('audio');
+      const isVideo = 'facebooksnap'.includes('video') || 'facebooksnap'.includes('mp4') || 'facebooksnap' === 'tiktok' || 'facebooksnap' === 'instagram' || 'facebooksnap' === 'facebook' || 'facebooksnap' === 'twitter' || 'facebooksnap' === 'snapchat';
+      const isAudio = 'facebooksnap'.includes('mp3') || 'facebooksnap'.includes('audio');
       const isText = 'media' === 'text';
 
       if (isText) {
         // Send as text (info or search results)
-        let text = `📁 *Download Info (facebook)*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE\n\n`;
+        let text = `📁 *Download Info (facebooksnap)*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE\n\n`;
         if (data.result) text += data.result;
         else if (data.info) text += JSON.stringify(data.info, null, 2);
         else text += JSON.stringify(data, null, 2);
@@ -74,14 +74,14 @@ module.exports = {
         return;
       }
 
-      const caption = `📥 *Download: facebook*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE`;
+      const caption = `📥 *Download: facebooksnap*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE`;
       if (isVideo) {
         await sock.sendMessage(msg.key.remoteJid, { video: fileBuffer, caption: caption, mentions: mention });
       } else {
         await sock.sendMessage(msg.key.remoteJid, { audio: fileBuffer, mimetype: 'audio/mpeg', fileName: 'download.mp3', caption: caption, mentions: mention });
       }
     } catch (err) {
-      console.error('facebook error:', err);
+      console.error('facebooksnap error:', err);
       await sock.sendMessage(msg.key.remoteJid, { text: `❌ Download failed.\n${err.message}` });
     }
   }

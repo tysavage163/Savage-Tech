@@ -1,8 +1,6 @@
 const axios = require('axios');
 const https = require('https');
-
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-
 function downloadFile(url) {
   return new Promise((resolve, reject) => {
     https.get(url, { agent: httpsAgent }, (res) => {
@@ -17,7 +15,6 @@ function downloadFile(url) {
     }).on('error', reject);
   });
 }
-
 module.exports = {
   name: 'neonpink',
   category: 'Ephoto',
@@ -25,26 +22,17 @@ module.exports = {
   async execute(sock, msg, args) {
     const text = args.join(' ');
     if (!text) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .neonpink <text>' });
-
     const senderName = msg.pushName || 'User';
     const senderJid = msg.key.participant || msg.key.remoteJid;
     const mentions = [senderJid];
-
     try {
       const apiUrl = `https://apis.xwolf.space/api/textpro/neon-pink?text=${encodeURIComponent(text)}`;
       const response = await axios.get(apiUrl, { httpsAgent });
-
       if (!response.data.success) throw new Error(response.data.error || 'API failure');
       if (!response.data.imageUrl) throw new Error('No imageUrl in response');
-
       const imgBuffer = await downloadFile(response.data.imageUrl);
       const caption = `🎨 *Text Effect: neonpink*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE`;
-
-      await sock.sendMessage(msg.key.remoteJid, {
-        image: imgBuffer,
-        caption: caption,
-        mentions: mentions
-      });
+      await sock.sendMessage(msg.key.remoteJid, { image: imgBuffer, caption: caption, mentions: mentions });
     } catch (err) {
       console.error('neonpink error:', err);
       await sock.sendMessage(msg.key.remoteJid, { text: `❌ Failed to generate image.\n${err.message}` });

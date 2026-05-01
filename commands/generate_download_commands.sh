@@ -1,3 +1,29 @@
+#!/bin/bash
+
+# Define commands: filename, command name, API endpoint, type (media or text)
+declare -A commands=(
+  ["yt"]="/download/youtube|youtube|media"
+  ["ytmp3"]="/download/youtube/mp3|ytmp3|media"
+  ["ytmp4"]="/download/youtube/mp4|ytmp4|media"
+  ["ytinfo"]="/download/youtube/info|ytinfo|text"
+  ["ytsearch"]="/download/youtube/search|ytsearch|text"
+  ["tiktok"]="/download/tiktok|tiktok|media"
+  ["tiktokaudio"]="/download/tiktok/audio|tiktokaudio|media"
+  ["tiktokinfo"]="/download/tiktok/info|tiktokinfo|text"
+  ["instagram"]="/download/instagram|instagram|media"
+  ["instagramstory"]="/download/instagram/story|instagramstory|media"
+  ["facebook"]="/download/facebook|facebook|media"
+  ["facebookreel"]="/download/facebook/reel|facebookreel|media"
+  ["facebooksnap"]="/download/facebook/snap|facebooksnap|media"
+  ["facebookinfo"]="/download/facebook/info|facebookinfo|text"
+  ["twitter"]="/download/twitter|twitter|media"
+  ["twitterinfo"]="/download/twitter/info|twitterinfo|text"
+  ["snapchat"]="/download/snapchat|snapchat|media"
+)
+
+for cmd in "${!commands[@]}"; do
+  IFS='|' read -r endpoint name type <<< "${commands[$cmd]}"
+  cat > "${cmd}.js" << 'ENDJS'
 const axios = require('axios');
 const https = require('https');
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
@@ -18,12 +44,12 @@ async function downloadFile(url) {
 }
 
 module.exports = {
-  name: 'facebook',
+  name: 'CMD_NAME',
   category: 'download',
-  description: 'Download from facebook',
+  description: 'Download from CMD_NAME',
   async execute(sock, msg, args) {
     const url = args[0];
-    if (!url) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .facebook <URL>' });
+    if (!url) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .CMD_NAME <URL>' });
     if (!url.startsWith('http')) return sock.sendMessage(msg.key.remoteJid, { text: '❌ Provide a valid URL starting with http:// or https://' });
 
     const senderName = msg.pushName || 'User';
@@ -31,20 +57,20 @@ module.exports = {
     const mention = [senderJid];
 
     try {
-      const apiUrl = `https://apis.xwolf.space/download/facebook?url=${encodeURIComponent(url)}`;
+      const apiUrl = `https://apis.xwolf.spaceENDPOINT?url=${encodeURIComponent(url)}`;
       const response = await axios.get(apiUrl, { httpsAgent });
       const data = response.data;
 
       if (!data.success) throw new Error(data.error || 'Download failed');
 
       // Determine content type based on command name
-      const isVideo = 'facebook'.includes('video') || 'facebook'.includes('mp4') || 'facebook' === 'tiktok' || 'facebook' === 'instagram' || 'facebook' === 'facebook' || 'facebook' === 'twitter' || 'facebook' === 'snapchat';
-      const isAudio = 'facebook'.includes('mp3') || 'facebook'.includes('audio');
-      const isText = 'media' === 'text';
+      const isVideo = 'CMD_NAME'.includes('video') || 'CMD_NAME'.includes('mp4') || 'CMD_NAME' === 'tiktok' || 'CMD_NAME' === 'instagram' || 'CMD_NAME' === 'facebook' || 'CMD_NAME' === 'twitter' || 'CMD_NAME' === 'snapchat';
+      const isAudio = 'CMD_NAME'.includes('mp3') || 'CMD_NAME'.includes('audio');
+      const isText = 'TYPE' === 'text';
 
       if (isText) {
         // Send as text (info or search results)
-        let text = `📁 *Download Info (facebook)*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE\n\n`;
+        let text = `📁 *Download Info (CMD_NAME)*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE\n\n`;
         if (data.result) text += data.result;
         else if (data.info) text += JSON.stringify(data.info, null, 2);
         else text += JSON.stringify(data, null, 2);
@@ -74,15 +100,26 @@ module.exports = {
         return;
       }
 
-      const caption = `📥 *Download: facebook*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE`;
+      const caption = `📥 *Download: CMD_NAME*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE`;
       if (isVideo) {
         await sock.sendMessage(msg.key.remoteJid, { video: fileBuffer, caption: caption, mentions: mention });
       } else {
         await sock.sendMessage(msg.key.remoteJid, { audio: fileBuffer, mimetype: 'audio/mpeg', fileName: 'download.mp3', caption: caption, mentions: mention });
       }
     } catch (err) {
-      console.error('facebook error:', err);
+      console.error('CMD_NAME error:', err);
       await sock.sendMessage(msg.key.remoteJid, { text: `❌ Download failed.\n${err.message}` });
     }
   }
 };
+ENDJS
+
+  # Replace placeholders
+  sed -i "s/CMD_NAME/${cmd}/g" "${cmd}.js"
+  sed -i "s|ENDPOINT|${endpoint}|g" "${cmd}.js"
+  sed -i "s/TYPE/${type}/g" "${cmd}.js"
+
+  echo "✅ Created ${cmd}.js (command: .${cmd})"
+done
+
+echo "All download commands generated. Category: 'download'"

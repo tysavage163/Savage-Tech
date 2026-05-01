@@ -48,9 +48,10 @@ module.exports = {
             const audioEffectsMenu = getCategorizedMenu('Audio Effects', 'AUDIO EFFECTS MENU');
             const spotifyMenu = getCategorizedMenu('Audio', 'SPOTIFY MENU');
             const financialMenu = getCategorizedMenu('financial data', 'FINANCIAL DATA');
+            const searchMenu = getCategorizedMenu('search menu', 'SEARCH MENU');
 
             // Updated exclusion list (includes new categories)
-            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'download', 'audio', 'engine', 'Audio Effects', 'Audio', 'financial data'];
+            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'download', 'audio', 'engine', 'Audio Effects', 'Audio', 'financial data', 'search menu'];
 
             // Catch-all for other categories
             const otherMenu = Array.from(global.commands.values())
@@ -60,7 +61,7 @@ module.exports = {
             const footer = `_Master your tools or be deleted._`;
             
             // Added new menus to the concatenation
-            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + engineMenu + otherMenu + footer;
+            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + engineMenu + otherMenu + footer;
 
             await sock.sendMessage(from, { 
                 image: { url: 'https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/3672838c-1a31-4c1f-be38-9a080e3f8e1c.png' }, 

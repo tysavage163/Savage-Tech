@@ -8,13 +8,16 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "@google/generative-ai": "^0.24.1",
     "@vitalets/google-translate-api": "^9.2.1",
     "@whiskeysockets/baileys": "^6.6.0",
-    "axios": "^1.6.0",
+    "axios": "^1.15.2",
+    "dotenv": "^17.4.2",
     "fs-extra": "^11.2.0",
     "pino": "^8.19.0",
     "qrcode-terminal": "^0.12.0",
     "yt-search": "^2.13.1",
-    "@distube/ytdl-core": "^4.13.5"
+    "ytdl-core": "^4.11.5"
   }
 }

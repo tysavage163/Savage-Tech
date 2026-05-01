@@ -34,7 +34,7 @@ module.exports = {
 ┃
 ┕━━━━━━━━━━━━━━━╼\n\n`;
 
-            // Updated category list including DOWNLOAD and AUDIO EFFECTS
+            // Original categories
             const ownerMenu = getCategorizedMenu('owner', 'OWNER MENU');
             const groupMenu = getCategorizedMenu('group', 'GROUP MENU');
             const aiMenu = getCategorizedMenu('ai', 'AI MODULES');
@@ -42,11 +42,14 @@ module.exports = {
             const toolsMenu = getCategorizedMenu('tools', 'TOOLS MENU');
             const downloadMenu = getCategorizedMenu('download', 'DOWNLOAD MENU');
             const audioMenu = getCategorizedMenu('audio', 'AUDIO MENU');
-            const effectMenu = getCategorizedMenu('effects', 'AUDIO EFFECTS');
             const engineMenu = getCategorizedMenu('engine', 'ENGINE MENU');
 
-            // Added 'effects' to the catch-all exclusion list
-            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'download', 'audio', 'effects', 'engine'];
+            // New categories
+            const audioEffectsMenu = getCategorizedMenu('Audio Effects', 'AUDIO EFFECTS MENU');
+            const spotifyMenu = getCategorizedMenu('Audio', 'SPOTIFY MENU');
+
+            // Updated exclusion list (includes new categories)
+            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'download', 'audio', 'engine', 'Audio Effects', 'Audio'];
 
             // Catch-all for other categories
             const otherMenu = Array.from(global.commands.values())
@@ -54,7 +57,9 @@ module.exports = {
                 .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !definedCats.includes(c.category)).category, 'OTHER MODULES') : "";
 
             const footer = `_Master your tools or be deleted._`;
-            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + effectMenu + engineMenu + otherMenu + footer;
+            
+            // Added new menus to the concatenation
+            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + engineMenu + otherMenu + footer;
 
             await sock.sendMessage(from, { 
                 image: { url: 'https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/3672838c-1a31-4c1f-be38-9a080e3f8e1c.png' }, 

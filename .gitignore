@@ -9,3 +9,6 @@ auth_info_baileys/
 session/
 creds.json
 *.log
+session/
+creds.json
+*.log

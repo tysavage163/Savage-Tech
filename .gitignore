@@ -3,3 +3,6 @@ session
 auth_info_baileys
 .env
 creds.json
+session/
+temp_audio_*
+auth_info_baileys/

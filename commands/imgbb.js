@@ -10,22 +10,18 @@ module.exports = {
     if (!imageUrl || !imageUrl.startsWith('http')) {
       return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .imgbb <image_url>' });
     }
-
-    const senderName = msg.pushName || 'User';
+    const sender = msg.pushName || 'User';
     const senderJid = msg.key.participant || msg.key.remoteJid;
     const mention = [senderJid];
-
     try {
       const form = new FormData();
       form.append('image', imageUrl);
-
       const res = await axios.post('https://api.imgbb.com/1/upload?key=58d35aff19ec093c8d46b54465b1f332', form, {
         headers: form.getHeaders(),
       });
-
       const uploadedUrl = res.data.data.url;
       await sock.sendMessage(msg.key.remoteJid, {
-        text: `🖼️ *ImgBB upload for @${senderName}*\n\n${uploadedUrl}\n\n🚀 POWERED BY SAVAGE-CORE`,
+        text: `🖼️ *ImgBB upload for @${sender}*\n\n${uploadedUrl}\n\n🚀 POWERED BY SAVAGE-CORE`,
         mentions: mention,
       });
     } catch (err) {

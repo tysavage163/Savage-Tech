@@ -10,22 +10,18 @@ module.exports = {
     if (!fileUrl || !fileUrl.startsWith('http')) {
       return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .catbox <file_url>' });
     }
-
-    const senderName = msg.pushName || 'User';
+    const sender = msg.pushName || 'User';
     const senderJid = msg.key.participant || msg.key.remoteJid;
     const mention = [senderJid];
-
     try {
       const form = new FormData();
       form.append('reqtype', 'fileupload');
       form.append('fileToUpload', fileUrl);
-
       const res = await axios.post('https://catbox.moe/user/api.php', form, {
         headers: form.getHeaders(),
       });
-
       await sock.sendMessage(msg.key.remoteJid, {
-        text: `📦 *Catbox upload for @${senderName}*\n\n${res.data.trim()}\n\n🚀 POWERED BY SAVAGE-CORE`,
+        text: `📦 *Catbox upload for @${sender}*\n\n${res.data.trim()}\n\n🚀 POWERED BY SAVAGE-CORE`,
         mentions: mention,
       });
     } catch (err) {

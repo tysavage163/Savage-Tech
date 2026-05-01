@@ -13,25 +13,25 @@ function extractShortUrl(obj) {
 }
 
 module.exports = {
-  name: 'tinyurl',
+  name: 'clckru',
   category: 'tools',
-  description: 'Shorten URL with TinyURL',
+  description: 'Shorten URL with clck.ru',
   async execute(sock, msg, args) {
     const longUrl = args[0];
     if (!longUrl || !longUrl.startsWith('http')) {
-      return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .tinyurl <https://example.com/long/url>' });
+      return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .clckru <https://example.com/long/url>' });
     }
     const senderName = msg.pushName || 'User';
     const senderJid = msg.key.participant || msg.key.remoteJid;
     const mention = [senderJid];
     try {
-      const apiUrl = `https://apis.xwolf.space/api/short/tinyurl?url=${encodeURIComponent(longUrl)}`;
+      const apiUrl = `https://apis.xwolf.space/api/short/clckru?url=${encodeURIComponent(longUrl)}`;
       const res = await axios.get(apiUrl, { httpsAgent: agent });
       let short = null;
       if (res.data.success) short = extractShortUrl(res.data);
       if (!short) short = res.data.error || 'Shortening failed';
       await sock.sendMessage(msg.key.remoteJid, {
-        text: `🔗 *TinyURL for @${senderName}*\n\n${short}\n\n🚀 POWERED BY SAVAGE-CORE`,
+        text: `🔗 *clck.ru for @${senderName}*\n\n${short}\n\n🚀 POWERED BY SAVAGE-CORE`,
         mentions: mention
       });
     } catch (err) {

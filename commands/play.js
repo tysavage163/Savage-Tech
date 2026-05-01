@@ -1,3 +1,8 @@
+# 1. Disable the old file
+mv commands/play.js commands/play.js.bak
+
+# 2. Create the new file
+cat > commands/play.js << 'EOF'
 const axios = require('axios');
 const https = require('https');
 
@@ -33,8 +38,10 @@ async function searchSong(query) {
   try {
     const url = `https://apis.xwolf.space/api/search?q=${encodeURIComponent(query)}`;
     const res = await axios.get(url);
-    if (res.data.success && res.data.result && res.data.result.length) {
-      let firstResult = res.data.result[0];
+    if (res.data.success && res.data.items && res.data.items.length) {
+      // Use the first result (best match)
+      const firstResult = res.data.items[0];
+      if (firstResult.id) return `https://youtu.be/${firstResult.id}`;
       if (firstResult.url) return firstResult.url;
       if (firstResult.link) return firstResult.link;
       if (firstResult.videoId) return `https://youtu.be/${firstResult.videoId}`;
@@ -65,7 +72,7 @@ module.exports = {
       videoId = extractVideoId(input);
       if (!videoId) return sock.sendMessage(msg.key.remoteJid, { text: '❌ Invalid YouTube URL.' });
     } else {
-      await sock.sendMessage(msg.key.remoteJid, { text: `🔍 Searching for "${input}"...` });
+      await sock.sendMessage(msg.key.remoteJid, { text: `🔍 Searching for "${input}" on YouTube...` });
       const foundUrl = await searchSong(input);
       if (!foundUrl) return sock.sendMessage(msg.key.remoteJid, { text: `❌ Could not find a video for "${input}".` });
       videoUrl = foundUrl;
@@ -88,7 +95,8 @@ module.exports = {
       const res = await axios.get(apiUrl);
       if (!res.data.success) throw new Error(res.data.error || 'No download URL');
 
-      let audioUrl = res.data.downloadUrl || res.data.result || res.data.url;
+      // Fixed: using downloadUrl key
+      let audioUrl = res.data.downloadUrl;
       if (!audioUrl) throw new Error('No audio link from API');
 
       const audioBuffer = await downloadFile(audioUrl);
@@ -124,3 +132,4 @@ module.exports = {
     }
   }
 };
+EOF

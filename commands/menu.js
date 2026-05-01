@@ -49,19 +49,21 @@ module.exports = {
             const spotifyMenu = getCategorizedMenu('Audio', 'SPOTIFY MENU');
             const financialMenu = getCategorizedMenu('financial data', 'FINANCIAL DATA');
             const searchMenu = getCategorizedMenu('search menu', 'SEARCH MENU');
+            const animeMenu = getCategorizedMenu('anime', 'ANIME MENU');
 
             // Updated exclusion list (includes new categories)
-            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'download', 'audio', 'engine', 'Audio Effects', 'Audio', 'financial data', 'search menu'];
+            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'download', 'audio', 'engine', 'Audio Effects', 'Audio', 'financial data', 'search menu', 'anime'];
 
             // Catch-all for other categories
             const otherMenu = Array.from(global.commands.values())
                 .filter(cmd => !definedCats.includes(cmd.category))
                 .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !definedCats.includes(c.category)).category, 'OTHER MODULES') : "";
 
-            const footer = `_Master your tools or be deleted._`;
+            // Updated footer text
+            const footer = `_master your tools or be mastered by them_`;
             
             // Added new menus to the concatenation
-            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + engineMenu + otherMenu + footer;
+            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + engineMenu + otherMenu + footer;
 
             await sock.sendMessage(from, { 
                 image: { url: 'https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/3672838c-1a31-4c1f-be38-9a080e3f8e1c.png' }, 

@@ -1,4 +1,3 @@
-// song.js – Backup audio download (alternative endpoint) – command .song
 const axios = require('axios');
 const https = require('https');
 

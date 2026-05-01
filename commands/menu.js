@@ -55,7 +55,7 @@ module.exports = {
             const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + audioMenu + engineMenu + otherMenu + footer;
 
             await sock.sendMessage(from, { 
-                image: { url: 'https://i.ibb.co/QF1KM5Bp/IMG-20260425-WA1076.webp' }, 
+                image: { url: 'https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/3672838c-1a31-4c1f-be38-9a080e3f8e1c.png' }, 
                 caption: fullMenu,
                 mentions: [msg.key.participant || from]
             }, { quoted: msg });

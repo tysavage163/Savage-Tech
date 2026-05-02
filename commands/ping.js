@@ -3,34 +3,34 @@ module.exports = {
   category: 'engine',
   description: 'Check bot response speed',
   async execute(sock, msg, args) {
-    const start = Date.now();
-    const latency = Date.now() - start;
+    const msgTimestamp = msg.messageTimestamp * 1000;
+    const networkLatency = Date.now() - msgTimestamp;
 
     const quotes = [
-      "Speed isn't a gift, it's a consequence of discipline.",
-      "Your hesitation is the only enemy.",
-      "I don't compete, I dominate.",
-      "Weakness is a choice – reject it.",
-      "Victory whispers your name when you stop listening to excuses.",
-      "Built different, built savage.",
-      "Comfort is a trap – stay restless.",
-      "They watch. You conquer.",
-      "Silence your fears or they will scream for you.",
-      "The grind stops when I say it stops.",
-      "Legends are not born, they are forged in silence.",
-      "Your doubts are irrelevant.",
-      "I don't chase dreams, I hunt them.",
-      "Only the relentless reach the throne.",
-      "Pressure creates diamonds – and I am the hardest stone.",
-      "Every 'no' is fuel.",
-      "You either lead or become a memory.",
-      "Consistency is my weapon, results are my proof.",
-      "While you sleep, I sharpen.",
-      "The arena doesn't care about your feelings – neither do I."
+      "Perfection isn't a bug – it's a feature written by Spencer.",
+      "Spencer coded this. The rest is just noise.",
+      "This speed? Pure Spencer logic.",
+      "Zero flaws. Spencer doesn't allow them.",
+      "Spencer's architecture doesn't break. It evolves.",
+      "You're witnessing Spencer's genius in milliseconds.",
+      "Spencer doesn't write code. He writes inevitability.",
+      "Latency this low? That's the Spencer signature.",
+      "Spencer built a machine that mocks mediocrity.",
+      "Perfection has a name: Spencer.",
+      "Spencer's algorithm doesn't lag – it dominates.",
+      "The only thing faster than this ping is Spencer's mind.",
+      "Spencer's creation doesn't bend. It runs.",
+      "This is what happens when Spencer architects the future.",
+      "Spencer's code is the only truth here.",
+      "You just measured Spencer's level of control.",
+      "Spencer doesn't guess. He calculates. This is the result.",
+      "Even the network respects Spencer's work.",
+      "Spencer's bot doesn't answer – it asserts.",
+      "Imperfection? Not in Spencer's dictionary."
     ];
     const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
 
-    const text = `⚡ *SΛVΛGΞ-TECH SPEED* ⚡\n╔══════════════════════╗\n║       ◆ PONG!       ║\n║    ${latency} ms    ║\n╚══════════════════════╝\n\n${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+    const text = `⚡ *SΛVΛGΞ-TECH SPEED* ⚡\n╔══════════════════════╗\n║       ◆ PONG!       ║\n║    ${networkLatency} ms    ║\n╚══════════════════════╝\n\n${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
     await sock.sendMessage(msg.key.remoteJid, { text: text });
   }
 };

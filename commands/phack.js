@@ -2,9 +2,9 @@ const axios = require('axios');
 const https = require('https');
 const agent = new https.Agent({ rejectUnauthorized: false });
 module.exports = {
-  name: 'ping',
+  name: 'phack',
   category: 'ethical hacking',
-  description: 'Measure HTTP latency (ping)',
+  description: 'Ping a host (ethical hacking)',
   async execute(sock, msg, args) {
     let target = args[0];
     if (!target) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .ping <domain>' });

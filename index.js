@@ -167,7 +167,84 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ========== ANTI‑STATUS MENTION & ANTI‑LINK ==========
+        // ========== HANDLE GROUP STATUS MENTIONS (SPECIAL MESSAGE TYPE) ==========
+        if (msg.message?.groupStatusMentionV2) {
+            if (from && from.endsWith('@g.us')) {
+                if (isMe) return;
+                const antiMention = global.antiStatusMention?.[from] || false;
+                if (!antiMention) return;
+                const senderJid = sender;
+                const violationReason = 'mentioning the group via status';
+
+                // === Violation handling (same as regular messages) ===
+                if (!global.violationWarnings[from]) global.violationWarnings[from] = {};
+                const currentWarnings = global.violationWarnings[from][senderJid] || 0;
+                const newWarningCount = currentWarnings + 1;
+                global.violationWarnings[from][senderJid] = newWarningCount;
+
+                const warnQuotes = [
+                    "You just broke a rule Spencer wrote to protect this place.",
+                    "Spencer didn't code this bot for chaos. Respect the rules.",
+                    "Another violation. Spencer's patience is not infinite.",
+                    "Rules are written in code. You just triggered an error.",
+                    "Spencer's bot doesn't forgive. This is your warning.",
+                    "Disobedience logged. Spencer's algorithms are watching.",
+                    "You have been noted. Spencer's system never forgets.",
+                    "Think before you type. Spencer designed this group for order.",
+                    "Spencer coded perfection. You're testing it. Don't.",
+                    "This is not a request. It's Spencer's rule. Follow or fade.",
+                    "Spencer's silence is louder than your excuse.",
+                    "Your violation has been filed under 'irrelevant'. Next time? Consequences.",
+                    "Spencer's list of offenders is short. Don't add your name.",
+                    "You're not above Spencer's logic.",
+                    "Spencer's system allows one mistake. This is it."
+                ];
+                const finalKickQuotes = [
+                    "You ignored two warnings. Spencer's system doesn't offer third chances.",
+                    "Two strikes and you're out. Spencer's rules are absolute.",
+                    "The bot spoke twice. You chose to ignore. Goodbye.",
+                    "Spencer's patience has a limit. You found it.",
+                    "Violation count: 3. Action: termination. Spencer's code is final.",
+                    "You have been removed. The group thanks you for leaving.",
+                    "Third violation detected. Spencer's algorithm does not negotiate.",
+                    "Your presence here was contingent on following rules. You failed.",
+                    "Spencer gave you two warnings. You gave him nothing. Goodbye.",
+                    "You are now an example of Spencer's zero‑tolerance policy.",
+                    "Spencer doesn't argue. He executes. You're out.",
+                    "Three strikes. Spencer's mercy expired. Remove yourself from memory.",
+                    "Spencer's bot doesn't collect broken pieces. Leave.",
+                    "The algorithm decided you were noise. Silence enforced.",
+                    "Spencer's final decision: you are no longer part of this equation."
+                ];
+
+                if (newWarningCount < 3) {
+                    const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
+                    const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\nReason: ${violationReason}\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                    await sock.sendMessage(from, { text: warningText, mentions: [senderJid] });
+                } else {
+                    const kickQuote = finalKickQuotes[Math.floor(Math.random() * finalKickQuotes.length)];
+                    const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\nReason: ${violationReason}\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                    await sock.sendMessage(from, { text: kickMessage, mentions: [senderJid] });
+                    try {
+                        await sock.groupParticipantsUpdate(from, [senderJid], 'remove');
+                    } catch (err) {
+                        console.error('Auto‑kick failed:', err);
+                        await sock.sendMessage(from, { text: `❌ Could not kick user. Make sure I am an admin.` });
+                    }
+                    delete global.violationWarnings[from][senderJid];
+                }
+
+                // Delete the offending status message
+                try {
+                    await sock.sendMessage(from, { delete: msg.key });
+                } catch (err) {
+                    console.error('Delete status failed:', err);
+                }
+                return;
+            }
+        }
+
+        // ========== ANTI‑STATUS MENTION & ANTI‑LINK (regular chat messages) ==========
         if (from && from.endsWith('@g.us')) {
             // Ignore bot's own messages
             if (isMe) return;
@@ -180,9 +257,8 @@ async function startSavage() {
             let isViolation = false;
             let violationReason = '';
 
-            // 1. Group mention detection (works for @group and status mentions)
+            // 1. Group mention detection (works for @group in regular messages)
             if (antiMention) {
-                // Method A: Fetch group subject and look for @subject
                 try {
                     const groupMeta = await sock.groupMetadata(from);
                     const subject = groupMeta.subject;
@@ -193,7 +269,6 @@ async function startSavage() {
                         violationReason = 'mentioning the group';
                     }
                 } catch (e) {}
-                // Method B: Check if the group JID is mentioned (backup)
                 if (!isViolation) {
                     const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
                     if (mentioned.includes(from)) {
@@ -218,7 +293,6 @@ async function startSavage() {
                 const newWarningCount = currentWarnings + 1;
                 global.violationWarnings[from][senderJid] = newWarningCount;
 
-                // Spencer warning quotes (15)
                 const warnQuotes = [
                     "You just broke a rule Spencer wrote to protect this place.",
                     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -236,8 +310,6 @@ async function startSavage() {
                     "You're not above Spencer's logic.",
                     "Spencer's system allows one mistake. This is it."
                 ];
-
-                // Spencer kick quotes (15)
                 const finalKickQuotes = [
                     "You ignored two warnings. Spencer's system doesn't offer third chances.",
                     "Two strikes and you're out. Spencer's rules are absolute.",

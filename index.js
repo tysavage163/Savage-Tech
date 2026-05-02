@@ -169,8 +169,8 @@ async function startSavage() {
 
         // ========== ANTI‑STATUS MENTION & ANTI‑LINK ==========
         if (from && from.endsWith('@g.us')) {
-            // ❗ Prevent the bot from reacting to its own messages (fixes infinite loop)
-            if (isMe) return;  
+            // Ignore bot's own messages
+            if (isMe) return;
 
             const antiMention = global.antiStatusMention?.[from] || false;
             const antiLinkEnabled = global.antiLink?.[from] || false;
@@ -178,34 +178,37 @@ async function startSavage() {
             const senderJid = sender;
 
             let isViolation = false;
-            let violationType = '';
+            let violationReason = '';
 
-            // Group mention detection
+            // 1. Group mention detection (works for @group and status mentions)
             if (antiMention) {
-                const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-                if (mentioned.includes(from)) {
-                    isViolation = true;
-                    violationType = 'mention';
-                } else {
-                    try {
-                        const groupMeta = await sock.groupMetadata(from);
-                        const subject = groupMeta.subject;
-                        const escapedSubject = subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        const mentionPattern = new RegExp(`@${escapedSubject}`, 'i');
-                        if (mentionPattern.test(rawText)) {
-                            isViolation = true;
-                            violationType = 'mention';
-                        }
-                    } catch (e) {}
+                // Method A: Fetch group subject and look for @subject
+                try {
+                    const groupMeta = await sock.groupMetadata(from);
+                    const subject = groupMeta.subject;
+                    const escapedSubject = subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const mentionPattern = new RegExp(`@${escapedSubject}`, 'i');
+                    if (mentionPattern.test(rawText)) {
+                        isViolation = true;
+                        violationReason = 'mentioning the group';
+                    }
+                } catch (e) {}
+                // Method B: Check if the group JID is mentioned (backup)
+                if (!isViolation) {
+                    const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+                    if (mentioned.includes(from)) {
+                        isViolation = true;
+                        violationReason = 'mentioning the group';
+                    }
                 }
             }
 
-            // Link detection (any URL)
+            // 2. Link detection (any URL)
             if (!isViolation && antiLinkEnabled) {
                 const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
                 if (urlPattern.test(rawText)) {
                     isViolation = true;
-                    violationType = 'link';
+                    violationReason = 'sending a link';
                 }
             }
 
@@ -215,7 +218,7 @@ async function startSavage() {
                 const newWarningCount = currentWarnings + 1;
                 global.violationWarnings[from][senderJid] = newWarningCount;
 
-                // ===== 15 SPENCER WARNING QUOTES =====
+                // Spencer warning quotes (15)
                 const warnQuotes = [
                     "You just broke a rule Spencer wrote to protect this place.",
                     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -234,7 +237,7 @@ async function startSavage() {
                     "Spencer's system allows one mistake. This is it."
                 ];
 
-                // ===== 15 SPENCER FINAL KICK QUOTES =====
+                // Spencer kick quotes (15)
                 const finalKickQuotes = [
                     "You ignored two warnings. Spencer's system doesn't offer third chances.",
                     "Two strikes and you're out. Spencer's rules are absolute.",
@@ -255,11 +258,11 @@ async function startSavage() {
 
                 if (newWarningCount < 3) {
                     const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
-                    const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                    const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\nReason: ${violationReason}\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
                     await sock.sendMessage(from, { text: warningText, mentions: [senderJid] });
                 } else {
                     const kickQuote = finalKickQuotes[Math.floor(Math.random() * finalKickQuotes.length)];
-                    const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                    const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\nReason: ${violationReason}\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
                     await sock.sendMessage(from, { text: kickMessage, mentions: [senderJid] });
                     try {
                         await sock.groupParticipantsUpdate(from, [senderJid], 'remove');
@@ -270,7 +273,12 @@ async function startSavage() {
                     delete global.violationWarnings[from][senderJid];
                 }
 
-                await sock.sendMessage(from, { delete: msg.key });
+                // Delete the offending message
+                try {
+                    await sock.sendMessage(from, { delete: msg.key });
+                } catch (err) {
+                    console.error('Delete failed:', err);
+                }
                 return;
             }
         }

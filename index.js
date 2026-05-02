@@ -1,1 +1,299 @@
-function a0_0x5a85(_0x34eca1,_0x2bfd51){_0x34eca1=_0x34eca1-0x72;const _0x1a9702=a0_0x1a97();let _0x5a850e=_0x1a9702[_0x34eca1];if(a0_0x5a85['eUHNZj']===undefined){var _0x3e91d9=function(_0x59204a){const _0x2294d6='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';let _0x56f243='',_0x519c64='';for(let _0x454c69=0x0,_0x349d5f,_0x494f79,_0x2eb1ef=0x0;_0x494f79=_0x59204a['charAt'](_0x2eb1ef++);~_0x494f79&&(_0x349d5f=_0x454c69%0x4?_0x349d5f*0x40+_0x494f79:_0x494f79,_0x454c69++%0x4)?_0x56f243+=String['fromCharCode'](0xff&_0x349d5f>>(-0x2*_0x454c69&0x6)):0x0){_0x494f79=_0x2294d6['indexOf'](_0x494f79);}for(let _0x4be33f=0x0,_0x212d57=_0x56f243['length'];_0x4be33f<_0x212d57;_0x4be33f++){_0x519c64+='%'+('00'+_0x56f243['charCodeAt'](_0x4be33f)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x519c64);};const _0x3c2cdb=function(_0xdb8906,_0x329c0d){let _0x53c6eb=[],_0x3ac63c=0x0,_0x16a3ad,_0x1f7c59='';_0xdb8906=_0x3e91d9(_0xdb8906);let _0x4e09f3;for(_0x4e09f3=0x0;_0x4e09f3<0x100;_0x4e09f3++){_0x53c6eb[_0x4e09f3]=_0x4e09f3;}for(_0x4e09f3=0x0;_0x4e09f3<0x100;_0x4e09f3++){_0x3ac63c=(_0x3ac63c+_0x53c6eb[_0x4e09f3]+_0x329c0d['charCodeAt'](_0x4e09f3%_0x329c0d['length']))%0x100,_0x16a3ad=_0x53c6eb[_0x4e09f3],_0x53c6eb[_0x4e09f3]=_0x53c6eb[_0x3ac63c],_0x53c6eb[_0x3ac63c]=_0x16a3ad;}_0x4e09f3=0x0,_0x3ac63c=0x0;for(let _0x364d72=0x0;_0x364d72<_0xdb8906['length'];_0x364d72++){_0x4e09f3=(_0x4e09f3+0x1)%0x100,_0x3ac63c=(_0x3ac63c+_0x53c6eb[_0x4e09f3])%0x100,_0x16a3ad=_0x53c6eb[_0x4e09f3],_0x53c6eb[_0x4e09f3]=_0x53c6eb[_0x3ac63c],_0x53c6eb[_0x3ac63c]=_0x16a3ad,_0x1f7c59+=String['fromCharCode'](_0xdb8906['charCodeAt'](_0x364d72)^_0x53c6eb[(_0x53c6eb[_0x4e09f3]+_0x53c6eb[_0x3ac63c])%0x100]);}return _0x1f7c59;};a0_0x5a85['TupCYe']=_0x3c2cdb,a0_0x5a85['toRPdG']={},a0_0x5a85['eUHNZj']=!![];}const _0x4c9752=_0x1a9702[0x0],_0x2d7925=_0x34eca1+_0x4c9752,_0x25979f=a0_0x5a85['toRPdG'][_0x2d7925];return!_0x25979f?(a0_0x5a85['brGjLa']===undefined&&(a0_0x5a85['brGjLa']=!![]),_0x5a850e=a0_0x5a85['TupCYe'](_0x5a850e,_0x2bfd51),a0_0x5a85['toRPdG'][_0x2d7925]=_0x5a850e):_0x5a850e=_0x25979f,_0x5a850e;}const a0_0x384095=a0_0x5a85;(function(_0x5d0558,_0x3f1c91){const _0x1496c0=a0_0x5a85,_0x26dd62=_0x5d0558();while(!![]){try{const _0xc847d6=-parseInt(_0x1496c0(0x24a,'C469'))/0x1*(parseInt(_0x1496c0(0xa2,'IC7)'))/0x2)+parseInt(_0x1496c0(0x1d2,'J9cU'))/0x3*(parseInt(_0x1496c0(0x190,'$HGk'))/0x4)+-parseInt(_0x1496c0(0xf0,'viuO'))/0x5*(-parseInt(_0x1496c0(0x11d,'ft@)'))/0x6)+-parseInt(_0x1496c0(0x250,'3@2E'))/0x7*(-parseInt(_0x1496c0(0xb8,'&SVs'))/0x8)+-parseInt(_0x1496c0(0x1fa,'Y!fo'))/0x9+parseInt(_0x1496c0(0xaa,'XBs('))/0xa*(-parseInt(_0x1496c0(0x110,'6(QU'))/0xb)+-parseInt(_0x1496c0(0x269,'TxvG'))/0xc*(-parseInt(_0x1496c0(0x12d,'!$Wa'))/0xd);if(_0xc847d6===_0x3f1c91)break;else _0x26dd62['push'](_0x26dd62['shift']());}catch(_0x647c97){_0x26dd62['push'](_0x26dd62['shift']());}}}(a0_0x1a97,0x1f5b1));const {default:makeWASocket,useMultiFileAuthState,DisconnectReason,fetchLatestBaileysVersion,makeCacheableSignalKeyStore}=require(a0_0x384095(0x119,'5pm1')),pino=require('pino'),fs=require('fs'),qrcode=require(a0_0x384095(0x235,'V[si')),path=require('path'),os=require('os');global[a0_0x384095(0x124,'l*HZ')]='.',global['commands']=new Map(),global[a0_0x384095(0x8d,'5pm1')]=new Set(),global[a0_0x384095(0xe7,'XBs(')]='on',global[a0_0x384095(0xf8,'o9h%')]='on',global['autoTyping']=a0_0x384095(0x207,'t[]l'),global[a0_0x384095(0x1cc,'x[8B')]=a0_0x384095(0x1b2,'*!HV'),global[a0_0x384095(0x159,'NrhL')]={},global[a0_0x384095(0x12c,'viuO')]={},global[a0_0x384095(0x13c,'^iwY')]={},global[a0_0x384095(0x170,'Il9l')]=null,global[a0_0x384095(0xfb,'^iwY')]={},global[a0_0x384095(0x16e,'5pm1')]={},global[a0_0x384095(0x107,'Fzl@')]={},global[a0_0x384095(0x245,'3@2E')]={};function getHostPlatform(){const _0x5cfbe6=a0_0x384095,_0x54ac8a={'zHwmR':_0x5cfbe6(0x131,'$HGk'),'HUGSV':function(_0x5edff0,_0x353df8){return _0x5edff0===_0x353df8;},'bHANh':_0x5cfbe6(0x22c,'(7H7'),'qJgYE':'macOS','UXjWo':_0x5cfbe6(0x1ae,'^iwY'),'WGObJ':function(_0x96c460,_0x5906a7){return _0x96c460===_0x5906a7;},'WsLCO':_0x5cfbe6(0x1c3,'viuO'),'HgsrW':_0x5cfbe6(0x1ca,'J9cU'),'mvuLq':'Termux\x20(Android)','wKNXv':'Windows','pnjCY':'Koyeb','CedHr':_0x5cfbe6(0x144,'Fzl@'),'XhiVM':_0x5cfbe6(0x1da,'l*HZ'),'uUxAM':'Linux\x20VPS','KkUVm':'Replit','vbSKV':_0x5cfbe6(0x10c,'l*HZ')},_0x1c56d8=_0x54ac8a[_0x5cfbe6(0x76,'FucN')]['split']('|');let _0x268d57=0x0;while(!![]){switch(_0x1c56d8[_0x268d57++]){case'0':if(_0x54ac8a['HUGSV'](os['platform'](),_0x54ac8a[_0x5cfbe6(0x22b,'!$Wa')]))return _0x54ac8a[_0x5cfbe6(0x260,'y&N(')];continue;case'1':if(process.env.COOLIFY)return _0x54ac8a[_0x5cfbe6(0x13d,'!$Wa')];continue;case'2':if(process.env.RENDER)return _0x5cfbe6(0x233,'l*HZ');continue;case'3':if(_0x54ac8a[_0x5cfbe6(0x117,'J9cU')](os[_0x5cfbe6(0xb0,'sH^u')](),_0x54ac8a[_0x5cfbe6(0x11a,'!$Wa')])&&_0x54ac8a[_0x5cfbe6(0x1d8,'3@2E')](process.env.PREFIX,_0x54ac8a[_0x5cfbe6(0x1d6,'!$Wa')]))return _0x54ac8a[_0x5cfbe6(0x249,'5rT*')];continue;case'4':if(_0x54ac8a[_0x5cfbe6(0x1c9,'o9h%')](os[_0x5cfbe6(0xb1,'l*HZ')](),'win32'))return _0x54ac8a[_0x5cfbe6(0x1d9,'&wD*')];continue;case'5':if(process.env.KOYEB)return _0x54ac8a['pnjCY'];continue;case'6':if(process.env.VERCEL)return _0x54ac8a[_0x5cfbe6(0x136,'^iwY')];continue;case'7':if(process.env.RAILWAY_ENVIRONMENT)return _0x54ac8a[_0x5cfbe6(0x215,'5rT*')];continue;case'8':if(_0x54ac8a['HUGSV'](os['platform'](),_0x5cfbe6(0xd1,'l*HZ')))return _0x54ac8a[_0x5cfbe6(0xd3,'TbU)')];continue;case'9':if(process.env.DYNO)return _0x5cfbe6(0x161,'4D^T');continue;case'10':if(process.env.REPLIT_DB_URL)return _0x54ac8a[_0x5cfbe6(0x220,'TbU)')];continue;case'11':return _0x54ac8a['vbSKV'];}break;}}const loadCommands=()=>{const _0x1398d3=a0_0x384095,_0x4dd4ce={'LpZPq':'./commands','pnjnE':function(_0x3cfd1e,_0x30f3ac){return _0x3cfd1e(_0x30f3ac);}};global[_0x1398d3(0x16f,'4D^T')][_0x1398d3(0x16c,'5rT*')]();if(!fs[_0x1398d3(0x1d3,'vycl')](_0x4dd4ce[_0x1398d3(0x265,'x[8B')]))fs[_0x1398d3(0xec,'t[]l')](_0x4dd4ce[_0x1398d3(0x21a,'&wD*')],{'recursive':!![]});const _0xfc201f=fs['readdirSync'](_0x4dd4ce[_0x1398d3(0x1fc,'1[Ry')])['filter'](_0x29f5b7=>_0x29f5b7[_0x1398d3(0x10f,'o9h%')](_0x1398d3(0x79,'NrhL')));for(const _0x36e5a7 of _0xfc201f){try{const _0x3bd179=require[_0x1398d3(0x19a,'ft@)')](_0x1398d3(0xbe,'T(nu')+_0x36e5a7);delete require[_0x1398d3(0x16b,'][qF')][_0x3bd179];const _0x26259a=_0x4dd4ce[_0x1398d3(0x94,'Il9l')](require,_0x1398d3(0x193,'LIiw')+_0x36e5a7);if(_0x26259a[_0x1398d3(0x1db,']uMW')])global[_0x1398d3(0x20f,'x&tA')][_0x1398d3(0x1df,'XBs(')](_0x26259a[_0x1398d3(0x12b,'LIiw')],_0x26259a);}catch(_0xd8979d){console[_0x1398d3(0x1f5,'vycl')]('❌\x20Error\x20loading\x20'+_0x36e5a7+':\x20'+_0xd8979d[_0x1398d3(0x98,']uMW')]);}}console[_0x1398d3(0x82,'1[Ry')]('✅\x20'+global[_0x1398d3(0x19c,'$JNd')]['size']+_0x1398d3(0xc0,'o9h%'));};async function startSavage(){const _0x288723=a0_0x384095,_0x5e5f66={'EFVTi':function(_0x5102b2,_0x10e995){return _0x5102b2(_0x10e995);},'siKjr':function(_0x137d35,_0x4b977f){return _0x137d35!==_0x4b977f;},'yzwrC':function(_0x5b708c,_0xae36fd){return _0x5b708c===_0xae36fd;},'KQRHa':_0x288723(0xbc,'TbU)'),'IXkKN':_0x288723(0x7d,'NrhL'),'hguBN':'⚠️\x20Session\x20decoding\x20failed:\x20','SbeGD':function(_0x119fc,_0x5b31f0){return _0x119fc(_0x5b31f0);},'KTWNb':';;;','KlQSQ':_0x288723(0x7e,'x&tA'),'COmXo':_0x288723(0x101,'viuO'),'KJwRk':_0x288723(0x111,'Y!fo'),'sHNgS':_0x288723(0xd4,'ft@)'),'GkiUM':_0x288723(0x95,'FucN'),'bJJUu':_0x288723(0x12f,']uMW'),'Vqunj':function(_0x395815,_0x56d3d8){return _0x395815+_0x56d3d8;},'Ljxrz':_0x288723(0x8a,'sH^u'),'XBGim':function(_0x346082){return _0x346082();},'zMMcL':function(_0x190152,_0x15be42){return _0x190152===_0x15be42;},'fAXyk':_0x288723(0x1dc,'$JNd'),'yaBUc':_0x288723(0xa0,'V[si'),'FYekm':_0x288723(0x17d,'plnN'),'zdwEF':function(_0x333076,_0x2c87c4,_0x1bcb7a){return _0x333076(_0x2c87c4,_0x1bcb7a);},'jNoBR':'HGuNz','CokoY':'Delete\x20failed:','KJKkU':_0x288723(0x18f,'vycl'),'dnBCT':_0x288723(0x11e,'T(nu'),'ctEDA':_0x288723(0x232,'$JNd'),'uVofj':_0x288723(0x230,'5pm1'),'AonpI':'Coolify','qaJSp':_0x288723(0x262,'Il9l'),'afQSU':_0x288723(0x22f,'o9h%'),'CMFxe':'Railway','yGbBA':_0x288723(0x160,'&wD*'),'Aujlu':_0x288723(0x9b,']uMW'),'jNFZm':_0x288723(0x14c,'!$Wa'),'IEezl':function(_0x2e1586,_0xa5cac1){return _0x2e1586+_0xa5cac1;},'gPnZl':function(_0x64b428,_0x50167b){return _0x64b428===_0x50167b;},'fWOdQ':_0x288723(0x143,'Y!fo'),'yMkdS':function(_0x264001,_0xd77a36){return _0x264001+_0xd77a36;},'cKeEW':_0x288723(0xd5,'Il9l'),'zBPOc':function(_0x5b0f8a,_0x17874d){return _0x5b0f8a===_0x17874d;},'SlPfc':_0x288723(0x152,'6(QU'),'Zcaky':_0x288723(0x222,'V[si'),'ydUXv':_0x288723(0x1c2,'!$Wa'),'JBFKp':_0x288723(0x1d5,'t[]l'),'sZXrL':_0x288723(0x203,'FgzG'),'UvqSH':_0x288723(0x1bb,']uMW'),'oooAO':'Your\x20violation\x20has\x20been\x20filed\x20under\x20\x27irrelevant\x27.\x20Next\x20time?\x20Consequences.','NFzMM':'You\x27re\x20not\x20above\x20Spencer\x27s\x20logic.','iugSY':'Spencer\x27s\x20system\x20allows\x20one\x20mistake.\x20This\x20is\x20it.','JYXfF':_0x288723(0x223,'Fzl@'),'kfEPx':'Spencer\x27s\x20patience\x20has\x20a\x20limit.\x20You\x20found\x20it.','SoQcH':_0x288723(0x25f,'$HGk'),'WaLlB':_0x288723(0x135,'&SVs'),'aJzkm':_0x288723(0x248,'6(QU'),'wLuUV':_0x288723(0x10a,'LIiw'),'qSkGp':_0x288723(0x20c,'o9h%'),'lLJFw':_0x288723(0x19f,'^iwY'),'PPbJm':'Spencer\x27s\x20bot\x20doesn\x27t\x20collect\x20broken\x20pieces.\x20Leave.','BuZbr':_0x288723(0x26c,'Fzl@'),'bAmgk':_0x288723(0x1e1,'&wD*'),'RRouX':function(_0x311897,_0x47741f){return _0x311897<_0x47741f;},'mtjRK':_0x288723(0x26a,'$HGk'),'HbDNC':function(_0x4a79bc,_0x585b05){return _0x4a79bc*_0x585b05;},'Gqdra':function(_0x4de667,_0x371c88){return _0x4de667*_0x371c88;},'pVKGb':_0x288723(0x163,'V[si'),'DbaWk':'remove','lxzts':'Auto‑kick\x20failed:','hKmtp':'status@broadcast','XxyDu':_0x288723(0x146,'vycl'),'DCUbT':'SpTkP','wrfFP':_0x288723(0x231,'NrhL'),'CIQOu':_0x288723(0x1ab,']uMW'),'MrMVf':_0x288723(0xc4,'Oy6@'),'hUmwq':function(_0x5105cf,_0x57203a){return _0x5105cf===_0x57203a;},'ofDVi':_0x288723(0x14d,'6V0M'),'wdaaZ':_0x288723(0xe9,'TxvG'),'iRmFZ':_0x288723(0x217,'NrhL'),'JExNk':'[unsupported\x20media]','RqNYf':function(_0xb754d,_0x5b72cf){return _0xb754d(_0x5b72cf);},'QOoDo':_0x288723(0x17b,'^iwY'),'NDZNZ':_0x288723(0x228,'(7H7'),'Kgytg':_0x288723(0x251,'J9cU'),'WKxZQ':function(_0x115d90,_0x462420){return _0x115d90!==_0x462420;},'ufuiD':function(_0x2bc4f5,_0x13f0a4){return _0x2bc4f5===_0x13f0a4;},'lnRvR':_0x288723(0x1ed,'FucN'),'odLsF':function(_0x33d2c5,_0x341ec4){return _0x33d2c5===_0x341ec4;},'DFCdz':_0x288723(0xb7,'5pm1'),'XGJvq':_0x288723(0x1be,'5pm1'),'NVLPA':function(_0x2a1271,_0x28f3c6){return _0x2a1271+_0x28f3c6;},'RixHm':function(_0x511893){return _0x511893();},'dmKBH':function(_0x4a4f35,_0x2c55ff){return _0x4a4f35(_0x2c55ff);},'tieAY':_0x288723(0xe6,'v)b*'),'JIQFd':'Safari','BeWHP':_0x288723(0x14b,'(7H7'),'XXwMX':function(_0x9cbcde,_0x56df26,_0x1009a4){return _0x9cbcde(_0x56df26,_0x1009a4);},'STLLd':_0x288723(0x272,'viuO'),'egVXC':_0x288723(0x1a7,'$HGk')},_0x418792=_0x5e5f66[_0x288723(0x200,'sH^u')];if(process.env.SESSION_ID){if(_0x5e5f66[_0x288723(0xcc,'1[Ry')](_0x5e5f66[_0x288723(0x1de,'l*HZ')],_0x288723(0x19d,'][qF'))){console[_0x288723(0x174,'$JNd')](_0x5e5f66[_0x288723(0x130,'(7H7')]);try{if(_0x5e5f66[_0x288723(0xe1,'Fzl@')](_0x5e5f66[_0x288723(0x179,'Il9l')],_0x288723(0x148,'^iwY'))){let _0xb4b497=process.env.SESSION_ID;if(_0xb4b497['includes'](_0x5e5f66[_0x288723(0x15b,'0L&T')]))_0xb4b497=_0xb4b497[_0x288723(0x1f0,'XBs(')](_0x5e5f66[_0x288723(0x104,'(7H7')])[0x1];const _0x337edc=Buffer[_0x288723(0x1a5,'*!HV')](_0xb4b497,_0x5e5f66[_0x288723(0x182,'viuO')])[_0x288723(0x1a4,'TbU)')]('utf-8');if(!fs[_0x288723(0x123,'1[Ry')](_0x418792))fs[_0x288723(0x185,'(7H7')](_0x418792,{'recursive':!![]});fs['writeFileSync'](path[_0x288723(0x72,'!$Wa')](_0x418792,_0x5e5f66['COmXo']),_0x337edc),console[_0x288723(0x263,'FgzG')](_0x288723(0xe4,'ft@)'));}else _0x4ba066[_0x288723(0x1ef,'LIiw')](_0x288723(0x21b,'plnN')+_0x34fe9e+':\x20'+_0x4fdb13[_0x288723(0x246,'0L&T')]);}catch(_0x3af225){console[_0x288723(0xd8,'(7H7')](_0x5e5f66[_0x288723(0x21e,'FgzG')](_0x5e5f66[_0x288723(0x19e,'$JNd')],_0x3af225[_0x288723(0x181,'plnN')]));}}else{const _0x2a9bfa=_0x1848c4[_0x288723(0x23c,'J9cU')](_0x288723(0x116,'NrhL')+_0x2a2f36);delete _0xcface9[_0x288723(0x1cb,'XBs(')][_0x2a9bfa];const _0x545ed8=uuNFOE[_0x288723(0x1aa,'1[Ry')](_0xf76801,'./commands/'+_0x2fb0b1);if(_0x545ed8[_0x288723(0xff,'!$Wa')])_0x1b4a73[_0x288723(0x13f,'ft@)')][_0x288723(0x78,'TbU)')](_0x545ed8['name'],_0x545ed8);}}const {state:_0x4a3a6d,saveCreds:_0x3aefe9}=await useMultiFileAuthState(_0x418792),{version:_0x3d579f}=await _0x5e5f66[_0x288723(0x239,'!$Wa')](fetchLatestBaileysVersion),_0x267a7d=_0x5e5f66[_0x288723(0x1fe,'5pm1')](makeWASocket,{'version':_0x3d579f,'auth':{'creds':_0x4a3a6d['creds'],'keys':_0x5e5f66[_0x288723(0x8b,'x[8B')](makeCacheableSignalKeyStore,_0x4a3a6d[_0x288723(0x201,'J9cU')],_0x5e5f66[_0x288723(0x1ea,'T(nu')](pino,{'level':_0x288723(0x241,'$HGk')}))},'printQRInTerminal':!![],'logger':_0x5e5f66[_0x288723(0xac,'Y!fo')](pino,{'level':'silent'}),'browser':[_0x5e5f66[_0x288723(0x1ec,'C469')],_0x5e5f66[_0x288723(0x18a,'Il9l')],_0x5e5f66[_0x288723(0x7b,'x&tA')]]});_0x5e5f66[_0x288723(0xdc,'*!HV')](setInterval,async()=>{const _0x104435=_0x288723,_0x17d8da={'MAOfV':function(_0x5ecfbb,_0x3b4eb5){const _0x50bfc8=a0_0x5a85;return _0x5e5f66[_0x50bfc8(0x1e7,'NrhL')](_0x5ecfbb,_0x3b4eb5);}};if(_0x5e5f66['yzwrC'](global[_0x104435(0x1c6,'y&N(')],'on')&&_0x267a7d[_0x104435(0xce,'^iwY')]&&_0x267a7d[_0x104435(0x24c,'XAG2')]['id']){if(_0x5e5f66[_0x104435(0x145,'!$Wa')](_0x5e5f66[_0x104435(0x15a,'T(nu')],_0x104435(0x97,'plnN')))try{await _0x267a7d[_0x104435(0x270,'Fzl@')](_0x5e5f66[_0x104435(0x9e,'XAG2')],_0x267a7d['user']['id']);}catch(_0x28bff2){}else{const _0xde4bf9=_0x3d576a?.[_0x104435(0x127,'TbU)')]?.['output']?.[_0x104435(0xcd,'6(QU')],_0x557c84=_0x17d8da[_0x104435(0xb4,'Il9l')](_0xde4bf9,_0x1865d7['loggedOut']);if(_0x557c84)_0x32f8f3(()=>_0x366ee6(),0x1388);else{if(_0x4229e1[_0x104435(0xa1,'Il9l')](_0xbf999e))_0x4184a7[_0x104435(0x138,'XBs(')](_0xdf2263,{'recursive':!![],'force':!![]});_0x21cced['exit'](0x0);}}}},0xfa0),_0x267a7d['ev']['on']('creds.update',_0x3aefe9),_0x267a7d['ev']['on'](_0x288723(0x15c,'$wjo'),async _0x1d884b=>{const _0x5c8184=_0x288723,_0x3aa083={'maGrg':_0x5c8184(0xbd,'$wjo'),'yfRra':function(_0x57f522,_0x16829b){const _0x136d9f=_0x5c8184;return _0x5e5f66[_0x136d9f(0xe2,'oFxU')](_0x57f522,_0x16829b);},'YhFSF':_0x5e5f66[_0x5c8184(0x213,'o9h%')],'SXosq':_0x5e5f66[_0x5c8184(0x103,'&wD*')],'YVXvz':_0x5c8184(0x14c,'!$Wa'),'UFSCt':_0x5e5f66[_0x5c8184(0x10e,'x[8B')],'UMQcH':_0x5e5f66[_0x5c8184(0x257,'][qF')]},{connection:_0x3f758a,qr:_0x51172d,lastDisconnect:_0x5d0c28}=_0x1d884b;_0x51172d&&!fs['existsSync'](_0x5c8184(0x83,'XBs('))&&(console[_0x5c8184(0x266,'][qF')]('\x0a📸\x20SCAN\x20QR\x20TO\x20INITIALIZE\x20NEURAL\x20LINK:\x0a'),qrcode[_0x5c8184(0xe3,'6(QU')](_0x51172d,{'small':!![]}));if(_0x3f758a===_0x5e5f66['sHNgS']){if(_0x5c8184(0x1e2,'$wjo')===_0x5e5f66[_0x5c8184(0x21c,'*!HV')]){console[_0x5c8184(0x216,'C469')](_0x5e5f66[_0x5c8184(0x1c1,'4D^T')]);const _0x50aa2a=_0x5e5f66[_0x5c8184(0x74,'viuO')](_0x267a7d[_0x5c8184(0x24b,'vycl')]['id'][_0x5c8184(0xad,'1[Ry')](':')[0x0],_0x5e5f66[_0x5c8184(0x191,'Il9l')]);if(global[_0x5c8184(0x172,'TbU)')]==='on')await _0x267a7d[_0x5c8184(0x154,'T(nu')](_0x5c8184(0x183,'oFxU'),_0x50aa2a);const _0x33601b=_0x5e5f66[_0x5c8184(0x141,'4D^T')](getHostPlatform);await _0x267a7d[_0x5c8184(0xa9,'$HGk')](_0x50aa2a,{'text':_0x5c8184(0x134,'3@2E')+_0x33601b+_0x5c8184(0x1e3,'&wD*')});}else{_0x1d6665['commands']['clear']();if(!_0x34ed15['existsSync'](wqkVOQ['maGrg']))_0x190187[_0x5c8184(0x1f8,'NrhL')](wqkVOQ[_0x5c8184(0x24e,'][qF')],{'recursive':!![]});const _0x2436e9=_0x48dbbf[_0x5c8184(0x268,'1[Ry')](wqkVOQ[_0x5c8184(0x225,'v)b*')])[_0x5c8184(0x150,'&wD*')](_0x4014bc=>_0x4014bc[_0x5c8184(0x106,'x[8B')](_0x5c8184(0xda,'viuO')));for(const _0x4a407d of _0x2436e9){try{const _0x54f5e1=_0x40e0e5[_0x5c8184(0x11c,'*!HV')](_0x5c8184(0x25b,'Y!fo')+_0x4a407d);delete _0x3a259c[_0x5c8184(0x91,'plnN')][_0x54f5e1];const _0x29919b=wqkVOQ[_0x5c8184(0x113,'y&N(')](_0x287183,_0x5c8184(0x193,'LIiw')+_0x4a407d);if(_0x29919b[_0x5c8184(0x1ad,'J9cU')])_0x29fbaf[_0x5c8184(0x16f,'4D^T')][_0x5c8184(0x1af,'5pm1')](_0x29919b[_0x5c8184(0x1cd,'t[]l')],_0x29919b);}catch(_0x195b88){_0x70204a[_0x5c8184(0x253,'t[]l')](_0x5c8184(0xf5,'FucN')+_0x4a407d+':\x20'+_0x195b88['message']);}}_0x448cad[_0x5c8184(0x1f5,'vycl')]('✅\x20'+_0x2fc37c[_0x5c8184(0x1ba,'v)b*')][_0x5c8184(0xd6,'$JNd')]+_0x5c8184(0xd9,'0L&T'));}}if(_0x5e5f66[_0x5c8184(0x247,'C469')](_0x3f758a,_0x5e5f66[_0x5c8184(0x15f,'C469')])){if(_0x5e5f66['siKjr'](_0x5e5f66[_0x5c8184(0x73,'6V0M')],_0x5e5f66[_0x5c8184(0x238,'T(nu')])){const _0x145760=_0x5d0c28?.['error']?.[_0x5c8184(0x1b5,'$JNd')]?.[_0x5c8184(0x118,'l*HZ')],_0x3fc089=_0x5e5f66[_0x5c8184(0x13b,'6V0M')](_0x145760,DisconnectReason[_0x5c8184(0x1dd,'T(nu')]);if(_0x3fc089)_0x5e5f66[_0x5c8184(0x14e,'Oy6@')](setTimeout,()=>startSavage(),0x1388);else{if(_0x5e5f66[_0x5c8184(0x1a8,'*!HV')]!==_0x5c8184(0x1ee,'1[Ry')){if(fs['existsSync'](_0x418792))fs['rmSync'](_0x418792,{'recursive':!![],'force':!![]});process['exit'](0x0);}else{let _0x2353dc=_0x3ea664.env.SESSION_ID;if(_0x2353dc[_0x5c8184(0x151,'6V0M')](wqkVOQ[_0x5c8184(0x240,'!$Wa')]))_0x2353dc=_0x2353dc[_0x5c8184(0x18e,'6wlx')](wqkVOQ[_0x5c8184(0xc3,'(7H7')])[0x1];const _0x26352a=_0x31fbb6[_0x5c8184(0x155,'FgzG')](_0x2353dc,wqkVOQ[_0x5c8184(0x85,'&wD*')])['toString'](wqkVOQ[_0x5c8184(0x1d4,'C469')]);if(!_0x18c1ff[_0x5c8184(0x214,'6wlx')](_0x2ea428))_0x27e205[_0x5c8184(0x187,']uMW')](_0x3d0629,{'recursive':!![]});_0x7b880e[_0x5c8184(0x115,'plnN')](_0x47df29[_0x5c8184(0xab,'5pm1')](_0x2a0076,wqkVOQ[_0x5c8184(0x20a,'t[]l')]),_0x26352a),_0x5a2d0d[_0x5c8184(0x266,'][qF')](wqkVOQ[_0x5c8184(0x13e,'Y!fo')]);}}}else _0x1d0a61[_0x5c8184(0x1a3,']uMW')](_0x5e5f66['hguBN']+_0x347e36[_0x5c8184(0x137,'TxvG')]);}}),_0x267a7d['ev']['on'](_0x5e5f66[_0x288723(0xc6,'][qF')],async _0x49b52d=>{const _0x3d76ca=_0x288723,_0x4ee864={'lGrdK':_0x5e5f66[_0x3d76ca(0x1a0,'o9h%')],'xqDTf':_0x5e5f66[_0x3d76ca(0xeb,'x&tA')],'FrhCW':function(_0x29e455,_0x318316){const _0x45f1f5=_0x3d76ca;return _0x5e5f66[_0x45f1f5(0x226,'FgzG')](_0x29e455,_0x318316);},'TnkMe':_0x3d76ca(0x208,'(7H7'),'hkXrM':function(_0x357351,_0x28f8cf){const _0x3a5c3c=_0x3d76ca;return _0x5e5f66[_0x3a5c3c(0x21d,'ft@)')](_0x357351,_0x28f8cf);},'UuFlv':_0x5e5f66[_0x3d76ca(0x20e,'XAG2')],'Epwwk':_0x3d76ca(0x1fd,'viuO'),'kpdKd':_0x5e5f66[_0x3d76ca(0x8e,'3@2E')],'gDlZi':_0x5e5f66[_0x3d76ca(0x22e,'TbU)')],'ILmZT':_0x5e5f66[_0x3d76ca(0x142,'*!HV')],'iXnAS':function(_0x220a56,_0x45bb56){const _0x33d50d=_0x3d76ca;return _0x5e5f66[_0x33d50d(0xde,'ft@)')](_0x220a56,_0x45bb56);},'BcYNQ':_0x3d76ca(0x99,'l*HZ'),'WCeOG':_0x3d76ca(0x25e,'Y!fo'),'ZczLO':_0x5e5f66[_0x3d76ca(0x93,'!$Wa')],'Qhzwj':_0x5e5f66[_0x3d76ca(0x178,'(7H7')],'RmZrV':_0x5e5f66[_0x3d76ca(0x7c,'FgzG')],'EVeIc':_0x3d76ca(0x1c7,'NrhL'),'OqDBt':_0x5e5f66[_0x3d76ca(0xcf,'sH^u')],'udlSw':_0x5e5f66[_0x3d76ca(0xf2,'6V0M')],'iQpvz':_0x5e5f66[_0x3d76ca(0x1b1,'XAG2')],'pCPpB':_0x5e5f66['jNFZm'],'trgnu':_0x5e5f66[_0x3d76ca(0x171,'TxvG')],'arbVg':function(_0x2cd1cd,_0x17d145){const _0x38b0b1=_0x3d76ca;return _0x5e5f66[_0x38b0b1(0x198,'FgzG')](_0x2cd1cd,_0x17d145);},'DNnzl':_0x3d76ca(0xa7,'TbU)'),'raNTz':function(_0xf90b93,_0x7f6dc4){return _0x5e5f66['Vqunj'](_0xf90b93,_0x7f6dc4);}},_0x11a988=_0x49b52d[_0x3d76ca(0x16d,'(7H7')]?.[0x0];if(!_0x11a988||!_0x11a988[_0x3d76ca(0x1b6,'o9h%')])return;const _0x36e575=_0x11a988[_0x3d76ca(0xb9,'Y!fo')][_0x3d76ca(0x20d,'T(nu')],_0x519da8=_0x11a988[_0x3d76ca(0x15d,'5rT*')]['fromMe'],_0x387d35=_0x11a988['key'][_0x3d76ca(0x188,']uMW')]||_0x11a988[_0x3d76ca(0x1b4,'C469')][_0x3d76ca(0x102,'l*HZ')],_0x34df8d=_0x267a7d['user']?.['id']?_0x5e5f66[_0x3d76ca(0x1bf,'5pm1')](_0x267a7d['user']['id'][_0x3d76ca(0x10b,'(7H7')](':')[0x0],_0x5e5f66[_0x3d76ca(0x25a,'6wlx')]):null,_0x3c65a1=_0x519da8||_0x34df8d&&_0x5e5f66[_0x3d76ca(0x211,']uMW')](_0x387d35,_0x34df8d);if(_0x36e575&&_0x36e575['endsWith']('@g.us')){if(_0x3d76ca(0x1b8,'&wD*')!==_0x5e5f66[_0x3d76ca(0x9d,'V[si')]){if(!global[_0x3d76ca(0x242,'l*HZ')][_0x36e575])global[_0x3d76ca(0x23e,'$HGk')][_0x36e575]={};if(!global[_0x3d76ca(0x224,'plnN')][_0x36e575])global[_0x3d76ca(0x1b7,'oFxU')][_0x36e575]={};global[_0x3d76ca(0x22a,'Y!fo')][_0x36e575][_0x387d35]=_0x5e5f66[_0x3d76ca(0x158,'^iwY')](global['messageCounts'][_0x36e575][_0x387d35]||0x0,0x1),global[_0x3d76ca(0x197,'C469')][_0x36e575][_0x387d35]=Date['now']();}else try{const _0x347827=_0x30daf6[_0x3d76ca(0x219,'][qF')](_0x3d76ca(0xee,'FgzG')+_0x349486);delete _0x4eda42[_0x3d76ca(0x1c0,'4D^T')][_0x347827];const _0x27b663=_0x4f994f(_0x3d76ca(0xc5,'FucN')+_0x5a736d);if(_0x27b663['name'])_0xd4de8f[_0x3d76ca(0x1b0,'1[Ry')][_0x3d76ca(0x1e6,'XAG2')](_0x27b663[_0x3d76ca(0x96,'(7H7')],_0x27b663);}catch(_0x4c64b5){_0x1daf6a['log'](_0x3d76ca(0x18d,'x[8B')+_0x5908ac+':\x20'+_0x4c64b5['message']);}}if(_0x36e575&&_0x36e575[_0x3d76ca(0x106,'x[8B')](_0x5e5f66[_0x3d76ca(0x9a,'J9cU')])){if(_0x5e5f66[_0x3d76ca(0xd2,'Fzl@')]('nJlzX',_0x3d76ca(0xf7,'V[si')))_0x45c3a8['error'](_0x3d76ca(0x112,'$JNd')+_0xd7b405+']:',_0x4f8572);else{if(_0x519da8)return;const _0x6d1d33=global[_0x3d76ca(0x24f,'1[Ry')]?.[_0x36e575]||![];if(!_0x6d1d33){}else{const _0x3ed3c6=_0x11a988[_0x3d76ca(0x129,'$JNd')][_0x3d76ca(0x204,'x[8B')]||_0x11a988[_0x3d76ca(0x16a,'t[]l')][_0x3d76ca(0x227,'0L&T')]?.['text']||'',_0x4618a7=_0x387d35,_0x3b1ba7=/(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;if(_0x3b1ba7[_0x3d76ca(0x1e5,'x[8B')](_0x3ed3c6)){if(!global[_0x3d76ca(0x25c,'5rT*')][_0x36e575])global[_0x3d76ca(0x195,'Fzl@')][_0x36e575]={};const _0x167931=global[_0x3d76ca(0x109,'o9h%')][_0x36e575][_0x4618a7]||0x0,_0x47c67b=_0x5e5f66[_0x3d76ca(0x205,'J9cU')](_0x167931,0x1);global['violationWarnings'][_0x36e575][_0x4618a7]=_0x47c67b;const _0x2c5fd6=[_0x5e5f66[_0x3d76ca(0x133,'Fzl@')],_0x3d76ca(0x17f,'plnN'),_0x3d76ca(0x22d,'t[]l'),_0x5e5f66[_0x3d76ca(0x192,'3@2E')],_0x5e5f66[_0x3d76ca(0x1a2,'6wlx')],_0x5e5f66[_0x3d76ca(0x26d,'0L&T')],_0x3d76ca(0x196,'TbU)'),_0x3d76ca(0xa5,']uMW'),_0x3d76ca(0xa4,'(7H7'),_0x5e5f66[_0x3d76ca(0x1f7,'(7H7')],_0x5e5f66[_0x3d76ca(0xc7,'0L&T')],_0x5e5f66[_0x3d76ca(0x221,'(7H7')],'Spencer\x27s\x20list\x20of\x20offenders\x20is\x20short.\x20Don\x27t\x20add\x20your\x20name.',_0x5e5f66['NFzMM'],_0x5e5f66[_0x3d76ca(0x105,'ft@)')]],_0x205bbb=['You\x20ignored\x20two\x20warnings.\x20Spencer\x27s\x20system\x20doesn\x27t\x20offer\x20third\x20chances.',_0x3d76ca(0x168,'$HGk'),_0x5e5f66[_0x3d76ca(0x173,'$HGk')],_0x5e5f66[_0x3d76ca(0xd0,'$wjo')],_0x5e5f66[_0x3d76ca(0x128,'0L&T')],_0x3d76ca(0x1bc,'v)b*'),_0x5e5f66[_0x3d76ca(0x243,'IC7)')],'Your\x20presence\x20here\x20was\x20contingent\x20on\x20following\x20rules.\x20You\x20failed.',_0x5e5f66[_0x3d76ca(0xc9,'5pm1')],_0x5e5f66[_0x3d76ca(0x1c8,'J9cU')],_0x5e5f66[_0x3d76ca(0x17c,'y&N(')],_0x5e5f66[_0x3d76ca(0x254,'Il9l')],_0x5e5f66['PPbJm'],_0x5e5f66[_0x3d76ca(0x255,'Y!fo')],_0x5e5f66['bAmgk']];if(_0x5e5f66[_0x3d76ca(0xbf,'Y!fo')](_0x47c67b,0x3)){if(_0x3d76ca(0xdb,'sH^u')!==_0x5e5f66[_0x3d76ca(0x88,'viuO')])_0x51eb63[_0x3d76ca(0x186,'oFxU')](_0x5e5f66[_0x3d76ca(0x162,'FgzG')],_0x1f130c);else{const _0xedb775=_0x2c5fd6[Math[_0x3d76ca(0x1eb,'$HGk')](_0x5e5f66[_0x3d76ca(0x156,'1[Ry')](Math[_0x3d76ca(0x80,'][qF')](),_0x2c5fd6[_0x3d76ca(0x184,'6V0M')]))],_0x10cb06=_0x3d76ca(0x167,'Fzl@')+_0x4618a7['split']('@')[0x0]+_0x3d76ca(0x10d,'Y!fo')+_0xedb775+'\x0a\x0a┍━━━━━━━━━━━━━━━╼\x0a┃\x20🚀\x20SΛVΛGΞ-TΞCH\x20OS\x0a┕━━━━━━━━━━━━━━━╼';await _0x267a7d[_0x3d76ca(0x175,'!$Wa')](_0x36e575,{'text':_0x10cb06,'mentions':[_0x4618a7]});}}else{if(_0x5e5f66[_0x3d76ca(0xe0,'o9h%')]('TUyZg',_0x3d76ca(0xdf,'(7H7'))){const _0x4a9732=_0x205bbb[Math[_0x3d76ca(0x164,'y&N(')](_0x5e5f66[_0x3d76ca(0x122,'l*HZ')](Math[_0x3d76ca(0xfe,'FucN')](),_0x205bbb[_0x3d76ca(0x1cf,'6wlx')]))],_0x5d10ea='⚠️\x20*AUTOMATIC\x20KICK*\x20@'+_0x4618a7[_0x3d76ca(0xb6,'*!HV')]('@')[0x0]+_0x3d76ca(0x166,'XAG2')+_0x4a9732+_0x3d76ca(0x7f,'vycl');await _0x267a7d[_0x3d76ca(0x180,'IC7)')](_0x36e575,{'text':_0x5d10ea,'mentions':[_0x4618a7]});try{_0x5e5f66['zMMcL'](_0x5e5f66[_0x3d76ca(0x89,'x&tA')],_0x3d76ca(0x26b,'NrhL'))?(_0x1a9415[_0x3d76ca(0xc2,'6wlx')](FLQzVo[_0x3d76ca(0xfc,'Oy6@')]),_0x4291bb[_0x3d76ca(0x24d,'0L&T')](_0x3c04c5,{'small':!![]})):await _0x267a7d[_0x3d76ca(0x17e,'oFxU')](_0x36e575,[_0x4618a7],_0x5e5f66[_0x3d76ca(0xcb,'TbU)')]);}catch(_0x1e17eb){console['error'](_0x5e5f66[_0x3d76ca(0xae,'Il9l')],_0x1e17eb),await _0x267a7d['sendMessage'](_0x36e575,{'text':'❌\x20Could\x20not\x20kick\x20user.\x20Make\x20sure\x20I\x20am\x20an\x20admin.'});}delete global['violationWarnings'][_0x36e575][_0x4618a7];}else{const _0x2fc0ae=_0x4ee864[_0x3d76ca(0xef,'$wjo')]['split']('|');let _0x3bbcf9=0x0;while(!![]){switch(_0x2fc0ae[_0x3bbcf9++]){case'0':if(FLQzVo[_0x3d76ca(0xf9,'$JNd')](_0x3acdb3['platform'](),_0x3d76ca(0x244,'&SVs')))return FLQzVo[_0x3d76ca(0xe5,'o9h%')];continue;case'1':if(FLQzVo[_0x3d76ca(0x264,'NrhL')](_0x340171[_0x3d76ca(0xe8,'1[Ry')](),FLQzVo[_0x3d76ca(0x1f4,'6V0M')]))return FLQzVo[_0x3d76ca(0xca,'1[Ry')];continue;case'2':if(_0x1f7c59.env.VERCEL)return FLQzVo[_0x3d76ca(0x25d,'IC7)')];continue;case'3':if(_0x4284dd.env.COOLIFY)return FLQzVo[_0x3d76ca(0x126,'4D^T')];continue;case'4':if(_0x3ac63c.env.DYNO)return FLQzVo[_0x3d76ca(0x9f,'&SVs')];continue;case'5':if(FLQzVo[_0x3d76ca(0x14a,'4D^T')](_0x59086d[_0x3d76ca(0xb1,'l*HZ')](),FLQzVo[_0x3d76ca(0xb5,'5pm1')])&&_0x4fd57a.env.PREFIX===FLQzVo[_0x3d76ca(0x147,'t[]l')])return _0x3d76ca(0x218,'0L&T');continue;case'6':if(_0x16a3ad.env.RENDER)return FLQzVo[_0x3d76ca(0x157,'o9h%')];continue;case'7':return _0x3d76ca(0xfd,'FucN');case'8':if(_0x364d72.env.RAILWAY_ENVIRONMENT)return FLQzVo[_0x3d76ca(0x176,'Il9l')];continue;case'9':if(_0x4e09f3.env.KOYEB)return FLQzVo['RmZrV'];continue;case'10':if(_0x2fa293.env.REPLIT_DB_URL)return _0x3d76ca(0x165,'LIiw');continue;case'11':if(FLQzVo['FrhCW'](_0x3ca952[_0x3d76ca(0x114,'XAG2')](),_0x3d76ca(0x19b,'oFxU')))return FLQzVo[_0x3d76ca(0x75,'oFxU')];continue;}break;}}}try{await _0x267a7d['sendMessage'](_0x36e575,{'delete':_0x11a988[_0x3d76ca(0x132,'y&N(')]});}catch(_0x437f59){console[_0x3d76ca(0x23a,'*!HV')](_0x5e5f66[_0x3d76ca(0x87,'1[Ry')],_0x437f59);}return;}}}}if(_0x36e575===_0x5e5f66[_0x3d76ca(0x11f,'T(nu')]&&_0x5e5f66[_0x3d76ca(0x14f,'FucN')](global[_0x3d76ca(0x1f6,'(7H7')],'on')){if(_0x5e5f66['yzwrC'](_0x5e5f66[_0x3d76ca(0x153,'J9cU')],_0x5e5f66[_0x3d76ca(0x17a,'viuO')])){_0x542fdf[_0x3d76ca(0x12a,'v)b*')](FLQzVo[_0x3d76ca(0xf1,'TbU)')]);try{let _0x35a09f=_0x39f859.env.SESSION_ID;if(_0x35a09f[_0x3d76ca(0x259,'5rT*')](FLQzVo['udlSw']))_0x35a09f=_0x35a09f['split'](FLQzVo['udlSw'])[0x1];const _0x5f199a=_0x4358e3[_0x3d76ca(0x258,'plnN')](_0x35a09f,FLQzVo[_0x3d76ca(0xb2,'&SVs')])['toString'](FLQzVo[_0x3d76ca(0x1e8,'4D^T')]);if(!_0xa3249[_0x3d76ca(0x15e,'5rT*')](_0x71084d))_0x4019c2[_0x3d76ca(0xa3,'v)b*')](_0x2dbc3d,{'recursive':!![]});_0x1f8aa0[_0x3d76ca(0xea,']uMW')](_0x3ac13a[_0x3d76ca(0xa6,'][qF')](_0xbfd55c,FLQzVo[_0x3d76ca(0x1c5,'V[si')]),_0x5f199a),_0xe40f27[_0x3d76ca(0x1b9,'!$Wa')](_0x3d76ca(0x149,'FgzG'));}catch(_0x356c8e){_0x566591[_0x3d76ca(0x1ce,'6V0M')](FLQzVo[_0x3d76ca(0x13a,']uMW')](FLQzVo[_0x3d76ca(0x1d1,'Fzl@')],_0x356c8e[_0x3d76ca(0x261,'&SVs')]));}}else{await _0x267a7d[_0x3d76ca(0xc8,'T(nu')]([_0x11a988[_0x3d76ca(0x86,'^iwY')]]);return;}}const _0x51e9a4=(_0x11a988[_0x3d76ca(0x181,'plnN')]['conversation']||_0x11a988[_0x3d76ca(0x81,'XBs(')][_0x3d76ca(0x210,'y&N(')]?.[_0x3d76ca(0xf4,'Oy6@')]||'')['trim']();if(!_0x51e9a4[_0x3d76ca(0x194,'v)b*')](global[_0x3d76ca(0x100,'!$Wa')]))return;const _0x5c118c=_0x51e9a4[_0x3d76ca(0x202,'sH^u')](global[_0x3d76ca(0x124,'l*HZ')]['length'])['trim']()['split'](/\s+/),_0x1c158f=_0x5c118c['shift']()['toLowerCase'](),_0x20f1cc=global[_0x3d76ca(0x1fb,'t[]l')]['get'](_0x1c158f);if(_0x20f1cc){if(global[_0x3d76ca(0x267,'plnN')]===_0x5e5f66[_0x3d76ca(0x18c,'sH^u')]&&!_0x519da8)return;try{if(_0x5e5f66['siKjr'](_0x5e5f66[_0x3d76ca(0xba,'&SVs')],_0x5e5f66['MrMVf']))await _0x267a7d['sendPresenceUpdate'](_0x5e5f66[_0x3d76ca(0x1f3,'$JNd')],_0x36e575),await _0x20f1cc[_0x3d76ca(0xed,'1[Ry')](_0x267a7d,_0x11a988,_0x5c118c,{'isArchitect':_0x3c65a1,'isMe':_0x519da8});else{if(_0x4a74ec['existsSync'](_0x37cfc9))_0x1154c3['rmSync'](_0x5d0b52,{'recursive':!![],'force':!![]});_0x11d94e['exit'](0x0);}}catch(_0x555115){if(_0x5e5f66[_0x3d76ca(0x90,'Fzl@')](_0x5e5f66[_0x3d76ca(0xf3,'5rT*')],_0x5e5f66[_0x3d76ca(0x229,'TbU)')])){if(!_0x51e984['messageCounts'][_0x5ae42f])_0x3b5d7a[_0x3d76ca(0x23e,'$HGk')][_0x556de4]={};if(!_0x12ea6e[_0x3d76ca(0x120,'6wlx')][_0x462676])_0x1dda96[_0x3d76ca(0x92,'x&tA')][_0x1cdbc2]={};_0x3dd81f[_0x3d76ca(0x26e,'5pm1')][_0x1795f6][_0x5525d2]=_0x4ee864[_0x3d76ca(0x20b,'T(nu')](_0x655a91[_0x3d76ca(0x8c,'6(QU')][_0x232122][_0x41c0ff]||0x0,0x1),_0x313d2a[_0x3d76ca(0x197,'C469')][_0x326e17][_0x2cb6eb]=_0x59e7c5[_0x3d76ca(0x1b3,'(7H7')]();}else console['error'](_0x3d76ca(0x1d0,'][qF')+_0x1c158f+']:',_0x555115);}}}),_0x267a7d['ev']['on'](_0x5e5f66[_0x288723(0x199,'x[8B')],async _0x53167d=>{const _0x544591=_0x288723;for(const _0x3e8598 of _0x53167d){const _0x44df19=_0x3e8598[_0x544591(0xaf,'T(nu')],_0xab6fde=_0x44df19[_0x544591(0x7a,'4D^T')];if(!global[_0x544591(0x108,'XAG2')]?.[_0xab6fde])continue;const _0x5d9675=_0x3e8598[_0x544591(0x26f,'NrhL')]?.[_0x544591(0x84,'NrhL')];if(!_0x5d9675)continue;let _0x40af86='';if(_0x5d9675[_0x544591(0x206,'Il9l')])_0x40af86=_0x5d9675['conversation'];else{if(_0x5d9675[_0x544591(0xc1,'XBs(')]?.[_0x544591(0x1f1,'FgzG')])_0x40af86=_0x5d9675[_0x544591(0x12e,'T(nu')][_0x544591(0x21f,'*!HV')]+_0x544591(0x1a1,'v)b*');else{if(_0x5d9675[_0x544591(0x125,'NrhL')]?.[_0x544591(0xd7,']uMW')])_0x40af86=_0x5d9675[_0x544591(0x1a9,'^iwY')][_0x544591(0x256,'$HGk')]+_0x544591(0x1a6,'1[Ry');else{if(_0x5d9675[_0x544591(0x1d7,'TbU)')]?.[_0x544591(0xf4,'Oy6@')])_0x40af86=_0x5d9675[_0x544591(0x1c4,'Fzl@')][_0x544591(0xdd,'v)b*')];else{if(_0x5d9675['audioMessage'])_0x40af86=_0x5e5f66[_0x544591(0xb3,'V[si')];else{if(_0x5d9675[_0x544591(0x234,'*!HV')])_0x40af86=_0x544591(0x77,'$HGk');else _0x40af86=_0x5e5f66[_0x544591(0x252,'&wD*')];}}}}}const _0x527884=_0x44df19[_0x544591(0x1e4,'$wjo')]||_0xab6fde,_0x4e56b5=new Date()[_0x544591(0x236,'ft@)')](),_0x3ee0d9=_0x544591(0x1f9,'3@2E')+_0x4e56b5+_0x544591(0x1ff,'Oy6@')+_0x527884[_0x544591(0x209,'&wD*')]('@')[0x0]+_0x544591(0x140,'Oy6@')+_0x40af86;global[_0x544591(0x1f2,'XAG2')]?await _0x267a7d[_0x544591(0xbb,'FgzG')](global['antideleteLogChat'],{'text':_0x3ee0d9,'mentions':[_0x527884]}):await _0x267a7d[_0x544591(0x1bd,']uMW')](_0xab6fde,{'text':_0x3ee0d9,'mentions':[_0x527884]});}}),_0x267a7d['ev']['on']('group-participants.update',async _0x1b23b0=>{const _0x452956=_0x288723,{id:_0x2e31e9,participants:_0x5cd424,action:_0x58aa3b}=_0x1b23b0;try{const _0x3fb5d3=_0x5e5f66[_0x452956(0x8f,'vycl')](require,_0x5e5f66[_0x452956(0x18b,'!$Wa')]);if(_0x3fb5d3&&typeof _0x3fb5d3[_0x452956(0x23b,'J9cU')]===_0x5e5f66[_0x452956(0x271,'V[si')]){const _0xe7c400=await _0x267a7d[_0x452956(0x169,'5pm1')](_0x2e31e9);for(let _0x5584e1 of _0x5cd424){if(_0x58aa3b===_0x5e5f66[_0x452956(0x237,'5pm1')]&&_0x5e5f66['WKxZQ'](global[_0x452956(0x189,'0L&T')][_0x2e31e9],![]))await _0x3fb5d3[_0x452956(0x139,'T(nu')](_0x267a7d,_0x2e31e9,_0x5584e1,_0xe7c400[_0x452956(0xfa,'Il9l')]);else{if(_0x5e5f66[_0x452956(0x9c,'o9h%')](_0x58aa3b,_0x5e5f66[_0x452956(0x1ac,'o9h%')])&&global['goodbyeEnabled'][_0x2e31e9]!==![])await _0x3fb5d3[_0x452956(0x11b,'5pm1')](_0x267a7d,_0x2e31e9,_0x5584e1);}}}}catch(_0x526e21){}});}function a0_0x1a97(){const _0x3bbe90=['W5hcLSoju0m','jmolW4dcUmkSW6JdNMlcVCoVWPVcJq','CSkNWRZdHmko','fYBcP8kqla','WRJcJWdcRHS','ptlcNmkuaq','W5RcKxZcI1hcKYyjW6RcKq','W6m+eSkL','WRn0W4tcStm','dH7dV8k3lW','nWVcMmodlG','W4VdP8kLECkf','WONcUbNcUd0','WQxcKeJdHq','zWLMW4yG','d8okCt4','W6mbx8oecCkdFW','WPuguW','WQtcO8oxBwBcVrP/DCo1qSo5gY7dRfpcHSkMsvuPWQRdVSooWQjrW7BcLfRcSa','xSoJW4a','WOrlW5ZcLYe','smo+WRTuW4C','WR/cGGhcTW','WRpcMLRdMtG','WPaXxbNdIa','WPHFiSkBW60','W4ldJmk+xmku','WQvfW6K3Cq','W47cGhpcMLBcGred','4P+pW4b+W44ilCoMoSoCW67dUSohW5tdNSo3rh8tcxtdPSoBo0ieAspcSe/cSSoZbGXFW5C8aWZdJmk5W77dMG1s','WR9yaSk8W7O','WPJnVc/nMmoXZQvhWRxcHtLQ','vJv9WQ59nSkzvgRdMSkLvwVdSq','iJRcSCktiCoRW5yx','vSktWRFdJ8o5','W7CsrSoebCkQEf3dHHddGCodwa','x8ktW7mOdG','W7RcTIVcNs3cM8kdW484','nY7cTCkemSoWW4e','WR7dOq/cTMFdRSoGASkJFZW','hqNdVSkZmq','qCk4WOjhsWBdVxvRW5Cj','WRpcNcxcUWq','W7XJWOPEFG','rWOCW7ZdIG','W7dcNbJdNW','4P6aw1evWQ5BW5lcUSkhg8ktkt3cVCk8WQe','WQhdKM4dAmkPfeH6W5C','W7vMh8oRW5m','WOPdhCkEW4NdH18UWRJdTfq3a2u','oSoryXGM','vbSQW5K2W7hdPq','W7eIgmkZeCkyBM4MrxqPWRBdHG','W6JcVHldJWG','WPKvFWNcS0pdJSk6W4ruWR4In8kYWRC','WR4AEGpcS1K','W4pcIfjT','W53cM1PUm8kg','e8o7W5yrcfZdKw1RW4G','kqFcM8oziL9aWQ4n','WRmrW7nirW','WRi9yWldNW','WQpcLuRdUci','fXddQCk7k2RcH8kc','W5ddI8kbx8kQediH','W77cU3NdKv7dV8kDWRPHWQDMWQVdTXqtWRrz','WP1FbSkDW77dMLm2WOxdL1qXgh/cPNiH','W6/cU8kolG4Hbw/dNI4lWPpdQ8oVWRddQgFcIItcJmoQjmkVe0NdH8oPWP3dLCk8W5zZWP3dMmkrWP8tlYpcJUkdHxVdNSksuZjnWOdcI2WDBIdcJrWJsIa','WOOzwcxdIq','dGZcNCoyou1KW6DgdgddVfdcMfi','Bmk9wSkTWR/dVu8gW6WTW4tdV00FW4BcLs3cSCo9arVcPG7cSSoLW6NIN7hVUROj','mthdOmkqeW','WO5ydCkcW4JdH04X','WPJdKYVdHHtdKZyZW7tcVh/cJW','4P2JWPDBWQ3cRCo9sqFcUc3dKCoZtX7cJ8kmomo4W6HveSkHqmkTWOddG8orW5XAASoEW63cQ8k6y8oEzaJcVCoHW69JW5RcRq','4PYWWOninbX1W4ddG8oVisyOBSoyW58dEW','CdzhWRhcRa','W6/cUwZdJfZdTCkdWRi','dsbpWPZdPw01B1/cKCkSsL8','W7xcM8kOd0SoWPRcPwVcII4','dCktqbBcPa','kbBcL8oci0LjWQGnsq','u8kAWQ7dHSkqg8kyWPXQW5VcGmoSWQvGruT4n8koW7pdKYjo','W7RcMNnlfq','ymkiWQJdI8kKh8ksWOf7W43cHG','ySodWR92W7mzWPe','W7/dKrVdJJmsW4msW7S','ySosWPFcOmotW7hcLg3dPmo0W4/dJI3dLSkEWQv/zmobWP1sxrNdM8oQ','pSoLW4ZcQmkr','WQFcM8ohy8kMy8oHW6RcP21Re8k1nSos','WQ42xmk4WRzIWODzySooWQe','hbpcKSoenW','nY7cUCkum8o3W7CdW77cGG','kXdcK8oqp0i','WQ3dNCkVbuKUWP7cUhZcMgBcMW','yx55W5hcMq','WPNcNXpcLGi','W5FcJ8oPy0m','eCogEcGqF8oe','WQFcIb4','W5JcTCkwAW','hmoOW4abnHFdIg1LW4e6W7lcLSk6bG','WPZdMLLFlCk5wHe','p8odW4dcU8keW4ddIglcR8oPWPNcMW','WORWP5QVWPaZZBDhZQRdPm+DWPxdUx5LscVcICo7W6ifcCkhd3y','WRGCxIddIa','WRNcTCkxfZ9oW57dVchcOZ3dPgPzrINdU8kAC8kmWRamW4HjW54','yJvS','W6ldICkLumkf','4PEB4PAS4PEC4PAl4Psg4PAJ4PEe4Psn4PAc4PAT4PE54PEH4PEL4PsI4Psa4PAq4PwS4PwQ4PwQ4Pwp4Pw94PEt4PA04Pso4PsN4Pwf4PAH4PsX4PsJ4PAU4PAG4PsR4PE54PsC4PEa4Psc4PAy4PsV4PAn4PsQ4PwA4Psr4Pwx4PEx4PAX4PEL4PEj4PAq4Psl4Pwe4PE44Psq4PEZ4Pww4Psd4PAa4Pwi4Psg4Psr4PAJ4PEB4PwM4PEI4PwoWOS+DqxIMOVIMAu3WQL0WPHJWPTQpqqwqmk9WQRIMixIMjWgWONdLokxHokxNokuPokwLUkwTokwJUkxGUkxTEkxPEkuQUkvK+kxSokuLokwMEkxG+kxQEkvNUkxRUkvSokvMEkuM+kxG+kvP+kvQ+kuO+kwTUkwSEkuJEkxNEkuV+kxUokwIUkwPUkwP+kwVokwGEkvREkwUokxS+kwHokwKEkwUEkuR+kuG+kvG+kuQUkwNokxO+kvSEkvOokwKokuSEkuJ+kwQ+kxU+kvKokuSokwGCoqvaHpishcRCkaWPSwWRiBDfdcV19wWQDiW4rOoWRcM1eembr8W6hdNq','v2raFs1Sumk6W5NcTCocWRTpWO1PW7NdPSoJfYldQCk2qdRdLM7dKdpcHwddUmkRW5ZcVuldTKlcQ8kAWQFcOca1rJKLW7ldVKddQ8oGxmktlv7cIWiECmoxuZfbuSkH','W5uOe8kFaq','FCkDWRBdN8omWOpdJW','rtzAWR53ma','jColW4/cUmk2W6JdGxlcS8oLWPS','W6estCoMbW','W4rEWPz6BG','W7CJa8k+f8kez048qvmRWRldGdpcVCoK','W7JcSvvFnq','m8o6wCkRWPy','WQNcJ0ddHHOWW6SM','WO7XGykUWOShWPBdVaNdV8ouWPtdJLm','xNHsW6lcNq','yCohWOzkW68','cmoCECkFWQ4','W6FdGmkhvCkdfq','W5tcK0H6gq','WP3dG8ostvu','W4dcNIRcUXG','W7qJe8kzhG','4P6vW64/WRX5W7ddQgVcQsX1W7BcNXaQASkBW4a8oSkixXTuWP1BWPSBWRuFufnUWRlcG8krW7WpemkepXlcPui','B2j7W4RcOW','W4HhbglcJq','W5JcNvKLyG','W6naWRrbCa','W77cNrFdRGu','WQSREJ3cSa','WP4uW45VCZO','W55zWR58ACodywW','W7dcIMJdN07cLrysWQ7cLKtcRhZcJ8kqFY1KreVdVf7cGeS/W5zGtmoSW4ZcP8okWO/dIh/dQmoXWPjJWPFdUSkjD8kIW6ryWQ7cGcVcNJL4vuCHW6m/sa','aSkSDJdcMW','jColW4/cUmkXW7/dIglcUCoMWP3cMWtcLCkgW7f3mq','W7BcVapcTa','gJtcLmkPba','WRfve8k9W5a','W68ahmkZia','WRBdKCk4e0CeWP7cIgdcJg/cISkX','hCo/W7pcLmka','W4/cTmoVtMK','bHFdLmkjmNBcISozFHRdJ8kXWPThz8orkG','qWKH','trqXW5NdL8owWRVcLeJcKa','xGOEkbm','WRmsW5T+Da','tL9NW6tcM8ktW6f3W5b7WOO1eq','W5pcOqFcTLm','W5ruo8oVW5i','BZX6WQZcVW','W6tcSCklyGyN','WPxdN1/dNvVdQCkEWReVW6jqWQddUbiwWR9Ah07dKSo9W5/cVSkZWQZcOEkCLU+4RmkO','4PIr77QQW5uCWRaWeWBcKIuCyhHIvmkk','W5tcVSoks3PgWPNdQx3cUN/dThCgxJRdVSonESkFWR5zWPqxWPPpcmkVW6ZcRCokW6JcGdOfW7y1W7hdPmoIDmk+D8k9lSkQW7VcVmkXcMClWPjiWPRdPmoP','DmkFWQNdMSktpCkyWPf4W5dcGSoZWQe','W7RcUdZcHZ7cR8kF','W7pcIJLAEW','sWa9W4VdKq','WPqmrZ/dNdRdUX8','zmkiWQRdJmkmhCkyWQb3W5xcGCoRWQvW','zvv4W6BcKCkiWQuS','rGa8W5O3W7FdVCoJnaZcLW7dJmkAW7RcLq4','u8k3WQJdTmoc','WP3cMbxcLIqbW4anjmob','W4RcKmo9du8','emomBa','W57cJffSf8kByaH0n8oM','DGyYW4q5','W7Hci1/dRaZdP8oiWR0NWRep','WROKCJtdMa','FYKcW4uI','nmokW6yxlW','WRHIfmk4hSkmAKuSvZKGWQxdHZhcRmoZW51PW7C','Ean+WOtcVq','ltrOWR7dSW','WPfvW6mfrqfArSoVWR/cP8k3W7ddOsRdHYtdVCkFWO0QWOyA','ksjdWOBdO04Ui17cQ8kXsHT3WQ/dHSowcmobcrxdQ8oPxmoHi0tcMmkSbCohaWGGmbJdT8kvW4pdRCk3WP1nocjwW47cKmk6W659FCkJd2vQAZG','W68NuSoXDCk+qSodW73dRei','fZDvWPVdOuW5','o8oLW6iMkG','WPviW6eawIjswSo8','W5TsWRn3Amop','WPqcucxdJW7dPWjL','WPnvW74FrW','W60ls8ozeSk/Af/dGa','W7abxCoecCkpEehdGI3dJa','W7pcHCouy2tcSrfEAmk0tmo6hY4','BsCzW7u3','W7ZcPLbmnq','WOvZW4JcMXy','4PY+xSoiWROoBmkbW4OTmmkmW7VcPSotWRmI','WRJcISoyFSkF','W5lWSQg6kfi8W5pcISorW6NdTLFcVxtcQhpdSSoGWRqJEmoMWPSUtmoSj1RdIaS4WPTKbwDmxtK3','WRJdSmkxcMf1WRhdPuq','AWqWW4eP','W5xcN8oTWRaV','WPJdU8kyyqi+ashdLdjt','WRJcKXJcSCocsd3cImk0eG','W4FdJmkAwSkhdtuLWR0Mnf1yirRcRxC','WQxcGHtdMrGzW4ybASoesG1pW4hcQf3cVmotW6dcLYW8mIFdVbDOWPvTCaFcKueLW4PjzSoqeg9+WPOYWR3cM3xcHCoXpCo3WOxdJW','vcO1jtuDWOL3lmo2WQzVpqJdVa','W4BcVXNcT2a','fXNdM8kqpW','WRJcHv7dHbCOW6O','WPjgW74hxd8','h8omzJyqDSofW54','W5FcUdD+sW','fmoeFHK/','W4iLbCkYfSobEf86tx0GWQdcJh/cI8oWWPzTW6DHWRtcKKvvWQ3cKmo7WPrDWOy4wmkstSonWOhdSfBdK3BdNCkWFmkUWQXVhrVdVSonqHnVWPGibIhcQ8oOmSkxBtpcNCkzWObT','WQb8iSkAW4O','W6VdJXdcRSoxxa/dIa','WRlcNSoHt8kD','W6Wpsa','WOJcGJlcJqirW54d','DSouWQn0','CN7cPSkoi8oHW4Tt','W63cRmowggHvWO7dSZJcQNZcShCCxW','ESoOWQnBW40','W6aKe8kYhmkSBLG7rxeG','fXdcHSkZlG','W6W4qSoKkG','WQ9ucmkMW7q','nmk1yHe','W5uIgmk7gSkhCG','ymkiWRi','mtNcVCkkjSoQW4aj','W5tcUvZdQ2S','ymotWQ51W7ym','WPCgqW','uY4/','e8owFYSeBa','WOztgSkcW77dIv8','WPPgW78eEdrir8o6WRhcOCkkW6NdRse','WRW4W7zQrW','W4hcHLG','WQJcIbtcRSoxvq7cKG','W5mqsSoEa8kjyXBdKgpdI8oev0nUAmkLWOJcQZPGWR0LiSk2WOdcVaqfWOSLBCkEW5FcH8kGWPnhqConx3/dHdL0','WPlcIaZdO8oEwHZcHmoGgeFcT8ovWOiGse/dUZ0nn8kHWQjRDCkSjmkTwCkEW5fcWO3dKmkkzhCRW63dRCk1nCksW53dMmkOhmkfW7emkhVdT8kIgH0','W7mfqCoulCkjyKldGItdNq','qmkAWOhdL8kS','wSkOWQpdLCkp','zvT2W6pcLq','zhbFW57cHq','W77cMvPMoCkByvXMCmoHWQbDWQTuiGrvW7ZdQXRdPNFcTCkxk0PcF8kftKhdHghcImoSWQC0k0XAW4v3W7rgmvWBWRddU8ojW4W','eCoNW5ChfbVdNW','W5tdNCkbu8kihtKUWOCulvT7lqFcUwxcMsG','W6T1cSoKW7m','AcvHWQZcMCoYWRTZW7yZ','WRBdLCkOl3u','lCkyEIhcUa','WQnJlSkIW4K','DCkWBGdcJ8o/WQ3cMvZcTIFdKuSRACoxWOT9zCo4b8o4WP03W7O','vdPQWQ98','brhdV8kJchRcG8kp','W7NcVclcKq','W5TyWRO','WQFcN8oACmkFBG','4P+CW4SzxxpcKrPaECkIv8ovWOpcLmodcwe','W7xdQ8kBtmkk','A8oTo0xcMmkfWQBcNK/cGG','WR3dJ8oRE3umW4hcVCkFW5S','yr0EjWi','W5pcTdZcMZ3cRCkEW4G+W58ds8kEWPhcU1BcMe/dUCkioSoXi8oFWPtcQCompKSeWOjwl8o/WQBcRmk2W45TDCoNfh/dOuNcQcNdVSoxaxddUSkpWPBcSa','W6xcJKX6dq','WPNcLrxcNb4CW5uahSodvXXSWOtcTuhcQCorW6e','W4FcQColWOGa','WO82W6Xdya','cqpcN8oAivTZ','W64bqSov','h8opzcGu','oSobW4BcU8keW6NdOMtcQa','hYtcTCosla','rd59','WQLZcSoWCmkxFCo3W5u','WQSnW4D1Ds18n8kZEtRdKaldGmoDFmkXWQVdP8onWP3dIYxdHxtdQYX1WOXCCmopW63dQmoSyCkQF8kGh8kHWPqNW5BdQCogW6j0WOOHdmkiWP5NW5ZdHuZcSrBcGuiXW4NdLSksAW','lrddG8kwlW','W7j3WOi7kgHnF8kUnZNdMHJdImoEmSo1WQBdRCooWO/dGshdJIRdPv86W5LcmCoUW6hcR8oSB8oMymoVfCkVWOiMWPpdUSotW7vKWOresSkiW5qVW6xdHaNcPWlcMKaGWOddNmkojh5LW53cNfpcLt8fD8oUcCkhW4nB4OcQWRPiW4JdHeRdQXddKmoyWODsWRxcIs3cKMGYb8kmFWHIW4pcPIxdNGRdLwhcNwtcJt3cQrdcMSkEla5cF0pcK8obWOFdSSoQ4OgXivqYW5VcMSksgbKKAmozWOxcS8kCd8o2vW3cUmoVWPddPmolaCkLA8oDf8oLFfRIM49rW4ZdLSoVlSoLWPWXC8o/W6PIfSosWPhdSCoyW7XYW6pcQZJIM6D/4Psw4PE74PwA4PAv4PsA4Pwu4PEq4PEX4PAT4PAX4Pws4PsQ4PE/4PwW4PA/4PEs4Psm4PEJ4PEY4Pwl4PAh4PsA4PAX4PEn4PA24Psy4Ps84Pwo4PsW4PAn4PAB4Psh4Ps24PEm4Ps74Pwx4PE+4Pwo4PE34PsJ4PAG4PAj4PAl4PsH4Pws4PwY4Psy4PEg4PAB4PEN4PsR4PEp4PAl4PwQ4Pwx4Psj4PAz4PAO4Psy4PAL4PsG4PAx4Psm4Pw1','frNdImktpNBcL8oaCbRcLq','bHVdVSk8','W6ZcShK','WQJdNCkacLq','DNLfW7VcSG','q0/cVSo6sJRdGCkmoaJcOCoEWQq','e8oOW7FcImki','W6BcPCokbhS','tciJece','W6juzWlcR0FdICo1WOu','gZ3cQCkqiW','W5RcU8kC','rcTLWQ5T','W7pcRXZcRwpdRmoV','W77cU3NdKv7dV8kDWRPHWQDVWQRdStuxWRbj','nCo7yba/','W6jcWPT8AG','WRtdMmoL','WPGCqcpdQZtdUXTvW7nwEuCx','WOOZBd7dSq','WRBdN8kVcvqWWOlcPwW','4PIV77UZWQZdSq3cSSoAcCkBW5ddRCo0W7K3bmkfyraW8jIJQmkJ','v8kboSo/W6VcUXeAWPP0W6xdU1i','W7tcSIlcMt7cPSkEW5i','hIBcISk3nG','j8oGW50rfaxdIa','qCkCWOJdTSkf','WO7XGyceWOSfWOhdVWhcSCkrWRa','WP5VW7ZcQXq','mCkXDGC','WOfTW4FcVIm','W4tcPGxcQIRdQSoYjmkPy2FcV8ksvxH4WPJdNc09WPKFg2NcHLZcJflcLqqvtNJcTmksW5pdVfWeWOq/g8oYtcpcM1BdJd/dS8oeFX8OaqijWOb6','erhdO8k+gxhcGmklntBcGSoX','i8kzzbdcVq','raeMW4u2W6ddOSoNnadcTa8','W7JcUYK','WRuawJNdHx3dIdXv','WOSnW45YyG','W4lcMXZcTYS','jmopW6/cImkB','WRHgdmkFW7ZdI0H5WO/dR1aWgdhcVduZW4akA8kUW4q9WPVcSCkmWRLDW5xdJSkPWRzpW7SIWP9Tr1mHsmo/sCkmoCohW6u','jmolW4ZcS8kvW6JdP3JcUa','W7ZcOuJdVhS','wmksW5Wgo8ojW7pdPG','BcHHWQBcO8oVWQ5+W4WXimonW67cUCkzWQhdJ1BdVa','W6CWqCoQda','W7NdMbtcM0GWW4CSW4pcR8o2','WQbIpSk/W70','WQ7cGSoDzmkFDCobW6dcQgK','CaqXW7ZdRG','vcqH','W7pdLCk+be8mW5i','W5dcHCokBx7cPfqZr8k7sSoKfspdRr4','W6lcJILDCSkkhG','WRqnW7HlzW','4PY2CMpcMSoYrc4JvSkTWRravw3dQmkf','v8onWQvmW5i','WRdcRwddIdC','W57cMcdcIuS','C8ohWRXTW7yaWPO','WRFcHJtcRX0','WPygwW3dSG','W41YaCoVW7u2WQbaAmkFWObGpMNdOZ1Zp8kvcCoQWO/cKSk5WP1VWRxcRN07W6jLW67dPgXdWQO2W7NcV1VdQwtdTedcJI0vW6SsW4bArf5e','W6xdJCkqfSkefIHQWQaboKrtAadcVw3cNsGdW5lcHGreiCkMWRpdGXBdL1NcRGtcLh4FowtcJmkpWQrbBdBdTejvWPSRWOO','fJnvWPZdJu4VCfVcPCkWCfvUW6O','WQBcHJ7cSCor','W6RcGYhcUKy','W6hcMmomzwxcUbf/uSkWvSoInY/dUKtdH8kYwq','WP8CwI/dIttdSqi','WOVcIqdcMcO','c8osE8k7WR/dQuuRWRL4W5NdRLa','W4/cOx5gmG','WP0irJVdLdm','W5BcSYdcGdFcRCkiWOeTW5GpqSoFWONcVv7cKqtcVCo1ASohpCozWP/cUmkop0WhW4ndkSo9WQFcVCk6WPPSA8k0wNhdPWZdOtddUCokdhhdP8keW58','WR3cGG/cItK','WRLtb8kvW7RdNa','rCkiWRtdJmkgha','WQVdHSkIfKCxWP4','c8okzwHd','cqFcMmosm0G','y8osWQv6W7qkWOyXWPvNWONdG1ldVa','W651dSoLW6jZW6XgAmonWPP7oxZdUW','WR7cJ2hdHbG/W6mWW6hcUSoUW4FdLSoC','wmkkWR/dM8ke','emo3W4tcT8km','W7/cGeDanW','DCouWR52W60','kCkXyrdcUCk1WQxcM0FcUM0','kmkXFbVcGSkMWQW','W71njLddQqhcKCoOWQCnWQaSjq','W63cRmowggHvWO7dG3NcQMlcOgu','ve7cJmoEzYBcRCoLAZZcQmki','W7tcGxLBha','W6BcQmorcMu','nGFcHCofn11VWOqgwuldP0a','W4SJCmo5EG','B2vhEJe','W7NcLCoJWRC3WOFdVtlcVmkQW4JdG8oBgZ7cP08','W6NcHColC2RcUXe','qGylmJq','W7RcLxJcKuFcHrDgW6NcLudcPJFcK8oFAY1IrKJcUqNcSKK0W5fTtSoTW4ldSmoHWO/dItRcR8oKWOSMW4FdOmkpBSoNW6LdW7RcNcRcMs12bwWVW68+bmkpWQNcVq','rrOTW6BdKG','c3n/yuSwWRj9pmoWWQK','WQ3dHmoNEG','W6RcPMJdIG','W6pcHCowzxNcVqb+','W73cIH1aEq','mZJcPmkoc8oTW4Or','WR3dJCowWROAWOxdPIK','o8kWAW','WRi4W5PvFq','W7VcSIG','sYicW7uK','jmocuSkQWQW','W6pcQmovh2bDWOu','W5VcOs1GDq','hcbjWOu','qqi7W4BdLSobWO3cNG','WOFcKmomzCkr','smkyA8kNWRpdO0egWRj+WPG','xGu3W4BdGSorWOhcGKJcPmkdW59UWO3cH27dVW','W7CYwmoExa','sCotACk8WR/cOuqjWQjSWPJdUuWwWOhcJY/dO8oXva/dObxcQSkD','W5BcOmokb2HgWOldR3JdV2/cU2mgtIdcP8kriCkyWO1FW4arWObvhmkVW4VcUmoDW6VcIJewWQuVWR7dUmk5omkiDmo4iCk7W7VdRSo3gZqhWPfzWOVcOCkUW7vjyXihwN7cNW','EbPYWPRcIa','BMLAFcGRqW','BWS6W5W4W6FcSCkUbbdcTq7cGG','W7ZcOqS','WRpdN8kteMS','pG7dL8kydq','W7ZcHd0','dt1uWOpdTfiSzG','idpcSCkdi8oTW5yPW6NcJ8k4','iCojW7BcNSkBW53cMhxcNuFdOHq+','W7BcG8oxiw4','WPRdLSkLe3y','W6xdJCkqfSkhftSLWQeyiuDBAbdcR2FcLYLiWPBdVXjEDmoLWQZdIrFdL1NcTatdNwqDEsVcRCkdW6yertRdVGzsWOWOW4VcK8oxWOq9W7O','W47cOSo+s3S','FSkiWRxdNmkcf8kyWQz2W4hcJCoZWRm','WQ7dHmkVavig','W4ldGmkBuSk2cZK5WRyFnKPJobdcQ3dcMW','W5fdn8oeW5W','hCoSW4aggHxdNM0QW5mVW5xcMSkLfW','W4FcHLzM','W45wWP9fFW','jSo4W4yBeq','WRnXW6K5vG','WRyZyWRcJG','WQJcUSoraMPzWO7dSJ8','WO/cIbu','W7xdNSk4','Df94W6tcHmkdWOS2W7a','ECkyW6yJcG','W6NcIq7cM0S','WRJdM8kMeeKqWPlcPwG','wCkCW4ioBmkt','W5lcVEkwJ+kuIEkuGokvVUkwK+kxHEkxSokwUEkwPEkvTUkxQokuUUkwIEkuU+kwVEkwQokwNgdILlRcIVglU7qPWP/pSKNmHH7pP8o6em+xBuO2tg7dS+kwPUkwMokuUUkvQ+kwOokvJ+kvVUkvN+kvKUkwKokuMokwU+kvHokvQUkxNUkvV+kwHW','W6lcIJrwCCkr','wJ56WRr4nmkq','pJNcTW','gxr6WQjQimkCxNdcKmklsgRdScvkotCFjq','WRBdKCk4e0CeWP4','WQSLW41OzW','W70OdG','etNcU8kihG','hCo9W5KNma','s8kRW7OSoa','WRjYWOdcQI4tuSomgqqxWRtdPmk6vq','cbRdUSknoG','W4tcGg7cJexcHWaLW6hcGvJcT2q','CCkbWQFdJmkihmkuWPzT','W7RcQSoJWR08','WORdHSomuwC','W5NdSmkyqCkx','gtnfWOddPq','v8kCW4iFf8ocW6tdPJFcVJHris7dPG','W4ZcJ25BdW','vWaIW50w','WOqtBrBcPa','WPCiwsK','aWHtWOBdPW','W60fxmodaCklDa','oGZcKSoeovnU','oCkFAJhcUq','8l+sGq/dOYxcV0j4W6WnW6FdPh8gzg7cTmonWQe9jCk1zhFcGmkaWQXrgmkpigRdKmojW4JcT8kiceNdKeH4W54/EMBcP8oQWR7cNmklWO3dRublj8k+qmkL','WP5qhmkyW5S','W7LqiSoUW5C','W5BcJwBdS3q','sKbevr0','W4zMfCofW5e','qHyHW4aNW6hdGSo/lGO','WQqis8o/x8koqa','WQBcJb3cQSoeAbpcJ8kJ','WQOzusldNJJdReXLW6HtAfzeW5ZdNMqhEmoNW5ddSSoNWQvOWR8CWR0ftb7dIqHNfJ95kmoHasRdPupdVLjyCmkqWQBdHSoc','W5qirSoEc8omC1tdHsZdISoig19VFSoGW5ZcUZKLW79QbmkIWOdcOeCuWPfKz8oBW53cGCkYWO8cqmkvsgldNI96ySkNW6dcR8kjW4xcN8oRuWC7W6ikW64lW5K','W7RcHdnC','4PMC77UIqCkQfqVdGW0LW4GpdetcGSkPvSkHW5JdO8kzAG4RlSo3edFdHW','gvXOW53dKCoSWQpcI18','W7pcRmold0rxWPJdS3FcUgK','bMS5WRbRgSk+v2C','ECkcWQ/dGq','aSoAq8kkWPy','isBcVmkomW','sXyYW4CG','pColW5G','WOjTW4/cQsaDvmos','kW7cL8ocmfv4WQO','AL1zEtm','W7zvamomW5W','AI8hW5uf','uCkoWP/dOCkY','y8owWQbWW6S','vmk+WQVdO8k2','nZuEn3L0yCkbW6dcISoGWO0','dCosCq','qev4qdW','W6pcQWlcVuFdPSoYD8kMA3y','WOxcTXtcLXC','s1FdMCkioNJcN8oEDqC','EmkbW4lcS8kmW6ddJh/cUmo7W5e','nmoLz8k9WOy','W4T1bSkCW7ldJ1q9WPJcOfKSf3lcRxfYW4eyFCkOWO9UWQdcSSozWRbjW4NcGW','xJzOWQb8hSkqqM3dNSkpxW','WQFcLCot','WQabCH/dUW','W5ZcLsJdVYK','W6juDWJcSvNdGCo0WO8hW50','W4pcVXz+EG'];a0_0x1a97=function(){return _0x3bbe90;};return a0_0x1a97();}loadCommands(),startSavage();
+const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    DisconnectReason,
+    fetchLatestBaileysVersion,
+    makeCacheableSignalKeyStore
+} = require("@whiskeysockets/baileys");
+
+const pino = require("pino");
+const fs = require("fs");
+const qrcode = require("qrcode-terminal");
+const path = require("path");
+const os = require("os");
+
+// ===== 1. CORE SYSTEM SETTINGS =====
+global.prefix = "."; 
+global.commands = new Map();
+global.blacklist = new Set(); 
+global.antideleteMode = "on"; 
+global.autoViewStatus = "on"; 
+global.autoTyping = "off"; 
+global.worktype = "public"; 
+
+global.messageCounts = {};
+global.lastMessageTime = {};
+global.antideleteEnabled = {};
+global.antideleteLogChat = null;
+global.goodbyeEnabled = {};
+global.welcomeEnabled = {};
+
+global.antiLink = {};
+global.antiStatusMention = {};   // defined but not used actively
+global.violationWarnings = {};
+
+function getHostPlatform() {
+    if (process.env.DYNO) return 'Heroku (Dyno)';
+    if (process.env.RENDER) return 'Render';
+    if (process.env.VERCEL) return 'Vercel';
+    if (process.env.KOYEB) return 'Koyeb';
+    if (process.env.RAILWAY_ENVIRONMENT) return 'Railway';
+    if (process.env.REPLIT_DB_URL) return 'Replit';
+    if (process.env.COOLIFY) return 'Coolify';
+    if (os.platform() === 'android' && process.env.PREFIX === '/data/data/com.termux/usr') return 'Termux (Android)';
+    if (os.platform() === 'linux') return 'Linux VPS';
+    if (os.platform() === 'win32') return 'Windows';
+    if (os.platform() === 'darwin') return 'macOS';
+    return 'Unknown / Local';
+}
+
+const loadCommands = () => {
+    global.commands.clear();
+    if (!fs.existsSync("./commands")) fs.mkdirSync("./commands", { recursive: true });
+    const files = fs.readdirSync("./commands").filter(f => f.endsWith(".js"));
+    for (const file of files) {
+        try {
+            const fullPath = require.resolve(`./commands/${file}`);
+            delete require.cache[fullPath]; 
+            const cmd = require(`./commands/${file}`);
+            if (cmd.name) global.commands.set(cmd.name, cmd);
+        } catch (e) {
+            console.log(`❌ Error loading ${file}: ${e.message}`);
+        }
+    }
+    console.log(`✅ ${global.commands.size} Commands loaded successfully.`);
+};
+
+async function startSavage() {
+    const sessionPath = "./session";
+
+    if (process.env.SESSION_ID) {
+        console.log("📡 SESSION_ID detected. Rebuilding biometric credentials...");
+        try {
+            let sessionData = process.env.SESSION_ID;
+            if (sessionData.includes(";;;")) sessionData = sessionData.split(";;;")[1];
+            const authData = Buffer.from(sessionData, 'base64').toString('utf-8');
+            if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
+            fs.writeFileSync(path.join(sessionPath, 'creds.json'), authData);
+            console.log("✅ Session file written to disk successfully.");
+        } catch (e) {
+            console.log("⚠️ Session decoding failed: " + e.message);
+        }
+    }
+
+    const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+    const { version } = await fetchLatestBaileysVersion();
+
+    const sock = makeWASocket({
+        version,
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
+        },
+        printQRInTerminal: true,
+        logger: pino({ level: "silent" }),
+        browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
+    });
+
+    setInterval(async () => {
+        if (global.autoTyping === "on" && sock.user && sock.user.id) {
+            try {
+                await sock.sendPresenceUpdate('composing', sock.user.id);
+            } catch (e) {}
+        }
+    }, 4000);
+
+    sock.ev.on("creds.update", saveCreds);
+
+    sock.ev.on("connection.update", async (update) => {
+        const { connection, qr, lastDisconnect } = update;
+
+        if (qr && !fs.existsSync("./session/creds.json")) {
+            console.log("\n📸 SCAN QR TO INITIALIZE NEURAL LINK:\n");
+            qrcode.generate(qr, { small: true });
+        }
+
+        if (connection === "open") {
+            console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
+            const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+            if (global.autoTyping === "on") await sock.sendPresenceUpdate('composing', myNumber);
+            
+            // ===== UPDATED COLD STARTUP MESSAGE =====
+            const platform = getHostPlatform();
+            await sock.sendMessage(myNumber, { 
+                text: `⚡ ◆ The system is online ◆ ⚡\n🖥️ Host: ${platform}`
+            });
+        }
+
+        if (connection === "close") {
+            const reason = lastDisconnect?.error?.output?.statusCode;
+            const shouldReconnect = reason !== DisconnectReason.loggedOut;
+            if (shouldReconnect) setTimeout(() => startSavage(), 5000);
+            else {
+                if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
+                process.exit(0);
+            }
+        }
+    });
+
+    // ===== 4. MESSAGE HANDLER =====
+    sock.ev.on("messages.upsert", async (m) => {
+        const msg = m.messages?.[0];
+        if (!msg || !msg.message) return;
+
+        const from = msg.key.remoteJid;
+        const isMe = msg.key.fromMe; 
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
+        const isArchitect = isMe || (botId && sender === botId);
+
+        // Track message counts
+        if (from && from.endsWith('@g.us')) {
+            if (!global.messageCounts[from]) global.messageCounts[from] = {};
+            if (!global.lastMessageTime[from]) global.lastMessageTime[from] = {};
+            global.messageCounts[from][sender] = (global.messageCounts[from][sender] || 0) + 1;
+            global.lastMessageTime[from][sender] = Date.now();
+        }
+
+        // ========== ANTI‑LINK ONLY ==========
+        if (from && from.endsWith('@g.us')) {
+            if (isMe) return;
+            const antiLinkEnabled = global.antiLink?.[from] || false;
+            if (antiLinkEnabled) {
+                const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
+                const senderJid = sender;
+                const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
+                if (urlPattern.test(rawText)) {
+                    if (!global.violationWarnings[from]) global.violationWarnings[from] = {};
+                    const currentWarnings = global.violationWarnings[from][senderJid] || 0;
+                    const newWarningCount = currentWarnings + 1;
+                    global.violationWarnings[from][senderJid] = newWarningCount;
+
+                    const warnQuotes = [
+                        "You just broke a rule Spencer wrote to protect this place.",
+                        "Spencer didn't code this bot for chaos. Respect the rules.",
+                        "Another violation. Spencer's patience is not infinite.",
+                        "Rules are written in code. You just triggered an error.",
+                        "Spencer's bot doesn't forgive. This is your warning.",
+                        "Disobedience logged. Spencer's algorithms are watching.",
+                        "You have been noted. Spencer's system never forgets.",
+                        "Think before you type. Spencer designed this group for order.",
+                        "Spencer coded perfection. You're testing it. Don't.",
+                        "This is not a request. It's Spencer's rule. Follow or fade.",
+                        "Spencer's silence is louder than your excuse.",
+                        "Your violation has been filed under 'irrelevant'. Next time? Consequences.",
+                        "Spencer's list of offenders is short. Don't add your name.",
+                        "You're not above Spencer's logic.",
+                        "Spencer's system allows one mistake. This is it."
+                    ];
+                    const finalKickQuotes = [
+                        "You ignored two warnings. Spencer's system doesn't offer third chances.",
+                        "Two strikes and you're out. Spencer's rules are absolute.",
+                        "The bot spoke twice. You chose to ignore. Goodbye.",
+                        "Spencer's patience has a limit. You found it.",
+                        "Violation count: 3. Action: termination. Spencer's code is final.",
+                        "You have been removed. The group thanks you for leaving.",
+                        "Third violation detected. Spencer's algorithm does not negotiate.",
+                        "Your presence here was contingent on following rules. You failed.",
+                        "Spencer gave you two warnings. You gave him nothing. Goodbye.",
+                        "You are now an example of Spencer's zero‑tolerance policy.",
+                        "Spencer doesn't argue. He executes. You're out.",
+                        "Three strikes. Spencer's mercy expired. Remove yourself from memory.",
+                        "Spencer's bot doesn't collect broken pieces. Leave.",
+                        "The algorithm decided you were noise. Silence enforced.",
+                        "Spencer's final decision: you are no longer part of this equation."
+                    ];
+
+                    if (newWarningCount < 3) {
+                        const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
+                        const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                        await sock.sendMessage(from, { text: warningText, mentions: [senderJid] });
+                    } else {
+                        const kickQuote = finalKickQuotes[Math.floor(Math.random() * finalKickQuotes.length)];
+                        const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                        await sock.sendMessage(from, { text: kickMessage, mentions: [senderJid] });
+                        try {
+                            await sock.groupParticipantsUpdate(from, [senderJid], 'remove');
+                        } catch (err) {
+                            console.error('Auto‑kick failed:', err);
+                            await sock.sendMessage(from, { text: `❌ Could not kick user. Make sure I am an admin.` });
+                        }
+                        delete global.violationWarnings[from][senderJid];
+                    }
+
+                    await sock.sendMessage(from, { delete: msg.key });
+                    return;
+                }
+            }
+        }
+
+        if (from === 'status@broadcast' && global.autoViewStatus === "on") {
+            await sock.readMessages([msg.key]);
+            return;
+        }
+
+        const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
+        if (!text.startsWith(global.prefix)) return;
+
+        const args = text.slice(global.prefix.length).trim().split(/\s+/);
+        const commandName = args.shift().toLowerCase();
+        const cmd = global.commands.get(commandName);
+        if (cmd) {
+            if (global.worktype === 'private' && !isMe) return;
+            try {
+                await sock.sendPresenceUpdate('composing', from);
+                await cmd.execute(sock, msg, args, { isArchitect, isMe });
+            } catch (e) { 
+                console.error(`❌ Command Error [${commandName}]:`, e);
+            }
+        }
+    });
+
+    // ===== 5. ANTI‑DELETE HANDLER =====
+    sock.ev.on("messages.update", async (updates) => {
+        for (const update of updates) {
+            const key = update.key;
+            const jid = key.remoteJid;
+            if (!global.antideleteEnabled?.[jid]) continue;
+            const deletedMsg = update.update?.message;
+            if (!deletedMsg) continue;
+
+            let content = "";
+            if (deletedMsg.conversation) content = deletedMsg.conversation;
+            else if (deletedMsg.imageMessage?.caption) content = `${deletedMsg.imageMessage.caption} (image)`;
+            else if (deletedMsg.videoMessage?.caption) content = `${deletedMsg.videoMessage.caption} (video)`;
+            else if (deletedMsg.extendedTextMessage?.text) content = deletedMsg.extendedTextMessage.text;
+            else if (deletedMsg.audioMessage) content = "(audio)";
+            else if (deletedMsg.stickerMessage) content = "(sticker)";
+            else content = "[unsupported media]";
+
+            const sender = key.participant || jid;
+            const timestamp = new Date().toLocaleString();
+            const logMessage = `⚠️ *[ANTI-DELETE]*\n📅 ${timestamp}\n👤 From: @${sender.split('@')[0]}\n📎 Deleted: ${content}`;
+
+            if (global.antideleteLogChat) {
+                await sock.sendMessage(global.antideleteLogChat, { text: logMessage, mentions: [sender] });
+            } else {
+                await sock.sendMessage(jid, { text: logMessage, mentions: [sender] });
+            }
+        }
+    });
+
+    // ===== 6. GROUP EVENT HANDLER =====
+    sock.ev.on('group-participants.update', async (anu) => {
+        const { id, participants, action } = anu;
+        try {
+            const eventHandler = require('./commands/events.js');
+            if (eventHandler && typeof eventHandler.sendWelcome === 'function') {
+                const metadata = await sock.groupMetadata(id);
+                for (let participant of participants) {
+                    if (action === 'add' && global.welcomeEnabled[id] !== false) await eventHandler.sendWelcome(sock, id, participant, metadata.subject);
+                    else if (action === 'remove' && global.goodbyeEnabled[id] !== false) await eventHandler.sendGoodbye(sock, id, participant);
+                }
+            }
+        } catch (e) {}
+    });
+}
+
+loadCommands();
+startSavage();

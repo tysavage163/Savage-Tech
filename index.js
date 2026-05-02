@@ -10,7 +10,7 @@ const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 const path = require("path");
-const os = require("os");  // <-- added for platform detection
+const os = require("os");
 
 // ===== 1. CORE SYSTEM SETTINGS =====
 global.prefix = "."; 
@@ -21,20 +21,17 @@ global.autoViewStatus = "on";
 global.autoTyping = "off"; 
 global.worktype = "public"; 
 
-// [ADDED] For activity tracking and anti‑delete
-global.messageCounts = {};      // { groupJid: { userJid: count } }
-global.lastMessageTime = {};    // { groupJid: { userJid: timestamp } }
-global.antideleteEnabled = {};  // { chatJid: true/false }
-global.antideleteLogChat = null; // owner's DM JID for logs
-global.goodbyeEnabled = {};     // per-group: { groupJid: true/false } (default true if not set)
-global.welcomeEnabled = {};     // per-group: { groupJid: true/false } (default true if not set)
+global.messageCounts = {};
+global.lastMessageTime = {};
+global.antideleteEnabled = {};
+global.antideleteLogChat = null;
+global.goodbyeEnabled = {};
+global.welcomeEnabled = {};
 
-// [ADDED] For anti‑abuse toggles
-global.antiLink = {};           // per-group: { groupJid: true/false }
-global.antiStatusMention = {};  // per-group: { groupJid: true/false }
-global.violationWarnings = {};  // { groupJid: { userJid: count } }
+global.antiLink = {};
+global.antiStatusMention = {};
+global.violationWarnings = {};
 
-// Helper to detect hosting platform
 function getHostPlatform() {
     if (process.env.DYNO) return 'Heroku (Dyno)';
     if (process.env.RENDER) return 'Render';
@@ -50,7 +47,6 @@ function getHostPlatform() {
     return 'Unknown / Local';
 }
 
-// ===== 2. COMMAND LOADER =====
 const loadCommands = () => {
     global.commands.clear();
     if (!fs.existsSync("./commands")) fs.mkdirSync("./commands", { recursive: true });
@@ -68,24 +64,15 @@ const loadCommands = () => {
     console.log(`✅ ${global.commands.size} Commands loaded successfully.`);
 };
 
-// ===== 3. BOOT SEQUENCE =====
 async function startSavage() {
     const sessionPath = "./session";
 
-    // 🛰️ SMART SESSION ID DECODER (V2)
     if (process.env.SESSION_ID) {
         console.log("📡 SESSION_ID detected. Rebuilding biometric credentials...");
         try {
             let sessionData = process.env.SESSION_ID;
-            
-            // Auto-clean prefix if it exists
-            if (sessionData.includes(";;;")) {
-                sessionData = sessionData.split(";;;")[1];
-            }
-            
+            if (sessionData.includes(";;;")) sessionData = sessionData.split(";;;")[1];
             const authData = Buffer.from(sessionData, 'base64').toString('utf-8');
-            
-            // Force create folder and overwrite old creds
             if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
             fs.writeFileSync(path.join(sessionPath, 'creds.json'), authData);
             console.log("✅ Session file written to disk successfully.");
@@ -108,7 +95,6 @@ async function startSavage() {
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
     });
 
-    // ===== GHOST ENGINE =====
     setInterval(async () => {
         if (global.autoTyping === "on" && sock.user && sock.user.id) {
             try {
@@ -130,12 +116,7 @@ async function startSavage() {
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-            
-            if (global.autoTyping === "on") {
-                await sock.sendPresenceUpdate('composing', myNumber);
-            }
-
-            // === SAVAGE ASCII STARTUP MESSAGE WITH HOST DETECTION ===
+            if (global.autoTyping === "on") await sock.sendPresenceUpdate('composing', myNumber);
             const platform = getHostPlatform();
             await sock.sendMessage(myNumber, { 
                 text: `╔══════════════════════════════════════════════════════════════╗
@@ -175,11 +156,10 @@ async function startSavage() {
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe; 
         const sender = msg.key.participant || msg.key.remoteJid;
-        
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
         const isArchitect = isMe || (botId && sender === botId);
 
-        // Track message counts and last message time for groups
+        // Track message counts
         if (from && from.endsWith('@g.us')) {
             if (!global.messageCounts[from]) global.messageCounts[from] = {};
             if (!global.lastMessageTime[from]) global.lastMessageTime[from] = {};
@@ -187,8 +167,11 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ========== ANTI‑STATUS MENTION & ANTI‑LINK (with 2 warnings + auto‑kick) ==========
+        // ========== ANTI‑STATUS MENTION & ANTI‑LINK ==========
         if (from && from.endsWith('@g.us')) {
+            // ❗ Prevent the bot from reacting to its own messages (fixes infinite loop)
+            if (isMe) return;  
+
             const antiMention = global.antiStatusMention?.[from] || false;
             const antiLinkEnabled = global.antiLink?.[from] || false;
             const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
@@ -197,19 +180,16 @@ async function startSavage() {
             let isViolation = false;
             let violationType = '';
 
-            // 1. Group mention detection (@group)
+            // Group mention detection
             if (antiMention) {
-                // Check if the group JID is in the mentioned list
                 const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
                 if (mentioned.includes(from)) {
                     isViolation = true;
                     violationType = 'mention';
                 } else {
-                    // If not, fetch group subject and look for @subject pattern
                     try {
                         const groupMeta = await sock.groupMetadata(from);
                         const subject = groupMeta.subject;
-                        // Escape regex special characters in subject
                         const escapedSubject = subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                         const mentionPattern = new RegExp(`@${escapedSubject}`, 'i');
                         if (mentionPattern.test(rawText)) {
@@ -220,9 +200,8 @@ async function startSavage() {
                 }
             }
 
-            // 2. Link detection (any link, not just WhatsApp)
+            // Link detection (any URL)
             if (!isViolation && antiLinkEnabled) {
-                // Regex to catch http://, https://, www., domain-like patterns, and whatsapp invites
                 const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
                 if (urlPattern.test(rawText)) {
                     isViolation = true;
@@ -236,6 +215,7 @@ async function startSavage() {
                 const newWarningCount = currentWarnings + 1;
                 global.violationWarnings[from][senderJid] = newWarningCount;
 
+                // ===== 15 SPENCER WARNING QUOTES =====
                 const warnQuotes = [
                     "You just broke a rule Spencer wrote to protect this place.",
                     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -244,8 +224,17 @@ async function startSavage() {
                     "Spencer's bot doesn't forgive. This is your warning.",
                     "Disobedience logged. Spencer's algorithms are watching.",
                     "You have been noted. Spencer's system never forgets.",
-                    "Think before you type. Spencer designed this group for order."
+                    "Think before you type. Spencer designed this group for order.",
+                    "Spencer coded perfection. You're testing it. Don't.",
+                    "This is not a request. It's Spencer's rule. Follow or fade.",
+                    "Spencer's silence is louder than your excuse.",
+                    "Your violation has been filed under 'irrelevant'. Next time? Consequences.",
+                    "Spencer's list of offenders is short. Don't add your name.",
+                    "You're not above Spencer's logic.",
+                    "Spencer's system allows one mistake. This is it."
                 ];
+
+                // ===== 15 SPENCER FINAL KICK QUOTES =====
                 const finalKickQuotes = [
                     "You ignored two warnings. Spencer's system doesn't offer third chances.",
                     "Two strikes and you're out. Spencer's rules are absolute.",
@@ -254,7 +243,14 @@ async function startSavage() {
                     "Violation count: 3. Action: termination. Spencer's code is final.",
                     "You have been removed. The group thanks you for leaving.",
                     "Third violation detected. Spencer's algorithm does not negotiate.",
-                    "Your presence here was contingent on following rules. You failed."
+                    "Your presence here was contingent on following rules. You failed.",
+                    "Spencer gave you two warnings. You gave him nothing. Goodbye.",
+                    "You are now an example of Spencer's zero‑tolerance policy.",
+                    "Spencer doesn't argue. He executes. You're out.",
+                    "Three strikes. Spencer's mercy expired. Remove yourself from memory.",
+                    "Spencer's bot doesn't collect broken pieces. Leave.",
+                    "The algorithm decided you were noise. Silence enforced.",
+                    "Spencer's final decision: you are no longer part of this equation."
                 ];
 
                 if (newWarningCount < 3) {
@@ -274,9 +270,8 @@ async function startSavage() {
                     delete global.violationWarnings[from][senderJid];
                 }
 
-                // Delete the offending message
                 await sock.sendMessage(from, { delete: msg.key });
-                return; // Stop further processing
+                return;
             }
         }
 
@@ -290,7 +285,6 @@ async function startSavage() {
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
         const commandName = args.shift().toLowerCase();
-        
         const cmd = global.commands.get(commandName);
         if (cmd) {
             if (global.worktype === 'private' && !isMe) return;

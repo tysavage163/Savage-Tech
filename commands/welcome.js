@@ -1,21 +1,21 @@
-let activeGroups = new Set(); 
-
 module.exports = {
-    name: 'welcome',
-    category: 'group',
-    desc: 'Toggle the welcome/goodbye sequence.',
-    async execute(sock, msg, args) {
-        const from = msg.key.remoteJid;
-        if (!from.endsWith('@g.us')) return;
+  name: 'welcome',
+  category: 'group',
+  description: 'Toggle welcome messages on/off for this group (admin/owner only)',
+  async execute(sock, msg, args, { isMe }) {
+    const from = msg.key.remoteJid;
+    if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only command.' });
 
-        // Toggle logic
-        if (activeGroups.has(from)) {
-            activeGroups.delete(from);
-            await sock.sendMessage(from, { text: "☢️ *PERIMETER SILENCED:* Auto-responses are **OFF**." });
-        } else {
-            activeGroups.add(from);
-            await sock.sendMessage(from, { text: "☣️ *PERIMETER SECURED:* Auto-responses are **ON**." });
-        }
-    },
-    isToggled: (groupId) => activeGroups.has(groupId)
+    const sender = msg.key.participant || msg.key.remoteJid;
+    const groupMetadata = await sock.groupMetadata(from);
+    const participant = groupMetadata.participants.find(p => p.id === sender);
+    const isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
+    
+    if (!isAdmin && !isMe) return sock.sendMessage(from, { text: '❌ Only group admins or bot owner can use this command.' });
+    
+    if (global.welcomeEnabled[from] === undefined) global.welcomeEnabled[from] = true;
+    const newState = !global.welcomeEnabled[from];
+    global.welcomeEnabled[from] = newState;
+    await sock.sendMessage(from, { text: `✅ Welcome messages are now *${newState ? "ON" : "OFF"}* for this group.` });
+  }
 };

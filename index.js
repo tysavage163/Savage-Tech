@@ -29,7 +29,9 @@ global.antideleteLogChat = null; // owner's DM JID for logs
 global.goodbyeEnabled = {};     // per-group: { groupJid: true/false } (default true if not set)
 global.welcomeEnabled = {};     // per-group: { groupJid: true/false } (default true if not set)
 
-// [ADDED] For violation warnings (anti‑status‑mention & anti‑link)
+// [ADDED] For anti‑abuse toggles
+global.antiLink = {};           // per-group: { groupJid: true/false }
+global.antiStatusMention = {};  // per-group: { groupJid: true/false }
 global.violationWarnings = {};  // { groupJid: { userJid: count } }
 
 // Helper to detect hosting platform
@@ -189,35 +191,53 @@ async function startSavage() {
         if (from && from.endsWith('@g.us')) {
             const antiMention = global.antiStatusMention?.[from] || false;
             const antiLinkEnabled = global.antiLink?.[from] || false;
-            const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase();
+            const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
             const senderJid = sender;
 
             let isViolation = false;
             let violationType = '';
 
-            // Check for group mention (@group)
-            if (antiMention && msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.includes(from)) {
-                isViolation = true;
-                violationType = 'mention';
+            // 1. Group mention detection (@group)
+            if (antiMention) {
+                // Check if the group JID is in the mentioned list
+                const mentioned = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+                if (mentioned.includes(from)) {
+                    isViolation = true;
+                    violationType = 'mention';
+                } else {
+                    // If not, fetch group subject and look for @subject pattern
+                    try {
+                        const groupMeta = await sock.groupMetadata(from);
+                        const subject = groupMeta.subject;
+                        // Escape regex special characters in subject
+                        const escapedSubject = subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const mentionPattern = new RegExp(`@${escapedSubject}`, 'i');
+                        if (mentionPattern.test(rawText)) {
+                            isViolation = true;
+                            violationType = 'mention';
+                        }
+                    } catch (e) {}
+                }
             }
 
-            // Check for WhatsApp group invite link
-            if (antiLinkEnabled && /chat\.whatsapp\.com\/[A-Za-z0-9]+/.test(text)) {
-                isViolation = true;
-                violationType = 'link';
+            // 2. Link detection (any link, not just WhatsApp)
+            if (!isViolation && antiLinkEnabled) {
+                // Regex to catch http://, https://, www., domain-like patterns, and whatsapp invites
+                const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
+                if (urlPattern.test(rawText)) {
+                    isViolation = true;
+                    violationType = 'link';
+                }
             }
 
             if (isViolation) {
-                // Initialize warning counter for this group/user
                 if (!global.violationWarnings[from]) global.violationWarnings[from] = {};
                 const currentWarnings = global.violationWarnings[from][senderJid] || 0;
                 const newWarningCount = currentWarnings + 1;
                 global.violationWarnings[from][senderJid] = newWarningCount;
 
-                // Cold quotes (without quotation marks)
                 const warnQuotes = [
                     "You just broke a rule Spencer wrote to protect this place.",
-                    "Mentioning the group or posting links? That's a Spencer-level fail.",
                     "Spencer didn't code this bot for chaos. Respect the rules.",
                     "Another violation. Spencer's patience is not infinite.",
                     "Rules are written in code. You just triggered an error.",
@@ -242,7 +262,6 @@ async function startSavage() {
                     const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
                     await sock.sendMessage(from, { text: warningText, mentions: [senderJid] });
                 } else {
-                    // Third strike – kick the user
                     const kickQuote = finalKickQuotes[Math.floor(Math.random() * finalKickQuotes.length)];
                     const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
                     await sock.sendMessage(from, { text: kickMessage, mentions: [senderJid] });
@@ -252,13 +271,12 @@ async function startSavage() {
                         console.error('Auto‑kick failed:', err);
                         await sock.sendMessage(from, { text: `❌ Could not kick user. Make sure I am an admin.` });
                     }
-                    // Clean up the warning counter for this user
                     delete global.violationWarnings[from][senderJid];
                 }
 
                 // Delete the offending message
                 await sock.sendMessage(from, { delete: msg.key });
-                return; // Stop processing further (do not execute commands)
+                return; // Stop further processing
             }
         }
 
@@ -290,7 +308,6 @@ async function startSavage() {
         for (const update of updates) {
             const key = update.key;
             const jid = key.remoteJid;
-            // Only process if anti‑delete is enabled for this chat
             if (!global.antideleteEnabled?.[jid]) continue;
             const deletedMsg = update.update?.message;
             if (!deletedMsg) continue;
@@ -311,7 +328,6 @@ async function startSavage() {
             if (global.antideleteLogChat) {
                 await sock.sendMessage(global.antideleteLogChat, { text: logMessage, mentions: [sender] });
             } else {
-                // Fallback: send to the same chat (owner may not have set log chat yet)
                 await sock.sendMessage(jid, { text: logMessage, mentions: [sender] });
             }
         }

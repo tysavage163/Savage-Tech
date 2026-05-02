@@ -27,6 +27,7 @@ global.lastMessageTime = {};    // { groupJid: { userJid: timestamp } }
 global.antideleteEnabled = {};  // { chatJid: true/false }
 global.antideleteLogChat = null; // owner's DM JID for logs
 global.goodbyeEnabled = {};     // per-group: { groupJid: true/false } (default true if not set)
+global.welcomeEnabled = {};     // per-group: { groupJid: true/false } (default true if not set)
 
 // Helper to detect hosting platform
 function getHostPlatform() {
@@ -244,7 +245,7 @@ async function startSavage() {
             if (eventHandler && typeof eventHandler.sendWelcome === 'function') {
                 const metadata = await sock.groupMetadata(id);
                 for (let participant of participants) {
-                    if (action === 'add') await eventHandler.sendWelcome(sock, id, participant, metadata.subject);
+                    if (action === 'add' && global.welcomeEnabled[id] !== false) await eventHandler.sendWelcome(sock, id, participant, metadata.subject);
                     else if (action === 'remove' && global.goodbyeEnabled[id] !== false) await eventHandler.sendGoodbye(sock, id, participant);
                 }
             }

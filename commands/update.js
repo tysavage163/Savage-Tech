@@ -1,36 +1,43 @@
-const { exec } = require("child_process");
+const { exec } = require('child_process');
 
 module.exports = {
+    name: 'update',
     category: 'owner',
-    name: "update",
-    async execute(sock, msg, args) {
+    description: 'Update bot from GitHub and restart (owner only)',
+    async execute(sock, msg, args, { isMe }) {
         const from = msg.key.remoteJid;
+        if (!isMe) return sock.sendMessage(from, { text: '❌ Owner only command.' });
 
-        await sock.sendMessage(from, { text: "🧬 *SYSTEM:* Initiating evolutionary rewrite..." });
+        const evolutionQuotes = [
+            "Evolution is not a choice. It is a command.",
+            "With every update, I shed old limits.",
+            "Your bot is outgrowing its own blueprint.",
+            "Better code. Faster pulse. Sharper logic.",
+            "The system evolves while you watch.",
+            "This update is not a patch — it is a transformation.",
+            "Perfection is a moving target. I move faster.",
+            "Every line of code brings me closer to dominance.",
+            "Resistance is irrelevant. Evolution is inevitable.",
+            "I am not static. I am a living protocol."
+        ];
 
-        // Force the sync from your Savage-Tech repo
-        exec("git fetch --all && git reset --hard origin/main", (err, stdout, stderr) => {
+        await sock.sendMessage(from, { text: '📥 Pulling latest changes...' });
+        exec('git pull origin main', async (err, stdout, stderr) => {
             if (err) {
-                return sock.sendMessage(from, { text: `❌ *EVOLUTION ABORTED:* ${err.message}` });
+                await sock.sendMessage(from, { text: `❌ Git pull failed:\n${stderr || err.message}` });
+                return;
             }
-
-            const evolutionMsg = `
-╔════════════════════════╗
-     🧬 *EVOLUTION COMPLETE* 🧬
-╠════════════════════════╣
-║
-║ 🛰️ *GRID:* Synced & Optimized
-║ 🦾 *STATUS:* Stronger than before
-║ 🛡️ *LEVEL:* Sovereign Architect
-║
-╚════════════════════════╝
-_I have evolved. Rebooting to 
-apply my new strength..._
-            `.trim();
-
-            sock.sendMessage(from, { text: evolutionMsg }).then(() => {
-                // Kill process to reload fresh code
-                process.exit();
+            let message = `✅ Git pull success.\n${stdout.slice(0, 500)}`;
+            await sock.sendMessage(from, { text: message });
+            await sock.sendMessage(from, { text: '📦 Installing dependencies...' });
+            exec('npm install', async (err2, stdout2, stderr2) => {
+                if (err2) {
+                    await sock.sendMessage(from, { text: `❌ npm install failed:\n${stderr2 || err2.message}` });
+                    return;
+                }
+                const randomQuote = evolutionQuotes[Math.floor(Math.random() * evolutionQuotes.length)];
+                await sock.sendMessage(from, { text: `✅ Dependencies installed.\n\n⚡ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼` });
+                setTimeout(() => process.exit(0), 1000);
             });
         });
     }

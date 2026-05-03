@@ -1,6 +1,38 @@
 const http = require('http');
+const url = require('url');
 const os = require('os');
 const PORT = process.env.PORT || 3000;
+
+const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    fetchLatestBaileysVersion,
+    makeCacheableSignalKeyStore
+} = require("@whiskeysockets/baileys");
+const pino = require("pino");
+const fs = require("fs");
+const path = require("path");
+
+let pairingSock = null;
+
+async function getPairingSocket() {
+    if (pairingSock) return pairingSock;
+    const { state, saveCreds } = await useMultiFileAuthState('./session');
+    const { version } = await fetchLatestBaileysVersion();
+    const sock = makeWASocket({
+        version,
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
+        },
+        printQRInTerminal: false,
+        logger: pino({ level: "fatal" }),
+        browser: ["SΛVΛGΞ-TECH Pairing", "Chrome", "1.0.0"]
+    });
+    sock.ev.on('creds.update', saveCreds);
+    pairingSock = sock;
+    return sock;
+}
 
 function getHostPlatform() {
     if (process.env.DYNO) return 'Heroku (Dyno)';
@@ -26,7 +58,36 @@ setTimeout(() => {
     require('./index.js');
 }, 1000);
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
+    const parsedUrl = url.parse(req.url, true);
+    const pathname = parsedUrl.pathname;
+
+    if (pathname === '/code') {
+        let num = parsedUrl.query.number;
+        if (!num) {
+            res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify({ error: "Number required" }));
+            return;
+        }
+        num = num.replace(/[^0-9]/g, '');
+        if (num.length < 9) {
+            res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify({ error: "Invalid phone number (min 9 digits)" }));
+            return;
+        }
+        try {
+            const sock = await getPairingSocket();
+            const code = await sock.requestPairingCode(num);
+            res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify({ code: code }));
+        } catch (err) {
+            console.error("Pairing error:", err);
+            res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify({ error: "Failed to get pairing code" }));
+        }
+        return;
+    }
+
     const uptimeSec = process.uptime();
     const uptime = formatUptime(uptimeSec);
     const platform = getHostPlatform();
@@ -242,7 +303,7 @@ const server = http.createServer((req, res) => {
             </div>
             <div class="stat-card">
                 <div class="stat-label">STATUS</div>
-                <div class="stat-value">⭕️PREDATORY</div>
+                <div class="stat-value">🔴 PREDATORY</div>
             </div>
         </div>
         <div class="quote">${randomQuote}</div>

@@ -21,12 +21,17 @@ module.exports = {
                 const filtered = Array.from(global.commands.values())
                     .filter(cmd => cmd.category === catName);
                 if (filtered.length === 0) return ""; 
-                return `┌───◇  * ${title} *\n${filtered.map(cmd => `┃  ➥ .${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
+                return `┌───¤  * ${title} *\n${filtered.map(cmd => `┃  ♤ .${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
             };
 
-            const header = `┌───◇  *SΛVΛGΞ-TECH*
+            const senderName = msg.pushName || 'User';
+            const senderJid = msg.key.participant || msg.key.remoteJid;
+            const mention = [senderJid];
+
+            const header = `┌───¤  *SΛVΛGΞ-TECH*
 ┃
-┃ **STATUS** : ${isMe ? 'MASTER RECOGNIZED 👑' : 'USER CONNECTED 👤'}
+┃ **DEVELOPER** : Spencer
+┃ **USER** : @${senderName}
 ┃ **PREFIX** : [ ${global.prefix} ]
 ┃ **UPTIME** : ${hours}h ${minutes}m
 ┃ **SPEED** : ${speed} ms
@@ -34,7 +39,6 @@ module.exports = {
 ┃
 ┕━━━━━━━━━━━━━━━╼\n\n`;
 
-            // Original categories
             const ownerMenu = getCategorizedMenu('owner', 'OWNER MENU');
             const groupMenu = getCategorizedMenu('group', 'GROUP MENU');
             const aiMenu = getCategorizedMenu('ai', 'AI MODULES');
@@ -44,7 +48,6 @@ module.exports = {
             const audioMenu = getCategorizedMenu('audio', 'AUDIO MENU');
             const engineMenu = getCategorizedMenu('engine', 'ENGINE MENU');
 
-            // New categories
             const audioEffectsMenu = getCategorizedMenu('Audio Effects', 'AUDIO EFFECTS MENU');
             const spotifyMenu = getCategorizedMenu('Audio', 'SPOTIFY MENU');
             const financialMenu = getCategorizedMenu('financial data', 'FINANCIAL DATA');
@@ -53,24 +56,30 @@ module.exports = {
             const ethicalMenu = getCategorizedMenu('ethical hacking', 'ETHICAL HACKING');
             const sportsMenu = getCategorizedMenu('sports', 'SPORTS MENU');
 
-            // Updated exclusion list (includes new categories)
             const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'download', 'audio', 'engine', 'Audio Effects', 'Audio', 'financial data', 'search menu', 'anime', 'ethical hacking', 'sports'];
 
-            // Catch-all for other categories
             const otherMenu = Array.from(global.commands.values())
                 .filter(cmd => !definedCats.includes(cmd.category))
                 .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !definedCats.includes(c.category)).category, 'OTHER MODULES') : "";
 
-            // Updated footer text
             const footer = `_master your tools or be mastered by them_`;
-            
-            // Added new menus to the concatenation
+
+            const imageUrls = [
+                "https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/3672838c-1a31-4c1f-be38-9a080e3f8e1c.png",
+                "https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/b4400b60-a0c0-4dd8-ad8a-6b450ff9e710.png",
+                "https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/76541a2d-a774-4802-ab92-d86758cb55b3.png"
+            ];
+
+            if (!global.menuImageIndex) global.menuImageIndex = 0;
+            const currentImageUrl = imageUrls[global.menuImageIndex % imageUrls.length];
+            global.menuImageIndex++;
+
             const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + otherMenu + footer;
 
             await sock.sendMessage(from, { 
-                image: { url: 'https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/775997ad-981a-4f09-a861-a18b6cb6888d.png' }, 
+                image: { url: currentImageUrl }, 
                 caption: fullMenu,
-                mentions: [msg.key.participant || from]
+                mentions: mention
             }, { quoted: msg });
 
         } catch (error) {

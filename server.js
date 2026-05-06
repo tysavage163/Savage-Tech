@@ -78,14 +78,12 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
-    // Health check for Koyeb/Render
     if (pathname === '/health') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('OK');
         return;
     }
 
-    // Session endpoint: returns the current session ID
     if (pathname === '/session') {
         const credsFile = path.join(__dirname, 'session', 'creds.json');
         if (!fs.existsSync(credsFile)) {
@@ -100,7 +98,6 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Pairing code endpoint
     if (pathname === '/code') {
         let num = parsedUrl.query.number;
         if (!num) {
@@ -129,7 +126,6 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // ===== STATUS PAGE (unchanged) =====
     const uptimeSec = process.uptime();
     const uptime = formatUptime(uptimeSec);
     const platform = getHostPlatform();
@@ -318,6 +314,7 @@ const server = http.createServer(async (req, res) => {
     res.end(html);
 });
 
-server.listen(PORT, () => {
-    console.log(`Web server running on port ${PORT}`);
+// CRITICAL FIX: Listen on all interfaces (0.0.0.0) – required for Koyeb
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Web server running on port ${PORT} (0.0.0.0)`);
 });

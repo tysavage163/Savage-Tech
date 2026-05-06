@@ -1,3 +1,10 @@
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled Rejection:', reason);
+});
+
 const http = require('http');
 const url = require('url');
 const os = require('os');
@@ -14,12 +21,10 @@ const pino = require("pino");
 let temporarySock = null;
 
 async function getPairingSocket() {
-    // First, try to use the main bot's socket (if already connected)
     if (global.sock && global.sock.user) {
         console.log("Using main bot socket for pairing");
         return global.sock;
     }
-    // Otherwise, create a temporary socket using the same session folder
     if (temporarySock) return temporarySock;
     console.log("Creating temporary socket for pairing");
     const { state, saveCreds } = await useMultiFileAuthState('./session');
@@ -60,12 +65,23 @@ function formatUptime(seconds) {
 }
 
 setTimeout(() => {
-    require('./index.js');
+    try {
+        require('./index.js');
+    } catch (err) {
+        console.error('Failed to start main bot:', err);
+    }
 }, 1000);
 
 const server = http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
+
+    // Health check for Koyeb
+    if (pathname === '/health') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('OK');
+        return;
+    }
 
     if (pathname === '/code') {
         let num = parsedUrl.query.number;
@@ -95,7 +111,7 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
-    // Your existing status page HTML (unchanged – keep it exactly as you had)
+    // ===== STATUS PAGE (unchanged) =====
     const uptimeSec = process.uptime();
     const uptime = formatUptime(uptimeSec);
     const platform = getHostPlatform();
@@ -252,7 +268,7 @@ const server = http.createServer(async (req, res) => {
         <div class="stat-card"><div class="stat-label">NODE.JS</div><div class="stat-value">${nodeVer}</div></div>
         <div class="stat-card"><div class="stat-label">COMMANDS</div><div class="stat-value">${commandsCount}</div></div>
         <div class="stat-card"><div class="stat-label">MEMORY</div><div class="stat-value">${usedMem} / ${totalMem} MB</div></div>
-        <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value">⭕️⭕️PREDATORY</div></div>
+        <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value">🔴 PREDATORY</div></div>
     </div>
     <div class="quote">${randomQuote}</div>
     <div class="contact"><a href="https://wa.me/254798841125" target="_blank">⌨️ CONTACT DEVELOPER</a></div>

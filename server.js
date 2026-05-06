@@ -7,6 +7,8 @@ process.on('unhandledRejection', (reason) => {
 
 const http = require('http');
 const url = require('url');
+const fs = require('fs');
+const path = require('path');
 const os = require('os');
 const PORT = process.env.PORT || 3000;
 
@@ -76,13 +78,29 @@ const server = http.createServer(async (req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
-    // Health check for Koyeb
+    // Health check for Koyeb/Render
     if (pathname === '/health') {
         res.writeHead(200, { 'Content-Type': 'text/plain' });
         res.end('OK');
         return;
     }
 
+    // Session endpoint: returns the current session ID
+    if (pathname === '/session') {
+        const credsFile = path.join(__dirname, 'session', 'creds.json');
+        if (!fs.existsSync(credsFile)) {
+            res.writeHead(404, { 'Content-Type': 'text/plain' });
+            res.end('No session yet. Wait for bot to connect.');
+            return;
+        }
+        const credsData = fs.readFileSync(credsFile);
+        const sessionId = `SΛVΛGΞ-TECH;;;${credsData.toString('base64')}`;
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end(sessionId);
+        return;
+    }
+
+    // Pairing code endpoint
     if (pathname === '/code') {
         let num = parsedUrl.query.number;
         if (!num) {

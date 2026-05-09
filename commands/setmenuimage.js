@@ -1,23 +1,33 @@
-const fs = require('fs');
+const axios = require('axios');
+const https = require('https');
+const agent = new https.Agent({ rejectUnauthorized: false });
 
 module.exports = {
     name: 'setmenuimage',
     category: 'owner',
-    execute: async (sock, msg, args, { isArchitect }) => {
+    description: 'Set a custom image URL for the .menu command (owner only)',
+    async execute(sock, msg, args, { isMe }) {
         const from = msg.key.remoteJid;
+        if (!isMe) return sock.sendMessage(from, { text: '❌ Owner only command.' });
 
-        // Security: Only you (The Architect) should change this
-        if (!isArchitect) return sock.sendMessage(from, { text: "❌ Access Denied. Only the Architect can reconfigure the UI." });
-
-        const newLink = args[0];
-        if (!newLink || !newLink.startsWith('http')) {
-            return sock.sendMessage(from, { text: "❌ Please provide a valid image URL.\nUsage: .setmenuimage https://example.com/image.jpg" });
+        const imageUrl = args[0];
+        if (!imageUrl || !imageUrl.startsWith('http')) {
+            return sock.sendMessage(from, { text: '❓ Usage: .setmenuimage <direct_image_url>' });
         }
 
-        // Save the link to a settings file
-        const settings = { menuImage: newLink };
-        fs.writeFileSync('./database.json', JSON.stringify(settings, null, 2));
-
-        await sock.sendMessage(from, { text: `✅ *SYSTEM UPDATED*\n\nNew menu image has been locked in. Use .menu to view changes.` }, { quoted: msg });
+        // Validate the image URL (optional: download first few bytes to check content type)
+        try {
+            const response = await axios.get(imageUrl, { httpsAgent: agent, responseType: 'stream', timeout: 10000 });
+            const contentType = response.headers['content-type'];
+            if (!contentType || !contentType.startsWith('image/')) {
+                return sock.sendMessage(from, { text: '❌ URL does not point to a valid image.' });
+            }
+            // Success – store the URL globally
+            global.menuImageUrl = imageUrl;
+            await sock.sendMessage(from, { text: `✅ Menu image updated to:\n${imageUrl}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼` });
+        } catch (err) {
+            console.error('Image validation error:', err);
+            await sock.sendMessage(from, { text: `❌ Failed to validate image URL: ${err.message}` });
+        }
     }
 };

@@ -216,7 +216,7 @@ async function startSavage() {
 
     global.sock = sock;
 
-    // ===== KEEP‑ALIVE PING (prevents connection closure) =====
+    // ===== KEEP‑ALIVE PING =====
     setInterval(async () => {
         if (global.sock && global.sock.user) {
             try {
@@ -302,7 +302,7 @@ async function startSavage() {
         }
     });
 
-    // ===== MESSAGE HANDLER (includes anti‑link) =====
+    // ===== MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
@@ -389,6 +389,7 @@ async function startSavage() {
             return;
         }
 
+        // Command processing
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         if (!text.startsWith(global.prefix)) return;
 
@@ -406,20 +407,17 @@ async function startSavage() {
         }
     });
 
-    // ===== FIXED ANTI‑DELETE HANDLER (only on actual deletions) =====
+    // ===== WORKING ANTI‑DELETE HANDLER (ONLY DELETIONS, NO EDIT) =====
     sock.ev.on("messages.update", async (updates) => {
         if (!global.antideleteOwnerChat) return;
         for (const update of updates) {
-            // Check if this update contains a deletion (i.e., a 'message' object)
             const deletedMsg = update.update?.message;
-            if (!deletedMsg) continue; // Not a deletion
-
+            if (!deletedMsg) continue;
             const key = update.key;
             const id = key.id;
             const cached = global._msgCache.get(id);
             if (!cached) continue;
             if (cached.key?.fromMe) continue;
-
             const sender = cached.key.participant || cached.key.remoteJid;
             const msg = cached.message;
             let content = "";
@@ -430,7 +428,6 @@ async function startSavage() {
             else if (msg?.audioMessage) content = "[audio]";
             else if (msg?.stickerMessage) content = "[sticker]";
             else content = "[unsupported media]";
-
             try {
                 await global.sock.sendMessage(global.antideleteOwnerChat, {
                     text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 ${content}`,

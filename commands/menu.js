@@ -65,11 +65,19 @@ module.exports = {
 
             const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + otherMenu + footer;
 
-            await sock.sendMessage(from, { 
-                text: fullMenu,
-                mentions: mention
-            }, { quoted: msg });
-
+            // If a custom menu image is set, use it; otherwise send text only
+            if (global.menuImageUrl) {
+                await sock.sendMessage(from, { 
+                    image: { url: global.menuImageUrl }, 
+                    caption: fullMenu,
+                    mentions: mention
+                }, { quoted: msg });
+            } else {
+                await sock.sendMessage(from, { 
+                    text: fullMenu,
+                    mentions: mention
+                }, { quoted: msg });
+            }
         } catch (error) {
             console.error("MENU ERROR:", error);
             await sock.sendMessage(from, { text: "❌ **SΛVΛGΞ:** DATA FETCH FAILED" });

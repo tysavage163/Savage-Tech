@@ -30,15 +30,15 @@ global.welcomeEnabled = {};
 global.antiLink = {};
 global.violationWarnings = {};
 
-// ===== IMPROVED ANTI‑DELETE CACHE =====
+// ===== IMPROVED ANTI-DELETE CACHE =====
 global._msgCache = new Map();
 global._mediaCache = new Map();
 
-// ===== ANTI‑STATUS MENTION =====
+// ===== ANTI-STATUS MENTION =====
 global.antiStatusMention = {};
 global.statusWarnings = {};
 
-// ===== ALWAYS‑RECORDING =====
+// ===== ALWAYS-RECORDING =====
 global.alwaysRecording = false;
 
 // ===== OWNER JID (will be set on connection) =====
@@ -48,7 +48,7 @@ global.ownerJid = null;
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== COLD QUOTES FOR ANTI‑STATUS MENTION =====
+// ===== COLD QUOTES FOR ANTI-STATUS MENTION =====
 const warning1Quotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -69,7 +69,6 @@ const finalQuotes = [
     "Spencer gave you two warnings. You gave him nothing. Goodbye."
 ];
 
-// ===== HELPER: CHECK IF USER IS ADMIN =====
 async function checkAdmin(sock, groupId, sender) {
     try {
         const meta = await sock.groupMetadata(groupId);
@@ -80,7 +79,6 @@ async function checkAdmin(sock, groupId, sender) {
     }
 }
 
-// ===== ANTI‑STATUS MENTION HANDLER =====
 async function handleStatusMention(sock, msg, from, sender, isAdmin) {
     if (!from.endsWith("@g.us")) return;
     if (!global.antiStatusMention[from]) return;
@@ -278,8 +276,10 @@ async function startSavage() {
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe;
         const sender = msg.key.participant || msg.key.remoteJid;
-        const botId = sock.user?.id;
-        const isOwner = (sender === botId);   // ✅ FIX: true when the sender is the bot's owner
+        
+        // ✅ FIX: Compare phone number only (strip device ID)
+        const botNumber = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
+        const isOwner = (sender === botNumber);
 
         // Auto‑typing / always‑recording
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
@@ -392,7 +392,6 @@ async function startSavage() {
             if (global.worktype === 'private' && !isOwner) return;
             try {
                 await sock.sendPresenceUpdate('composing', from);
-                // Pass isMe as the owner flag (so commands using !isMe will work)
                 await cmd.execute(sock, msg, args, { isArchitect: isOwner, isMe: isOwner });
             } catch (e) {
                 console.error(`❌ Command Error [${commandName}]:`, e);
@@ -400,7 +399,7 @@ async function startSavage() {
         }
     });
 
-    // ===== ANTI‑DELETE HANDLER =====
+    // ===== ANTI-DELETE HANDLER =====
     sock.ev.on("messages.update", async (updates) => {
         if (!global.antideleteOwnerChat) return;
         for (const update of updates) {

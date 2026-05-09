@@ -47,7 +47,6 @@ module.exports = {
             const downloadMenu = getCategorizedMenu('download', 'DOWNLOAD MENU');
             const audioMenu = getCategorizedMenu('audio', 'AUDIO MENU');
             const engineMenu = getCategorizedMenu('engine', 'ENGINE MENU');
-
             const audioEffectsMenu = getCategorizedMenu('Audio Effects', 'AUDIO EFFECTS MENU');
             const spotifyMenu = getCategorizedMenu('Audio', 'SPOTIFY MENU');
             const financialMenu = getCategorizedMenu('financial data', 'FINANCIAL DATA');
@@ -64,21 +63,10 @@ module.exports = {
 
             const footer = `_master your tools or be mastered by them_`;
 
-            const imageUrls = [
-                "https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/3672838c-1a31-4c1f-be38-9a080e3f8e1c.png",
-                "https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/b4400b60-a0c0-4dd8-ad8a-6b450ff9e710.png",
-                "https://i.supaimg.com/57b03ae1-422b-4801-b5d2-661ece6d38ae/76541a2d-a774-4802-ab92-d86758cb55b3.png"
-            ];
-
-            if (!global.menuImageIndex) global.menuImageIndex = 0;
-            const currentImageUrl = imageUrls[global.menuImageIndex % imageUrls.length];
-            global.menuImageIndex++;
-
             const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + otherMenu + footer;
 
             await sock.sendMessage(from, { 
-                image: { url: currentImageUrl }, 
-                caption: fullMenu,
+                text: fullMenu,
                 mentions: mention
             }, { quoted: msg });
 

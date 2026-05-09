@@ -1,49 +1,23 @@
 module.exports = {
-    name: "antistatusmention",
-    category: "group",
-
-    async execute(sock, msg, args) {
+    name: 'antistatusmention',
+    category: 'group',
+    description: 'Toggle @group mention protection (admin/owner only)',
+    async execute(sock, msg, args, { isMe }) {
         const from = msg.key.remoteJid;
+        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only command.' });
+
         const sender = msg.key.participant || msg.key.remoteJid;
+        const groupMetadata = await sock.groupMetadata(from);
+        const participant = groupMetadata.participants.find(p => p.id === sender);
+        const isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
+        if (!isAdmin && !isMe) return sock.sendMessage(from, { text: '❌ Only group admins or bot owner can use this.' });
 
-        // ===== GROUP ONLY =====
-        if (!from.endsWith("@g.us")) {
-            return sock.sendMessage(from, {
-                text: "❌ This command only works in groups."
-            });
-        }
+        if (global.antiStatusMention === undefined) global.antiStatusMention = {};
+        const newState = !global.antiStatusMention[from];
+        global.antiStatusMention[from] = newState;
 
-        // ===== ADMIN CHECK =====
-        const meta = await sock.groupMetadata(from);
-        const participant = meta.participants.find(p => p.id === sender);
-
-        if (!participant || (participant.admin !== "admin" && participant.admin !== "superadmin")) {
-            return sock.sendMessage(from, {
-                text: "❌ Only group admins can use this command."
-            });
-        }
-
-        const action = args[0]?.toLowerCase();
-
-        if (!action || !["on", "off"].includes(action)) {
-            return sock.sendMessage(from, {
-                text:
-`⚙️ *ANTISTATUSMENTION CONTROL*
-
-Usage:
-.antistatusmention on
-.antistatusmention off`
-            });
-        }
-
-        // ===== ENABLE / DISABLE =====
-        global.antistatusmention[from] = action === "on";
-
-        return sock.sendMessage(from, {
-            text:
-`✅ *ANTI-STATUSMENTION ${action.toUpperCase()}*
-
-📍 Group protection updated successfully.`
+        await sock.sendMessage(from, {
+            text: `✅ @group mention protection is now *${newState ? "ON" : "OFF"}* for this group.\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`
         });
     }
 };

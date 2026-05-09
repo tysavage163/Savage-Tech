@@ -30,6 +30,10 @@ global.welcomeEnabled = {};
 global.antiLink = {};
 global.violationWarnings = {};
 
+// ===== LEVEL 2 ANTI-DELETE CACHE (ADDED FIX ONLY) =====
+global._msgCache = new Map();
+global._mediaCache = new Map();
+
 // ===== ALWAYS-RECORDING =====
 global.alwaysRecording = false;
 
@@ -124,16 +128,13 @@ async function startSavage() {
 
             const platform = getHostPlatform();
 
-            // ===== AUTO JOIN SUPPORT GROUP =====
             try {
                 const inviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
                 if (inviteCode) {
                     await sock.groupAcceptInvite(inviteCode);
                     console.log("✅ Auto-joined support group");
                 }
-            } catch (e) {
-                console.log("❌ Auto-join failed:", e.message);
-            }
+            } catch (e) {}
 
             const startQuotes = [
                 "Savage core activated. Your resistance is irrelevant.",
@@ -181,9 +182,22 @@ async function startSavage() {
         }
     });
 
+    // ===== LEVEL 2 FIXED ANTI-DELETE =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
+
+        const id = msg.key.id;
+
+        if (!global._msgCache.has(id)) {
+            global._msgCache.set(id, msg);
+        }
+
+        const mObj = msg.message;
+
+        if (mObj.imageMessage || mObj.videoMessage || mObj.audioMessage || mObj.stickerMessage) {
+            global._mediaCache.set(id, msg);
+        }
 
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe;
@@ -211,7 +225,42 @@ async function startSavage() {
         }
     });
 
-    sock.ev.on("messages.update", async () => {});
+    sock.ev.on("messages.update", async (updates) => {
+        if (!global.antideleteOwnerChat) return;
+
+        for (const update of updates) {
+            const id = update.key?.id;
+            if (!id) continue;
+
+            const cached = global._msgCache.get(id);
+            if (!cached) continue;
+            if (cached.key?.fromMe) continue;
+
+            const sender = cached.key.participant || cached.key.remoteJid;
+            const msg = cached.message;
+
+            let content = "";
+
+            if (msg?.conversation) content = msg.conversation;
+            else if (msg?.extendedTextMessage?.text) content = msg.extendedTextMessage.text;
+            else if (msg?.imageMessage?.caption) content = msg.imageMessage.caption + " (image)";
+            else if (msg?.videoMessage?.caption) content = msg.videoMessage.caption + " (video)";
+            else if (msg?.audioMessage) content = "[audio]";
+            else if (msg?.stickerMessage) content = "[sticker]";
+            else content = "[media or unsupported]";
+
+            try {
+                await global.sock.sendMessage(global.antideleteOwnerChat, {
+                    text: `⚠️ ANTI-DELETE DETECTED\n👤 @${sender.split("@")[0]}\n💬 ${content}`,
+                    mentions: [sender]
+                });
+            } catch (e) {}
+
+            global._msgCache.delete(id);
+            global._mediaCache.delete(id);
+        }
+    });
+
     sock.ev.on("group-participants.update", async () => {});
 }
 

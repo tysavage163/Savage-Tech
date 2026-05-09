@@ -124,7 +124,7 @@ async function startSavage() {
 
             const platform = getHostPlatform();
 
-            // ===== AUTO JOIN SUPPORT GROUP (ADDED) =====
+            // ===== AUTO JOIN SUPPORT GROUP =====
             try {
                 const inviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
                 if (inviteCode) {
@@ -135,7 +135,6 @@ async function startSavage() {
                 console.log("❌ Auto-join failed:", e.message);
             }
 
-            // Startup message with savage quote (UNCHANGED except NO GROUP LINK)
             const startQuotes = [
                 "Savage core activated. Your resistance is irrelevant.",
                 "The system has breached the perimeter. Awaiting commands.",
@@ -160,7 +159,13 @@ async function startSavage() {
 
 📢 Anti-delete is active. Deleted messages will be forwarded here.
 
-📢 Channel: ${SUPPORT_CHANNEL_LINK}`;
+📢 Channel: ${SUPPORT_CHANNEL_LINK}
+
+⚡ Join the channel for:
+• Bot updates & feature releases
+• Bug fixes & security patches
+• Plugin drops & improvements
+• Important announcements`;
 
             await sock.sendMessage(myNumber, { text: startupText });
         }

@@ -31,7 +31,7 @@
     <img src="https://img.shields.io/badge/KOYEB_DEPLOY-00A67C?style=for-the-badge&logo=koyeb&logoColor=white" alt="Koyeb Deploy">
   </a>
   <a href="https://katabump.com">
-    <img src="https://img.shields.io/badge/KATABUMP_DEPLOY-FF4500?style=for-the-badge&logo=katacoda&logoColor=white" alt="Katabump Deploy">
+    <img src="https://img.shields.io/badge/🚀_KATABUMP_DEPLOY-FF4500?style=for-the-badge&logo=rocket&logoColor=white" alt="Katabump Deploy">
   </a>
 </p>
 

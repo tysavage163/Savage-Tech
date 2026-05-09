@@ -43,6 +43,11 @@ global.alwaysRecording = false;
 // ===== PENDING JOIN REQUESTS =====
 global.pendingJoinRequests = {};
 
+// ===== NEW FEATURES =====
+global.sudoUsers = new Set();               // sudo user JIDs
+global.antiCall = { mode: 'off', message: null };   // off / decline / block
+global.antiEditEnabled = true;              // anti-edit toggle
+
 // ===== SUPPORT LINKS =====
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
@@ -216,7 +221,7 @@ async function startSavage() {
 
     global.sock = sock;
 
-    // ===== KEEP‑ALIVE PING (prevents connection closure) =====
+    // ===== KEEP‑ALIVE PING =====
     setInterval(async () => {
         if (global.sock && global.sock.user) {
             try {
@@ -224,6 +229,25 @@ async function startSavage() {
             } catch (e) {}
         }
     }, 30000);
+
+    // ===== ANTI‑CALL HANDLER =====
+    sock.ev.on("call", async (calls) => {
+        if (global.antiCall.mode === 'off') return;
+        for (const call of calls) {
+            const { id, from, status, isVideo } = call;
+            if (status === 'offer') {
+                if (global.antiCall.mode === 'decline') {
+                    await sock.rejectCall(id, from);
+                } else if (global.antiCall.mode === 'block') {
+                    await sock.rejectCall(id, from);
+                    await sock.updateBlockStatus(from, 'block');
+                }
+                const msgTemplate = global.antiCall.message || "⚠️ Calls are not accepted. Please DM instead.";
+                const personalized = msgTemplate.replace(/{user}/g, `@${from.split('@')[0]}`).replace(/{calltype}/g, isVideo ? 'video' : 'audio');
+                await sock.sendMessage(from, { text: personalized, mentions: [from] });
+            }
+        }
+    });
 
     sock.ev.on("creds.update", saveCreds);
 
@@ -302,7 +326,7 @@ async function startSavage() {
         }
     });
 
-    // ===== MESSAGE HANDLER (includes anti‑link) =====
+    // ===== MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
@@ -389,6 +413,7 @@ async function startSavage() {
             return;
         }
 
+        // Command processing
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         if (!text.startsWith(global.prefix)) return;
 
@@ -396,49 +421,71 @@ async function startSavage() {
         const commandName = args.shift().toLowerCase();
         const cmd = global.commands.get(commandName);
         if (cmd) {
-            if (global.worktype === 'private' && !isMe) return;
+            // Determine if sender is owner or sudo
+            const botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+            const isOwner = (sender === botNumber);
+            const isSudo = global.sudoUsers && global.sudoUsers.has(sender);
+            const isAuthorized = isOwner || isSudo;
+            // Private mode blocks non‑authorized users
+            if (global.worktype === 'private' && !isAuthorized) return;
             try {
                 await sock.sendPresenceUpdate('composing', from);
-                await cmd.execute(sock, msg, args, { isArchitect, isMe });
+                // Pass isMe = true for owner or sudo
+                await cmd.execute(sock, msg, args, { isArchitect, isMe: isAuthorized });
             } catch (e) {
                 console.error(`❌ Command Error [${commandName}]:`, e);
             }
         }
     });
 
-    // ===== FIXED ANTI‑DELETE HANDLER (only on actual deletions) =====
+    // ===== ANTI‑DELETE & ANTI‑EDIT HANDLER =====
     sock.ev.on("messages.update", async (updates) => {
         if (!global.antideleteOwnerChat) return;
         for (const update of updates) {
-            // Check if this update contains a deletion (i.e., a 'message' object)
-            const deletedMsg = update.update?.message;
-            if (!deletedMsg) continue; // Not a deletion
-
             const key = update.key;
             const id = key.id;
-            const cached = global._msgCache.get(id);
-            if (!cached) continue;
-            if (cached.key?.fromMe) continue;
 
-            const sender = cached.key.participant || cached.key.remoteJid;
-            const msg = cached.message;
-            let content = "";
-            if (msg?.conversation) content = msg.conversation;
-            else if (msg?.extendedTextMessage?.text) content = msg.extendedTextMessage.text;
-            else if (msg?.imageMessage?.caption) content = msg.imageMessage.caption + " (image)";
-            else if (msg?.videoMessage?.caption) content = msg.videoMessage.caption + " (video)";
-            else if (msg?.audioMessage) content = "[audio]";
-            else if (msg?.stickerMessage) content = "[sticker]";
-            else content = "[unsupported media]";
+            // --- ANTI‑DELETE (actual deletion) ---
+            const deletedMsg = update.update?.message;
+            if (deletedMsg) {
+                const cached = global._msgCache.get(id);
+                if (cached && !cached.key?.fromMe) {
+                    const sender = cached.key.participant || cached.key.remoteJid;
+                    const msg = cached.message;
+                    let content = "";
+                    if (msg?.conversation) content = msg.conversation;
+                    else if (msg?.extendedTextMessage?.text) content = msg.extendedTextMessage.text;
+                    else if (msg?.imageMessage?.caption) content = msg.imageMessage.caption + " (image)";
+                    else if (msg?.videoMessage?.caption) content = msg.videoMessage.caption + " (video)";
+                    else if (msg?.audioMessage) content = "[audio]";
+                    else if (msg?.stickerMessage) content = "[sticker]";
+                    else content = "[unsupported media]";
+                    await global.sock.sendMessage(global.antideleteOwnerChat, {
+                        text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 ${content}`,
+                        mentions: [sender]
+                    });
+                    global._msgCache.delete(id);
+                    global._mediaCache.delete(id);
+                }
+                continue;
+            }
 
-            try {
-                await global.sock.sendMessage(global.antideleteOwnerChat, {
-                    text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 ${content}`,
-                    mentions: [sender]
-                });
-            } catch (e) {}
-            global._msgCache.delete(id);
-            global._mediaCache.delete(id);
+            // --- ANTI‑EDIT (message edited) ---
+            const newMsg = update.update?.message;
+            if (newMsg && global.antiEditEnabled) {
+                const cached = global._msgCache.get(id);
+                if (cached && !cached.key?.fromMe) {
+                    const oldText = cached.message?.conversation || cached.message?.extendedTextMessage?.text || '';
+                    const newText = newMsg.conversation || newMsg.extendedTextMessage?.text || '';
+                    if (oldText && newText && oldText !== newText) {
+                        const sender = key.participant || key.remoteJid;
+                        const log = `✏️ *[ANTI-EDIT]*\n👤 @${sender.split("@")[0]}\n📝 Old: ${oldText}\n🆕 New: ${newText}`;
+                        await global.sock.sendMessage(global.antideleteOwnerChat, { text: log, mentions: [sender] });
+                        // Update cache with new version
+                        global._msgCache.set(id, { ...cached, message: newMsg });
+                    }
+                }
+            }
         }
     });
 

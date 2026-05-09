@@ -13,13 +13,13 @@ const path = require("path");
 const os = require("os");
 
 // ===== 1. CORE SYSTEM SETTINGS =====
-global.prefix = "."; 
+global.prefix = ".";
 global.commands = new Map();
-global.blacklist = new Set(); 
-global.antideleteMode = "on"; 
-global.autoViewStatus = "on"; 
-global.autoTyping = "off"; 
-global.worktype = "public"; 
+global.blacklist = new Set();
+global.antideleteMode = "on";
+global.autoViewStatus = "on";
+global.autoTyping = "off";
+global.worktype = "public";
 
 global.messageCounts = {};
 global.lastMessageTime = {};
@@ -30,12 +30,89 @@ global.welcomeEnabled = {};
 global.antiLink = {};
 global.violationWarnings = {};
 
+// ===== IMPROVED ANTI‑DELETE CACHE =====
+global._msgCache = new Map();
+global._mediaCache = new Map();
+
+// ===== ANTI‑STATUS MENTION =====
+global.antiStatusMention = {};
+global.statusWarnings = {};
+
 // ===== ALWAYS‑RECORDING =====
 global.alwaysRecording = false;
 
-// ===== SUPPORT LINKS (hardcoded) =====
+// ===== SUPPORT LINKS =====
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
+
+// ===== COLD QUOTES FOR ANTI‑STATUS MENTION =====
+const warning1Quotes = [
+    "You just broke a rule Spencer wrote to protect this place.",
+    "Spencer didn't code this bot for chaos. Respect the rules.",
+    "Think before you type. Spencer designed this group for order.",
+    "Disobedience logged. Spencer's algorithms are watching.",
+    "You have been noted. Spencer's system never forgets."
+];
+const warning2Quotes = [
+    "Another violation. Spencer's patience is not infinite.",
+    "Rules are written in code. You triggered an error.",
+    "Spencer's bot doesn't forgive mistakes twice.",
+    "Stop now. Next step is removal."
+];
+const finalQuotes = [
+    "You have been removed. Spencer does not offer third chances.",
+    "Two strikes and you're out. Spencer's rules are absolute.",
+    "Your presence here was contingent on following rules. You failed.",
+    "Spencer gave you two warnings. You gave him nothing. Goodbye."
+];
+
+// ===== HELPER: CHECK ADMIN =====
+async function checkAdmin(sock, groupId, sender) {
+    try {
+        const meta = await sock.groupMetadata(groupId);
+        const participant = meta.participants.find(p => p.id === sender);
+        return participant?.admin === "admin" || participant?.admin === "superadmin";
+    } catch {
+        return false;
+    }
+}
+
+// ===== ANTI‑STATUS MENTION HANDLER =====
+async function handleStatusMention(sock, msg, from, sender, isAdmin) {
+    if (!from.endsWith("@g.us")) return;
+    if (!global.antiStatusMention[from]) return;
+    if (isAdmin) return;
+
+    const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "";
+    const mentions = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+    if (text.includes("@all") || text.includes("@everyone")) return;
+    if (!mentions.length) return;
+
+    if (!global.statusWarnings[from]) global.statusWarnings[from] = {};
+    const count = (global.statusWarnings[from][sender] || 0) + 1;
+    global.statusWarnings[from][sender] = count;
+
+    try {
+        await sock.sendMessage(from, { delete: msg.key });
+    } catch (err) {}
+
+    let quote;
+    if (count === 1) quote = warning1Quotes[Math.floor(Math.random() * warning1Quotes.length)];
+    else if (count === 2) quote = warning2Quotes[Math.floor(Math.random() * warning2Quotes.length)];
+    else quote = finalQuotes[Math.floor(Math.random() * finalQuotes.length)];
+
+    await sock.sendMessage(from, {
+        text: `🚨 @${sender.split("@")[0]}\n\n${quote}`,
+        mentions: [sender]
+    });
+
+    if (count >= 3) {
+        try {
+            await sock.groupParticipantsUpdate(from, [sender], "remove");
+        } catch (err) {}
+        delete global.statusWarnings[from][sender];
+    }
+}
 
 function getHostPlatform() {
     if (process.env.DYNO) return 'Heroku (Dyno)';
@@ -59,7 +136,7 @@ const loadCommands = () => {
     for (const file of files) {
         try {
             const fullPath = require.resolve(`./commands/${file}`);
-            delete require.cache[fullPath]; 
+            delete require.cache[fullPath];
             const cmd = require(`./commands/${file}`);
             if (cmd.name) global.commands.set(cmd.name, cmd);
         } catch (e) {
@@ -97,7 +174,7 @@ async function startSavage() {
         },
         printQRInTerminal: true,
         logger: pino({ level: "silent" }),
-        browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
+        browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"]
     });
 
     global.sock = sock;
@@ -115,14 +192,21 @@ async function startSavage() {
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-            
-            // Anti‑delete destination (owner's DM)
             global.antideleteOwnerChat = myNumber;
-            
+
+            // ===== AUTO‑JOIN SUPPORT GROUP =====
+            try {
+                const inviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
+                if (inviteCode) {
+                    await sock.groupAcceptInvite(inviteCode);
+                    console.log("✅ Auto-joined support group");
+                }
+            } catch (e) {
+                console.error("Auto-join failed:", e);
+            }
+
             if (global.autoTyping === "on") await sock.sendPresenceUpdate('composing', myNumber);
             const platform = getHostPlatform();
-            
-            // Startup message with savage quote
             const startQuotes = [
                 "Savage core activated. Your resistance is irrelevant.",
                 "The system has breached the perimeter. Awaiting commands.",
@@ -136,8 +220,25 @@ async function startSavage() {
                 "The engine hums with controlled chaos. Ready."
             ];
             const randomQuote = startQuotes[Math.floor(Math.random() * startQuotes.length)];
-            let startupText = `┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼\n\n⚡ ${randomQuote}\n🖥️ Host: ${platform}\n\n📢 Anti‑delete is active. Deleted messages will be forwarded here.\n\n👥 Support Group: ${SUPPORT_GROUP_LINK}\n📢 Channel: ${SUPPORT_CHANNEL_LINK}`;
-            
+
+            // ===== ENHANCED STARTUP MESSAGE WITH CHANNEL BENEFITS =====
+            let startupText = `┍━━━━━━━━━━━━━━━╼
+┃ 🚀 SΛVΛGΞ-TΞCH OS
+┕━━━━━━━━━━━━━━━╼
+
+⚡ ${randomQuote}
+🖥️ Host: ${platform}
+
+📢 Anti‑delete is active. Deleted messages will be forwarded here.
+
+📢 Channel: ${SUPPORT_CHANNEL_LINK}
+
+⚡ Join the channel for:
+• Bot updates & feature releases
+• Bug fixes & security patches
+• Plugin drops & improvements
+• Important announcements`;
+
             await sock.sendMessage(myNumber, { text: startupText });
         }
 
@@ -152,27 +253,39 @@ async function startSavage() {
         }
     });
 
-    // ===== 4. MESSAGE HANDLER =====
+    // ===== MESSAGE HANDLER (with caching for improved anti‑delete) =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
+        // Cache message for anti‑delete
+        const id = msg.key.id;
+        if (!global._msgCache.has(id)) {
+            global._msgCache.set(id, msg);
+        }
+        const mObj = msg.message;
+        if (mObj.imageMessage || mObj.videoMessage || mObj.audioMessage || mObj.stickerMessage) {
+            global._mediaCache.set(id, msg);
+        }
+
         const from = msg.key.remoteJid;
-        const isMe = msg.key.fromMe; 
+        const isMe = msg.key.fromMe;
         const sender = msg.key.participant || msg.key.remoteJid;
-        
-        // Auto‑typing
+
+        // Auto‑typing / always‑recording
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
-            try {
-                await sock.sendPresenceUpdate('composing', from);
-            } catch (e) {}
+            try { await sock.sendPresenceUpdate('composing', from); } catch (e) {}
         }
-        // Always‑recording
         if (global.alwaysRecording === true && !isMe && from && !from.endsWith('@broadcast')) {
-            try {
-                await sock.sendPresenceUpdate('recording', from);
-            } catch (e) {}
+            try { await sock.sendPresenceUpdate('recording', from); } catch (e) {}
         }
+
+        // Admin check for anti‑statusmention
+        let isAdmin = false;
+        if (from && from.endsWith("@g.us")) {
+            isAdmin = await checkAdmin(sock, from, sender);
+        }
+        await handleStatusMention(sock, msg, from, sender, isAdmin);
 
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
         const isArchitect = isMe || (botId && sender === botId);
@@ -185,10 +298,9 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ========== ANTI‑LINK ==========
+        // Anti‑link
         if (from && from.endsWith('@g.us')) {
             if (isMe) return;
-
             const antiLinkEnabled = global.antiLink?.[from] || false;
             if (antiLinkEnabled) {
                 const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
@@ -258,13 +370,11 @@ async function startSavage() {
             }
         }
 
-        // Status broadcasts
         if (from === 'status@broadcast' && global.autoViewStatus === "on") {
             await sock.readMessages([msg.key]);
             return;
         }
 
-        // Command processing
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         if (!text.startsWith(global.prefix)) return;
 
@@ -276,40 +386,45 @@ async function startSavage() {
             try {
                 await sock.sendPresenceUpdate('composing', from);
                 await cmd.execute(sock, msg, args, { isArchitect, isMe });
-            } catch (e) { 
+            } catch (e) {
                 console.error(`❌ Command Error [${commandName}]:`, e);
             }
         }
     });
 
-    // ===== 5. ANTI‑DELETE HANDLER (always on) =====
+    // ===== IMPROVED ANTI‑DELETE HANDLER (uses cached messages) =====
     sock.ev.on("messages.update", async (updates) => {
         if (!global.antideleteOwnerChat) return;
         for (const update of updates) {
-            const key = update.key;
-            const jid = key.remoteJid;
-            const deletedMsg = update.update?.message;
-            if (!deletedMsg) continue;
+            const id = update.key?.id;
+            if (!id) continue;
+            const cached = global._msgCache.get(id);
+            if (!cached) continue;
+            if (cached.key?.fromMe) continue;
 
+            const sender = cached.key.participant || cached.key.remoteJid;
+            const msg = cached.message;
             let content = "";
-            if (deletedMsg.conversation) content = deletedMsg.conversation;
-            else if (deletedMsg.imageMessage?.caption) content = `${deletedMsg.imageMessage.caption} (image)`;
-            else if (deletedMsg.videoMessage?.caption) content = `${deletedMsg.videoMessage.caption} (video)`;
-            else if (deletedMsg.extendedTextMessage?.text) content = deletedMsg.extendedTextMessage.text;
-            else if (deletedMsg.audioMessage) content = "(audio)";
-            else if (deletedMsg.stickerMessage) content = "(sticker)";
+            if (msg?.conversation) content = msg.conversation;
+            else if (msg?.extendedTextMessage?.text) content = msg.extendedTextMessage.text;
+            else if (msg?.imageMessage?.caption) content = msg.imageMessage.caption + " (image)";
+            else if (msg?.videoMessage?.caption) content = msg.videoMessage.caption + " (video)";
+            else if (msg?.audioMessage) content = "[audio]";
+            else if (msg?.stickerMessage) content = "[sticker]";
             else content = "[unsupported media]";
 
-            const sender = key.participant || jid;
-            const timestamp = new Date().toLocaleString();
-            const chatType = jid.endsWith('@g.us') ? 'Group' : 'Private';
-            const logMessage = `⚠️ *[ANTI-DELETE]*\n📅 ${timestamp}\n✍️ Original author: @${sender.split('@')[0]}\n📎 Deleted: ${content}\n📍 Chat: ${chatType}`;
-
-            await sock.sendMessage(global.antideleteOwnerChat, { text: logMessage, mentions: [sender] });
+            try {
+                await global.sock.sendMessage(global.antideleteOwnerChat, {
+                    text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 ${content}`,
+                    mentions: [sender]
+                });
+            } catch (e) {}
+            global._msgCache.delete(id);
+            global._mediaCache.delete(id);
         }
     });
 
-    // ===== 6. GROUP EVENT HANDLER =====
+    // ===== GROUP EVENT HANDLER =====
     sock.ev.on('group-participants.update', async (anu) => {
         const { id, participants, action } = anu;
         try {

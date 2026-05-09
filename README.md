@@ -24,6 +24,12 @@
   <a href="https://dashboard.render.com/static/new">
     <img src="https://img.shields.io/badge/RENDER_DEPLOY-800080?style=for-the-badge&logo=render&logoColor=white" alt="Render Deploy">
   </a>
+  <a href="https://heroku.com/deploy?template=https://github.com/tysavage163/Savage-Tech">
+    <img src="https://img.shields.io/badge/HEROKU_DEPLOY-430098?style=for-the-badge&logo=heroku&logoColor=white" alt="Heroku Deploy">
+  </a>
+  <a href="https://app.koyeb.com/deploy?type=git&repository=github.com/tysavage163/Savage-Tech&branch=main">
+    <img src="https://img.shields.io/badge/KOYEB_DEPLOY-00A67C?style=for-the-badge&logo=koyeb&logoColor=white" alt="Koyeb Deploy">
+  </a>
 </p>
 
 ---

@@ -282,7 +282,7 @@ const server = http.createServer(async (req, res) => {
         <div class="stat-card"><div class="stat-label">NODE.JS</div><div class="stat-value">${nodeVer}</div></div>
         <div class="stat-card"><div class="stat-label">COMMANDS</div><div class="stat-value">${commandsCount}</div></div>
         <div class="stat-card"><div class="stat-label">MEMORY</div><div class="stat-value">${usedMem} / ${totalMem} MB</div></div>
-        <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value">🔴 PREDATORY</div></div>
+        <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value">⭕️㊗️ PREDATORY</div></div>
     </div>
     <div class="quote">${randomQuote}</div>
     <div class="contact"><a href="https://wa.me/254798841125" target="_blank">⌨️ CONTACT DEVELOPER</a></div>

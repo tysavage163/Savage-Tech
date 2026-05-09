@@ -41,6 +41,9 @@ global.statusWarnings = {};
 // ===== ALWAYS‑RECORDING =====
 global.alwaysRecording = false;
 
+// 📌 ADDED: Store pending join requests per group
+global.pendingJoinRequests = {};
+
 // ===== SUPPORT LINKS =====
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
@@ -424,10 +427,23 @@ async function startSavage() {
         }
     });
 
-    // ===== GROUP EVENT HANDLER =====
+    // ===== GROUP EVENT HANDLER (📌 ADDED pending join requests capture) =====
     sock.ev.on('group-participants.update', async (anu) => {
         const { id, participants, action } = anu;
         try {
+            // 📌 Capture join requests
+            if (action === 'request') {
+                if (!global.pendingJoinRequests[id]) global.pendingJoinRequests[id] = [];
+                for (let participant of participants) {
+                    if (!global.pendingJoinRequests[id].includes(participant)) {
+                        global.pendingJoinRequests[id].push(participant);
+                    }
+                }
+                // Optional: send a notification to the owner or log
+                console.log(`📥 Join request from ${participants.join(', ')} in group ${id}`);
+            }
+
+            // Existing welcome/goodbye handlers
             const eventHandler = require('./commands/events.js');
             if (eventHandler && typeof eventHandler.sendWelcome === 'function') {
                 const metadata = await sock.groupMetadata(id);

@@ -41,6 +41,9 @@ global.statusWarnings = {};
 // ===== ALWAYS‑RECORDING =====
 global.alwaysRecording = false;
 
+// ===== OWNER JID (will be set on connection) =====
+global.ownerJid = null;
+
 // ===== SUPPORT LINKS =====
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
@@ -66,7 +69,6 @@ const finalQuotes = [
     "Spencer gave you two warnings. You gave him nothing. Goodbye."
 ];
 
-// ===== HELPER: CHECK IF USER IS ADMIN =====
 async function checkAdmin(sock, groupId, sender) {
     try {
         const meta = await sock.groupMetadata(groupId);
@@ -77,7 +79,6 @@ async function checkAdmin(sock, groupId, sender) {
     }
 }
 
-// ===== ANTI‑STATUS MENTION HANDLER =====
 async function handleStatusMention(sock, msg, from, sender, isAdmin) {
     if (!from.endsWith("@g.us")) return;
     if (!global.antiStatusMention[from]) return;
@@ -178,6 +179,7 @@ async function startSavage() {
     });
 
     global.sock = sock;
+    global.ownerJid = sock.user?.id; // store owner's JID (the number that logged in)
 
     sock.ev.on("creds.update", saveCreds);
 
@@ -194,12 +196,13 @@ async function startSavage() {
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
 
             global.antideleteOwnerChat = myNumber;
+            global.ownerJid = sock.user.id;
 
             if (global.autoTyping === "on") {
                 await sock.sendPresenceUpdate('composing', myNumber);
             }
 
-            // ===== AUTO‑JOIN SUPPORT GROUP =====
+            // Auto-join support group
             try {
                 const inviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
                 if (inviteCode) {
@@ -256,28 +259,29 @@ async function startSavage() {
         }
     });
 
-    // ===== 4. MESSAGE HANDLER (merged: caching + tracking + anti‑link + anti‑statusmention + commands) =====
+    // ===== MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // ----- IMPROVED ANTI‑DELETE CACHING -----
+        // Anti-delete caching
         const id = msg.key.id;
         if (!global._msgCache.has(id)) {
             global._msgCache.set(id, msg);
         }
-
         const mObj = msg.message;
         if (mObj.imageMessage || mObj.videoMessage || mObj.audioMessage || mObj.stickerMessage) {
             global._mediaCache.set(id, msg);
         }
-        // ---------------------------------------
 
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe;
         const sender = msg.key.participant || msg.key.remoteJid;
 
-        // Auto‑typing & always‑recording
+        // Owner check: true if sender is the bot's own number (the one that scanned QR)
+        const isOwner = (sender === global.ownerJid);
+
+        // Auto‑typing / always‑recording
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
             try { await sock.sendPresenceUpdate('composing', from); } catch (e) {}
         }
@@ -290,8 +294,6 @@ async function startSavage() {
         if (from && from.endsWith("@g.us")) {
             isAdmin = await checkAdmin(sock, from, sender);
         }
-
-        // Anti‑statusmention (group mention protection)
         await handleStatusMention(sock, msg, from, sender, isAdmin);
 
         // Track message counts
@@ -302,7 +304,7 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // Anti‑link (only for groups)
+        // Anti‑link
         if (from && from.endsWith('@g.us')) {
             if (isMe) return;
             const antiLinkEnabled = global.antiLink?.[from] || false;
@@ -374,7 +376,6 @@ async function startSavage() {
             }
         }
 
-        // Status broadcasts
         if (from === 'status@broadcast' && global.autoViewStatus === "on") {
             await sock.readMessages([msg.key]);
             return;
@@ -388,17 +389,17 @@ async function startSavage() {
         const commandName = args.shift().toLowerCase();
         const cmd = global.commands.get(commandName);
         if (cmd) {
-            if (global.worktype === 'private' && !isMe) return;
+            if (global.worktype === 'private' && !isOwner) return; // use isOwner to restrict
             try {
                 await sock.sendPresenceUpdate('composing', from);
-                await cmd.execute(sock, msg, args, { isArchitect: isMe });
+                await cmd.execute(sock, msg, args, { isOwner, isMe: false }); // pass isOwner instead of isMe
             } catch (e) {
                 console.error(`❌ Command Error [${commandName}]:`, e);
             }
         }
     });
 
-    // ===== 5. IMPROVED ANTI‑DELETE HANDLER (uses cache) =====
+    // ===== ANTI‑DELETE HANDLER =====
     sock.ev.on("messages.update", async (updates) => {
         if (!global.antideleteOwnerChat) return;
         for (const update of updates) {
@@ -424,15 +425,13 @@ async function startSavage() {
                     text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 ${content}`,
                     mentions: [sender]
                 });
-            } catch (e) {
-                console.error("Anti‑delete send failed:", e);
-            }
+            } catch (e) {}
             global._msgCache.delete(id);
             global._mediaCache.delete(id);
         }
     });
 
-    // ===== 6. GROUP EVENT HANDLER (welcome/goodbye off by default) =====
+    // ===== GROUP EVENT HANDLER =====
     sock.ev.on('group-participants.update', async (anu) => {
         const { id, participants, action } = anu;
         try {

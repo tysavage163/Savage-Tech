@@ -44,9 +44,9 @@ global.alwaysRecording = false;
 global.pendingJoinRequests = {};
 
 // ===== NEW FEATURES =====
-global.sudoUsers = new Set();               // sudo user JIDs
-global.antiCall = { mode: 'off', message: null };   // off / decline / block
-global.antiEditEnabled = true;              // anti-edit toggle
+global.sudoUsers = new Set();
+global.antiCall = { mode: 'off', message: null };
+global.antiEditEnabled = true;
 
 // ===== SUPPORT LINKS =====
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
@@ -421,16 +421,15 @@ async function startSavage() {
         const commandName = args.shift().toLowerCase();
         const cmd = global.commands.get(commandName);
         if (cmd) {
-            // Determine if sender is owner or sudo
+            // Determine if sender is owner (by comparing phone number without device ID)
             const botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
             const isOwner = (sender === botNumber);
-            const isSudo = global.sudoUsers && global.sudoUsers.has(sender);
+            const isSudo = global.sudoUsers.has(sender);
             const isAuthorized = isOwner || isSudo;
-            // Private mode blocks non‑authorized users
+            // For compatibility, set isMe = isAuthorized for commands that check isMe
             if (global.worktype === 'private' && !isAuthorized) return;
             try {
                 await sock.sendPresenceUpdate('composing', from);
-                // Pass isMe = true for owner or sudo
                 await cmd.execute(sock, msg, args, { isArchitect, isMe: isAuthorized });
             } catch (e) {
                 console.error(`❌ Command Error [${commandName}]:`, e);

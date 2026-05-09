@@ -69,6 +69,7 @@ const finalQuotes = [
     "Spencer gave you two warnings. You gave him nothing. Goodbye."
 ];
 
+// ===== HELPER: CHECK IF USER IS ADMIN =====
 async function checkAdmin(sock, groupId, sender) {
     try {
         const meta = await sock.groupMetadata(groupId);
@@ -79,6 +80,7 @@ async function checkAdmin(sock, groupId, sender) {
     }
 }
 
+// ===== ANTI‑STATUS MENTION HANDLER =====
 async function handleStatusMention(sock, msg, from, sender, isAdmin) {
     if (!from.endsWith("@g.us")) return;
     if (!global.antiStatusMention[from]) return;
@@ -179,7 +181,6 @@ async function startSavage() {
     });
 
     global.sock = sock;
-    global.ownerJid = sock.user?.id; // store owner's JID (the number that logged in)
 
     sock.ev.on("creds.update", saveCreds);
 
@@ -277,9 +278,8 @@ async function startSavage() {
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe;
         const sender = msg.key.participant || msg.key.remoteJid;
-
-        // Owner check: true if sender is the bot's own number (the one that scanned QR)
-        const isOwner = (sender === global.ownerJid);
+        const botId = sock.user?.id;
+        const isOwner = (sender === botId);   // ✅ FIX: true when the sender is the bot's owner
 
         // Auto‑typing / always‑recording
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
@@ -389,10 +389,11 @@ async function startSavage() {
         const commandName = args.shift().toLowerCase();
         const cmd = global.commands.get(commandName);
         if (cmd) {
-            if (global.worktype === 'private' && !isOwner) return; // use isOwner to restrict
+            if (global.worktype === 'private' && !isOwner) return;
             try {
                 await sock.sendPresenceUpdate('composing', from);
-                await cmd.execute(sock, msg, args, { isOwner, isMe: false }); // pass isOwner instead of isMe
+                // Pass isMe as the owner flag (so commands using !isMe will work)
+                await cmd.execute(sock, msg, args, { isArchitect: isOwner, isMe: isOwner });
             } catch (e) {
                 console.error(`❌ Command Error [${commandName}]:`, e);
             }

@@ -44,7 +44,7 @@ global.alwaysRecording = false;
 global.pendingJoinRequests = {};
 
 // ===== NEW FEATURES =====
-global.sudoUsers = new Set();
+global.sudoUsers = new Set();               // sudo user JIDs
 global.antiCall = { mode: 'off', message: null };
 global.antiEditEnabled = true;
 
@@ -421,16 +421,15 @@ async function startSavage() {
         const commandName = args.shift().toLowerCase();
         const cmd = global.commands.get(commandName);
         if (cmd) {
-            // Determine if sender is owner (by comparing phone number without device ID)
+            // Compute `isMe` as true for owner (sender matches bot number) or sudo user
             const botNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-            const isOwner = (sender === botNumber);
-            const isSudo = global.sudoUsers.has(sender);
-            const isAuthorized = isOwner || isSudo;
-            // For compatibility, set isMe = isAuthorized for commands that check isMe
-            if (global.worktype === 'private' && !isAuthorized) return;
+            const isOwnerOrSudo = (sender === botNumber) || global.sudoUsers.has(sender);
+            // Keep original isArchitect for backward compatibility
+            if (global.worktype === 'private' && !isOwnerOrSudo) return;
             try {
                 await sock.sendPresenceUpdate('composing', from);
-                await cmd.execute(sock, msg, args, { isArchitect, isMe: isAuthorized });
+                // Pass isMe = isOwnerOrSudo so owner/sudo commands that check `isMe` will work
+                await cmd.execute(sock, msg, args, { isArchitect, isMe: isOwnerOrSudo });
             } catch (e) {
                 console.error(`❌ Command Error [${commandName}]:`, e);
             }

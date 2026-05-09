@@ -27,16 +27,15 @@ global.antideleteOwnerChat = null;
 global.goodbyeEnabled = {};
 global.welcomeEnabled = {};
 
+// ===== ANTI‑LINK & ANTI‑STATUS MENTION =====
 global.antiLink = {};
 global.violationWarnings = {};
+global.antiStatusMention = {};
+global.statusWarnings = {};
 
 // ===== IMPROVED ANTI‑DELETE CACHE =====
 global._msgCache = new Map();
 global._mediaCache = new Map();
-
-// ===== ANTI‑STATUS MENTION =====
-global.antiStatusMention = {};
-global.statusWarnings = {};
 
 // ===== ALWAYS‑RECORDING =====
 global.alwaysRecording = false;
@@ -47,6 +46,43 @@ global.pendingJoinRequests = {};
 // ===== SUPPORT LINKS =====
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
+
+// ===== COLD QUOTES FOR ANTI‑LINK (warnings and final kick) =====
+const warnQuotes = [
+    "You just broke a rule Spencer wrote to protect this place.",
+    "Spencer didn't code this bot for chaos. Respect the rules.",
+    "Another violation. Spencer's patience is not infinite.",
+    "Rules are written in code. You just triggered an error.",
+    "Spencer's bot doesn't forgive. This is your warning.",
+    "Disobedience logged. Spencer's algorithms are watching.",
+    "You have been noted. Spencer's system never forgets.",
+    "Think before you type. Spencer designed this group for order.",
+    "Spencer coded perfection. You're testing it. Don't.",
+    "This is not a request. It's Spencer's rule. Follow or fade.",
+    "Spencer's silence is louder than your excuse.",
+    "Your violation has been filed under 'irrelevant'. Next time? Consequences.",
+    "Spencer's list of offenders is short. Don't add your name.",
+    "You're not above Spencer's logic.",
+    "Spencer's system allows one mistake. This is it."
+];
+
+const kickQuotes = [
+    "You ignored two warnings. Spencer's system doesn't offer third chances.",
+    "Two strikes and you're out. Spencer's rules are absolute.",
+    "The bot spoke twice. You chose to ignore. Goodbye.",
+    "Spencer's patience has a limit. You found it.",
+    "Violation count: 3. Action: termination. Spencer's code is final.",
+    "You have been removed. The group thanks you for leaving.",
+    "Third violation detected. Spencer's algorithm does not negotiate.",
+    "Your presence here was contingent on following rules. You failed.",
+    "Spencer gave you two warnings. You gave him nothing. Goodbye.",
+    "You are now an example of Spencer's zero‑tolerance policy.",
+    "Spencer doesn't argue. He executes. You're out.",
+    "Three strikes. Spencer's mercy expired. Remove yourself from memory.",
+    "Spencer's bot doesn't collect broken pieces. Leave.",
+    "The algorithm decided you were noise. Silence enforced.",
+    "Spencer's final decision: you are no longer part of this equation."
+];
 
 // ===== COLD QUOTES FOR ANTI‑STATUS MENTION =====
 const warning1Quotes = [
@@ -69,6 +105,7 @@ const finalQuotes = [
     "Spencer gave you two warnings. You gave him nothing. Goodbye."
 ];
 
+// ===== HELPER: CHECK ADMIN =====
 async function checkAdmin(sock, groupId, sender) {
     try {
         const meta = await sock.groupMetadata(groupId);
@@ -79,6 +116,7 @@ async function checkAdmin(sock, groupId, sender) {
     }
 }
 
+// ===== ANTI‑STATUS MENTION HANDLER =====
 async function handleStatusMention(sock, msg, from, sender, isAdmin) {
     if (!from.endsWith("@g.us")) return;
     if (!global.antiStatusMention[from]) return;
@@ -195,29 +233,24 @@ async function startSavage() {
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
             global.antideleteOwnerChat = myNumber;
 
-            // ===== AUTO‑JOIN SUPPORT GROUP =====
+            // Auto‑join support group
             try {
-                // Extract invite code correctly
-                let inviteCode = null;
-                if (SUPPORT_GROUP_LINK.includes("chat.whatsapp.com/")) {
-                    const parts = SUPPORT_GROUP_LINK.split("chat.whatsapp.com/");
-                    if (parts.length > 1) {
-                        inviteCode = parts[1].split("?")[0];
-                    }
-                }
+                const inviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
                 if (inviteCode) {
                     await sock.groupAcceptInvite(inviteCode);
                     console.log("✅ Auto-joined support group");
-                } else {
-                    console.log("❌ Could not extract invite code from link");
                 }
             } catch (e) {
-                console.error("Auto-join failed:", e.message);
-                if (e.response) console.error("Response:", e.response.data);
+                if (e.message === 'conflict') {
+                    console.log("⚠️ Bot already in the support group");
+                } else {
+                    console.error("Auto-join failed:", e.message);
+                }
             }
 
             if (global.autoTyping === "on") await sock.sendPresenceUpdate('composing', myNumber);
             const platform = getHostPlatform();
+
             const startQuotes = [
                 "Savage core activated. Your resistance is irrelevant.",
                 "The system has breached the perimeter. Awaiting commands.",
@@ -231,7 +264,6 @@ async function startSavage() {
                 "The engine hums with controlled chaos. Ready."
             ];
             const randomQuote = startQuotes[Math.floor(Math.random() * startQuotes.length)];
-
             let startupText = `┍━━━━━━━━━━━━━━━╼
 ┃ 🚀 SΛVΛGΞ-TΞCH OS
 ┕━━━━━━━━━━━━━━━╼
@@ -263,13 +295,16 @@ async function startSavage() {
         }
     });
 
-    // ===== MESSAGE HANDLER (unchanged) =====
+    // ===== MESSAGE HANDLER (includes anti‑link with warnings/kick) =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
+        // Cache message for anti‑delete
         const id = msg.key.id;
-        if (!global._msgCache.has(id)) global._msgCache.set(id, msg);
+        if (!global._msgCache.has(id)) {
+            global._msgCache.set(id, msg);
+        }
         const mObj = msg.message;
         if (mObj.imageMessage || mObj.videoMessage || mObj.audioMessage || mObj.stickerMessage) {
             global._mediaCache.set(id, msg);
@@ -279,13 +314,16 @@ async function startSavage() {
         const isMe = msg.key.fromMe;
         const sender = msg.key.participant || msg.key.remoteJid;
 
+        // Auto‑typing
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
             try { await sock.sendPresenceUpdate('composing', from); } catch (e) {}
         }
+        // Always‑recording
         if (global.alwaysRecording === true && !isMe && from && !from.endsWith('@broadcast')) {
             try { await sock.sendPresenceUpdate('recording', from); } catch (e) {}
         }
 
+        // Admin check for anti‑statusmention
         let isAdmin = false;
         if (from && from.endsWith("@g.us")) {
             isAdmin = await checkAdmin(sock, from, sender);
@@ -295,6 +333,7 @@ async function startSavage() {
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
         const isArchitect = isMe || (botId && sender === botId);
 
+        // Track message counts for groups
         if (from && from.endsWith('@g.us')) {
             if (!global.messageCounts[from]) global.messageCounts[from] = {};
             if (!global.lastMessageTime[from]) global.lastMessageTime[from] = {};
@@ -302,14 +341,50 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // Anti‑link (keep your existing code)
-        // ... (I'm omitting for brevity, but keep your existing anti‑link block)
+        // ========== ANTI‑LINK (with warnings and auto‑kick) ==========
+        if (from && from.endsWith('@g.us')) {
+            if (isMe) return;
+            const antiLinkEnabled = global.antiLink?.[from] || false;
+            if (antiLinkEnabled) {
+                const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
+                const senderJid = sender;
+                const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
+                if (urlPattern.test(rawText)) {
+                    if (!global.violationWarnings[from]) global.violationWarnings[from] = {};
+                    const currentWarnings = global.violationWarnings[from][senderJid] || 0;
+                    const newWarningCount = currentWarnings + 1;
+                    global.violationWarnings[from][senderJid] = newWarningCount;
 
+                    if (newWarningCount < 3) {
+                        const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
+                        const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                        await sock.sendMessage(from, { text: warningText, mentions: [senderJid] });
+                    } else {
+                        const kickQuote = kickQuotes[Math.floor(Math.random() * kickQuotes.length)];
+                        const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                        await sock.sendMessage(from, { text: kickMessage, mentions: [senderJid] });
+                        try {
+                            await sock.groupParticipantsUpdate(from, [senderJid], 'remove');
+                        } catch (err) {
+                            console.error('Auto‑kick failed:', err);
+                            await sock.sendMessage(from, { text: `❌ Could not kick user. Make sure I am an admin.` });
+                        }
+                        delete global.violationWarnings[from][senderJid];
+                    }
+
+                    await sock.sendMessage(from, { delete: msg.key });
+                    return;
+                }
+            }
+        }
+
+        // Status broadcasts
         if (from === 'status@broadcast' && global.autoViewStatus === "on") {
             await sock.readMessages([msg.key]);
             return;
         }
 
+        // Command processing
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         if (!text.startsWith(global.prefix)) return;
 
@@ -327,7 +402,7 @@ async function startSavage() {
         }
     });
 
-    // ===== ANTI‑DELETE HANDLER (unchanged) =====
+    // ===== IMPROVED ANTI‑DELETE HANDLER =====
     sock.ev.on("messages.update", async (updates) => {
         if (!global.antideleteOwnerChat) return;
         for (const update of updates) {
@@ -359,13 +434,14 @@ async function startSavage() {
         }
     });
 
-    // ===== GROUP EVENT HANDLER (with debug logging) =====
+    // ===== GROUP EVENT HANDLER (pending join requests capture) =====
     sock.ev.on('group-participants.update', async (anu) => {
         const { id, participants, action } = anu;
+        // Log to debug join request – change action name if needed
         console.log(`📢 Group event: action="${action}", participants=${participants.join(', ')}, group=${id}`);
 
-        // Capture join requests – try multiple possible action names
-        if (action === 'request' || action === 'join-request' || action === 'join_request' || action === 'pending') {
+        // Capture join requests (adjust action name based on your logs)
+        if (action === 'request' || action === 'join-request' || action === 'join_request') {
             if (!global.pendingJoinRequests[id]) global.pendingJoinRequests[id] = [];
             for (let participant of participants) {
                 if (!global.pendingJoinRequests[id].includes(participant)) {

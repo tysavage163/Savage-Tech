@@ -47,7 +47,7 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== COLD QUOTES FOR ANTI‑LINK (warnings and final kick) =====
+// ===== COLD QUOTES FOR ANTI‑LINK =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -105,7 +105,6 @@ const finalQuotes = [
     "Spencer gave you two warnings. You gave him nothing. Goodbye."
 ];
 
-// ===== HELPER: CHECK ADMIN =====
 async function checkAdmin(sock, groupId, sender) {
     try {
         const meta = await sock.groupMetadata(groupId);
@@ -116,7 +115,6 @@ async function checkAdmin(sock, groupId, sender) {
     }
 }
 
-// ===== ANTI‑STATUS MENTION HANDLER =====
 async function handleStatusMention(sock, msg, from, sender, isAdmin) {
     if (!from.endsWith("@g.us")) return;
     if (!global.antiStatusMention[from]) return;
@@ -218,6 +216,15 @@ async function startSavage() {
 
     global.sock = sock;
 
+    // ===== KEEP‑ALIVE PING (prevents connection closure) =====
+    setInterval(async () => {
+        if (global.sock && global.sock.user) {
+            try {
+                await global.sock.sendPresenceUpdate('available', global.sock.user.id);
+            } catch (e) {}
+        }
+    }, 30000);
+
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", async (update) => {
@@ -295,7 +302,7 @@ async function startSavage() {
         }
     });
 
-    // ===== MESSAGE HANDLER (includes anti‑link with warnings/kick) =====
+    // ===== MESSAGE HANDLER (includes anti‑link) =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
@@ -314,11 +321,10 @@ async function startSavage() {
         const isMe = msg.key.fromMe;
         const sender = msg.key.participant || msg.key.remoteJid;
 
-        // Auto‑typing
+        // Auto‑typing / always‑recording
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
             try { await sock.sendPresenceUpdate('composing', from); } catch (e) {}
         }
-        // Always‑recording
         if (global.alwaysRecording === true && !isMe && from && !from.endsWith('@broadcast')) {
             try { await sock.sendPresenceUpdate('recording', from); } catch (e) {}
         }
@@ -341,7 +347,7 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ========== ANTI‑LINK (with warnings and auto‑kick) ==========
+        // ========== ANTI‑LINK ==========
         if (from && from.endsWith('@g.us')) {
             if (isMe) return;
             const antiLinkEnabled = global.antiLink?.[from] || false;
@@ -378,13 +384,11 @@ async function startSavage() {
             }
         }
 
-        // Status broadcasts
         if (from === 'status@broadcast' && global.autoViewStatus === "on") {
             await sock.readMessages([msg.key]);
             return;
         }
 
-        // Command processing
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         if (!text.startsWith(global.prefix)) return;
 
@@ -402,12 +406,16 @@ async function startSavage() {
         }
     });
 
-    // ===== IMPROVED ANTI‑DELETE HANDLER =====
+    // ===== FIXED ANTI‑DELETE HANDLER (only on actual deletions) =====
     sock.ev.on("messages.update", async (updates) => {
         if (!global.antideleteOwnerChat) return;
         for (const update of updates) {
-            const id = update.key?.id;
-            if (!id) continue;
+            // Check if this update contains a deletion (i.e., a 'message' object)
+            const deletedMsg = update.update?.message;
+            if (!deletedMsg) continue; // Not a deletion
+
+            const key = update.key;
+            const id = key.id;
             const cached = global._msgCache.get(id);
             if (!cached) continue;
             if (cached.key?.fromMe) continue;
@@ -434,13 +442,12 @@ async function startSavage() {
         }
     });
 
-    // ===== GROUP EVENT HANDLER (pending join requests capture) =====
+    // ===== GROUP EVENT HANDLER =====
     sock.ev.on('group-participants.update', async (anu) => {
         const { id, participants, action } = anu;
-        // Log to debug join request – change action name if needed
         console.log(`📢 Group event: action="${action}", participants=${participants.join(', ')}, group=${id}`);
 
-        // Capture join requests (adjust action name based on your logs)
+        // Capture join requests
         if (action === 'request' || action === 'join-request' || action === 'join_request') {
             if (!global.pendingJoinRequests[id]) global.pendingJoinRequests[id] = [];
             for (let participant of participants) {
@@ -451,7 +458,7 @@ async function startSavage() {
             }
         }
 
-        // Existing welcome/goodbye handlers
+        // Welcome / goodbye handlers
         try {
             const eventHandler = require('./commands/events.js');
             if (eventHandler && typeof eventHandler.sendWelcome === 'function') {

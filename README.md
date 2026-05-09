@@ -30,6 +30,9 @@
   <a href="https://app.koyeb.com/deploy?type=git&repository=github.com/tysavage163/Savage-Tech&branch=main">
     <img src="https://img.shields.io/badge/KOYEB_DEPLOY-00A67C?style=for-the-badge&logo=koyeb&logoColor=white" alt="Koyeb Deploy">
   </a>
+  <a href="https://katabump.com">
+    <img src="https://img.shields.io/badge/KATABUMP_DEPLOY-FF4500?style=for-the-badge&logo=katacoda&logoColor=white" alt="Katabump Deploy">
+  </a>
 </p>
 
 ---

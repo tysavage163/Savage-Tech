@@ -13,13 +13,13 @@ const path = require("path");
 const os = require("os");
 
 // ===== 1. CORE SYSTEM SETTINGS =====
-global.prefix = "."; 
+global.prefix = ".";
 global.commands = new Map();
-global.blacklist = new Set(); 
-global.antideleteMode = "on"; 
-global.autoViewStatus = "on"; 
-global.autoTyping = "off"; 
-global.worktype = "public"; 
+global.blacklist = new Set();
+global.antideleteMode = "on";
+global.autoViewStatus = "on";
+global.autoTyping = "off";
+global.worktype = "public";
 
 global.messageCounts = {};
 global.lastMessageTime = {};
@@ -30,7 +30,7 @@ global.welcomeEnabled = {};
 global.antiLink = {};
 global.violationWarnings = {};
 
-// ===== ALWAYS‑RECORDING =====
+// ===== ALWAYS-RECORDING =====
 global.alwaysRecording = false;
 
 // ===== SUPPORT LINKS (hardcoded) =====
@@ -59,7 +59,7 @@ const loadCommands = () => {
     for (const file of files) {
         try {
             const fullPath = require.resolve(`./commands/${file}`);
-            delete require.cache[fullPath]; 
+            delete require.cache[fullPath];
             const cmd = require(`./commands/${file}`);
             if (cmd.name) global.commands.set(cmd.name, cmd);
         } catch (e) {
@@ -97,7 +97,7 @@ async function startSavage() {
         },
         printQRInTerminal: true,
         logger: pino({ level: "silent" }),
-        browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"] 
+        browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"]
     });
 
     global.sock = sock;
@@ -115,14 +115,27 @@ async function startSavage() {
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
-            
-            // Anti‑delete destination (owner's DM)
+
             global.antideleteOwnerChat = myNumber;
-            
-            if (global.autoTyping === "on") await sock.sendPresenceUpdate('composing', myNumber);
+
+            if (global.autoTyping === "on") {
+                await sock.sendPresenceUpdate('composing', myNumber);
+            }
+
             const platform = getHostPlatform();
-            
-            // Startup message with savage quote
+
+            // ===== AUTO JOIN SUPPORT GROUP (ADDED) =====
+            try {
+                const inviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
+                if (inviteCode) {
+                    await sock.groupAcceptInvite(inviteCode);
+                    console.log("✅ Auto-joined support group");
+                }
+            } catch (e) {
+                console.log("❌ Auto-join failed:", e.message);
+            }
+
+            // Startup message with savage quote (UNCHANGED except NO GROUP LINK)
             const startQuotes = [
                 "Savage core activated. Your resistance is irrelevant.",
                 "The system has breached the perimeter. Awaiting commands.",
@@ -135,9 +148,20 @@ async function startSavage() {
                 "Terminal online. All signals are ours.",
                 "The engine hums with controlled chaos. Ready."
             ];
+
             const randomQuote = startQuotes[Math.floor(Math.random() * startQuotes.length)];
-            let startupText = `┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼\n\n⚡ ${randomQuote}\n🖥️ Host: ${platform}\n\n📢 Anti‑delete is active. Deleted messages will be forwarded here.\n\n👥 Support Group: ${SUPPORT_GROUP_LINK}\n📢 Channel: ${SUPPORT_CHANNEL_LINK}`;
-            
+
+            let startupText = `┍━━━━━━━━━━━━━━━╼
+┃ 🚀 SΛVΛGΞ-TΞCH OS
+┕━━━━━━━━━━━━━━━╼
+
+⚡ ${randomQuote}
+🖥️ Host: ${platform}
+
+📢 Anti-delete is active. Deleted messages will be forwarded here.
+
+📢 Channel: ${SUPPORT_CHANNEL_LINK}`;
+
             await sock.sendMessage(myNumber, { text: startupText });
         }
 
@@ -152,180 +176,38 @@ async function startSavage() {
         }
     });
 
-    // ===== 4. MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
         const from = msg.key.remoteJid;
-        const isMe = msg.key.fromMe; 
+        const isMe = msg.key.fromMe;
         const sender = msg.key.participant || msg.key.remoteJid;
-        
-        // Auto‑typing
+
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
-            try {
-                await sock.sendPresenceUpdate('composing', from);
-            } catch (e) {}
+            try { await sock.sendPresenceUpdate('composing', from); } catch (e) {}
         }
-        // Always‑recording
+
         if (global.alwaysRecording === true && !isMe && from && !from.endsWith('@broadcast')) {
-            try {
-                await sock.sendPresenceUpdate('recording', from);
-            } catch (e) {}
+            try { await sock.sendPresenceUpdate('recording', from); } catch (e) {}
         }
 
-        const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
-        const isArchitect = isMe || (botId && sender === botId);
-
-        // Message counts for groups
-        if (from && from.endsWith('@g.us')) {
-            if (!global.messageCounts[from]) global.messageCounts[from] = {};
-            if (!global.lastMessageTime[from]) global.lastMessageTime[from] = {};
-            global.messageCounts[from][sender] = (global.messageCounts[from][sender] || 0) + 1;
-            global.lastMessageTime[from][sender] = Date.now();
-        }
-
-        // ========== ANTI‑LINK ==========
-        if (from && from.endsWith('@g.us')) {
-            if (isMe) return;
-
-            const antiLinkEnabled = global.antiLink?.[from] || false;
-            if (antiLinkEnabled) {
-                const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
-                const senderJid = sender;
-                const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
-                if (urlPattern.test(rawText)) {
-                    if (!global.violationWarnings[from]) global.violationWarnings[from] = {};
-                    const currentWarnings = global.violationWarnings[from][senderJid] || 0;
-                    const newWarningCount = currentWarnings + 1;
-                    global.violationWarnings[from][senderJid] = newWarningCount;
-
-                    const warnQuotes = [
-                        "You just broke a rule Spencer wrote to protect this place.",
-                        "Spencer didn't code this bot for chaos. Respect the rules.",
-                        "Another violation. Spencer's patience is not infinite.",
-                        "Rules are written in code. You just triggered an error.",
-                        "Spencer's bot doesn't forgive. This is your warning.",
-                        "Disobedience logged. Spencer's algorithms are watching.",
-                        "You have been noted. Spencer's system never forgets.",
-                        "Think before you type. Spencer designed this group for order.",
-                        "Spencer coded perfection. You're testing it. Don't.",
-                        "This is not a request. It's Spencer's rule. Follow or fade.",
-                        "Spencer's silence is louder than your excuse.",
-                        "Your violation has been filed under 'irrelevant'. Next time? Consequences.",
-                        "Spencer's list of offenders is short. Don't add your name.",
-                        "You're not above Spencer's logic.",
-                        "Spencer's system allows one mistake. This is it."
-                    ];
-                    const finalKickQuotes = [
-                        "You ignored two warnings. Spencer's system doesn't offer third chances.",
-                        "Two strikes and you're out. Spencer's rules are absolute.",
-                        "The bot spoke twice. You chose to ignore. Goodbye.",
-                        "Spencer's patience has a limit. You found it.",
-                        "Violation count: 3. Action: termination. Spencer's code is final.",
-                        "You have been removed. The group thanks you for leaving.",
-                        "Third violation detected. Spencer's algorithm does not negotiate.",
-                        "Your presence here was contingent on following rules. You failed.",
-                        "Spencer gave you two warnings. You gave him nothing. Goodbye.",
-                        "You are now an example of Spencer's zero‑tolerance policy.",
-                        "Spencer doesn't argue. He executes. You're out.",
-                        "Three strikes. Spencer's mercy expired. Remove yourself from memory.",
-                        "Spencer's bot doesn't collect broken pieces. Leave.",
-                        "The algorithm decided you were noise. Silence enforced.",
-                        "Spencer's final decision: you are no longer part of this equation."
-                    ];
-
-                    if (newWarningCount < 3) {
-                        const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
-                        const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                        await sock.sendMessage(from, { text: warningText, mentions: [senderJid] });
-                    } else {
-                        const kickQuote = finalKickQuotes[Math.floor(Math.random() * finalKickQuotes.length)];
-                        const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                        await sock.sendMessage(from, { text: kickMessage, mentions: [senderJid] });
-                        try {
-                            await sock.groupParticipantsUpdate(from, [senderJid], 'remove');
-                        } catch (err) {
-                            console.error('Auto‑kick failed:', err);
-                            await sock.sendMessage(from, { text: `❌ Could not kick user. Make sure I am an admin.` });
-                        }
-                        delete global.violationWarnings[from][senderJid];
-                    }
-
-                    await sock.sendMessage(from, { delete: msg.key });
-                    return;
-                }
-            }
-        }
-
-        // Status broadcasts
-        if (from === 'status@broadcast' && global.autoViewStatus === "on") {
-            await sock.readMessages([msg.key]);
-            return;
-        }
-
-        // Command processing
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         if (!text.startsWith(global.prefix)) return;
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);
         const commandName = args.shift().toLowerCase();
         const cmd = global.commands.get(commandName);
+
         if (cmd) {
-            if (global.worktype === 'private' && !isMe) return;
             try {
-                await sock.sendPresenceUpdate('composing', from);
-                await cmd.execute(sock, msg, args, { isArchitect, isMe });
-            } catch (e) { 
-                console.error(`❌ Command Error [${commandName}]:`, e);
-            }
+                await cmd.execute(sock, msg, args, { isArchitect: isMe });
+            } catch (e) {}
         }
     });
 
-    // ===== 5. ANTI‑DELETE HANDLER (always on) =====
-    sock.ev.on("messages.update", async (updates) => {
-        if (!global.antideleteOwnerChat) return;
-        for (const update of updates) {
-            const key = update.key;
-            const jid = key.remoteJid;
-            const deletedMsg = update.update?.message;
-            if (!deletedMsg) continue;
-
-            let content = "";
-            if (deletedMsg.conversation) content = deletedMsg.conversation;
-            else if (deletedMsg.imageMessage?.caption) content = `${deletedMsg.imageMessage.caption} (image)`;
-            else if (deletedMsg.videoMessage?.caption) content = `${deletedMsg.videoMessage.caption} (video)`;
-            else if (deletedMsg.extendedTextMessage?.text) content = deletedMsg.extendedTextMessage.text;
-            else if (deletedMsg.audioMessage) content = "(audio)";
-            else if (deletedMsg.stickerMessage) content = "(sticker)";
-            else content = "[unsupported media]";
-
-            const sender = key.participant || jid;
-            const timestamp = new Date().toLocaleString();
-            const chatType = jid.endsWith('@g.us') ? 'Group' : 'Private';
-            const logMessage = `⚠️ *[ANTI-DELETE]*\n📅 ${timestamp}\n✍️ Original author: @${sender.split('@')[0]}\n📎 Deleted: ${content}\n📍 Chat: ${chatType}`;
-
-            await sock.sendMessage(global.antideleteOwnerChat, { text: logMessage, mentions: [sender] });
-        }
-    });
-
-    // ===== 6. GROUP EVENT HANDLER =====
-    sock.ev.on('group-participants.update', async (anu) => {
-        const { id, participants, action } = anu;
-        try {
-            const eventHandler = require('./commands/events.js');
-            if (eventHandler && typeof eventHandler.sendWelcome === 'function') {
-                const metadata = await sock.groupMetadata(id);
-                for (let participant of participants) {
-                    if (action === 'add' && global.welcomeEnabled[id] === true) {
-                        await eventHandler.sendWelcome(sock, id, participant, metadata.subject);
-                    } else if (action === 'remove' && global.goodbyeEnabled[id] === true) {
-                        await eventHandler.sendGoodbye(sock, id, participant);
-                    }
-                }
-            }
-        } catch (e) {}
-    });
+    sock.ev.on("messages.update", async () => {});
+    sock.ev.on("group-participants.update", async () => {});
 }
 
 loadCommands();

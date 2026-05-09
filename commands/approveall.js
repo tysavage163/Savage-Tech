@@ -31,7 +31,6 @@ module.exports = {
                 failed++;
             }
         }
-        // Clear the pending list for this group
         delete global.pendingJoinRequests[from];
 
         await sock.sendMessage(from, { text: `✅ Approved ${approved} join requests.\n❌ Failed: ${failed}` });

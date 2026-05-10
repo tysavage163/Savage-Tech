@@ -39,6 +39,7 @@ module.exports = {
                 let jid = p.id;
                 let phone = jid.split('@')[0].replace(/[^0-9]/g, '');
                 if (!phone) continue;
+                phone = '+' + phone;
                 let name = p.notify || phone;
                 name = name.trim() || phone;
                 contacts.push({ name, phone });

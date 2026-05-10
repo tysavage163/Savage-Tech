@@ -274,25 +274,25 @@ async function startSavage() {
             const cmdCount = global.commands.size;
             const activeTime = new Date().toLocaleString();
 
-            // ===== NEW STARTUP MESSAGE (dashboard with progress bar) =====
-            let startupText = `════════════════════════════════════════
-          SAVAGE-TECH DASHBOARD          
-════════════════════════════════════════
-👑 Spencer               💻 ${platform}
-📦 ${cmdCount} commands loaded
-🕒 Active: ${activeTime}
-🔄 [████████████████████] Awaiting commands
-🛡️ Anti‑delete: ✅ ON
-────────────────────────────────────────
-📌 CHANNEL BENEFITS:
+            // ===== COMPACT STARTUP MESSAGE (with channel benefits) =====
+            let startupText = `┌─────────────────────────┐
+│ ✅ Savage-Tech ONLINE   │
+├─────────────────────────┤
+│ Owner: Spencer          │
+│ Host: ${platform.padEnd(20)}│
+│ Commands: ${cmdCount.toString().padEnd(18)}│
+│ Anti‑delete: ON         │
+├─────────────────────────┤
+│ 💡 .menu for commands   │
+└─────────────────────────┘
+
+📌 WHY JOIN OUR CHANNEL?
 🔹 Bot updates & new features
 🔹 Security patches & bug fixes
 🔹 Command changes & removals
 🔹 Sneak peeks & giveaways
-────────────────────────────────────────
-🔗 ${SUPPORT_CHANNEL_LINK}
-💡 .menu → explore commands
-════════════════════════════════════════`;
+
+🔗 ${SUPPORT_CHANNEL_LINK}`;
 
             await sock.sendMessage(myNumber, { text: startupText });
         }

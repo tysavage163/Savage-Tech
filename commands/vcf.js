@@ -3,7 +3,7 @@
 module.exports = {
     category: 'group',
     name: 'vcf',
-    description: 'Export group contacts as VCF',
+    description: 'Export group contacts into VCF',
 
     async execute(sock, msg, args, { isArchitect }) {
 
@@ -11,7 +11,7 @@ module.exports = {
 
         if (!from.endsWith('@g.us')) {
             return sock.sendMessage(from, {
-                text: '❌ Group only command.'
+                text: '❎ This command can only be used inside groups.'
             });
         }
 
@@ -38,18 +38,18 @@ module.exports = {
                 participant?.admin === 'admin' ||
                 participant?.admin === 'superadmin';
 
-        } catch (e) {
-            console.log(e);
+        } catch (err) {
+            console.log(err);
         }
 
         if (!isAdmin && !isArchitect) {
             return sock.sendMessage(from, {
-                text: '🔒 Admin/Owner only.'
+                text: '🔐 Only admins or bot owner can use this command.'
             });
         }
 
         await sock.sendMessage(from, {
-            text: '📥 Fetching group contacts...'
+            text: '📡 Collecting group members...'
         });
 
         try {
@@ -62,25 +62,23 @@ module.exports = {
 
             if (!participants.length) {
                 return sock.sendMessage(from, {
-                    text: '❌ No participants found.'
+                    text: '⚠️ Group members could not be loaded.'
                 });
             }
 
-            const emojis = [
-                '🐺', '🔥', '⚡', '🛡️', '🎯',
-                '🌙', '💀', '👑', '🦅', '🌟',
-                '🦂', '🐉', '❄️', '🎩', '🏴',
-                '🦎', '💫', '🧨', '🔱', '✨'
+            const symbols = [
+                '⚡', '🔥', '🌙', '🛡️', '👑',
+                '🎯', '🦅', '❄️', '🐉', '✨',
+                '🌟', '💀', '🔱', '🦂', '🏴'
             ];
 
             const contacts = [];
-            const usedNumbers = new Set();
+            const cache = new Set();
 
-            let count = 1;
+            let index = 1;
 
             for (const participant of participants) {
 
-                // IMPORTANT FIX
                 const jid =
                     participant.jid ||
                     participant.id ||
@@ -91,13 +89,11 @@ module.exports = {
                 let number =
                     jid.split('@')[0];
 
-                // remove device suffix
                 if (number.includes(':')) {
                     number =
                         number.split(':')[0];
                 }
 
-                // digits only
                 number =
                     number.replace(/\D/g, '');
 
@@ -108,81 +104,81 @@ module.exports = {
                     continue;
                 }
 
-                // skip duplicates
-                if (usedNumbers.has(number)) {
+                if (cache.has(number)) {
                     continue;
                 }
 
-                usedNumbers.add(number);
+                cache.add(number);
 
-                const emoji =
-                    emojis[
+                const icon =
+                    symbols[
                         Math.floor(
                             Math.random() *
-                            emojis.length
+                            symbols.length
                         )
                     ];
 
                 contacts.push({
-                    username:
-                        `${emoji} Savage Tech ${count}`,
+                    name:
+                        `${icon} Savage Tech ${index}`,
                     phone:
                         `+${number}`
                 });
 
-                count++;
+                index++;
             }
 
             if (!contacts.length) {
                 return sock.sendMessage(from, {
-                    text:
-                        '❌ No valid contacts detected.'
+                    text: '❌ No exportable contacts found.'
                 });
             }
 
-            // BUILD VCF
-            let vcf = '';
+            let vcfData = '';
 
-            for (const contact of contacts) {
+            for (const user of contacts) {
 
-                vcf +=
+                vcfData +=
 `BEGIN:VCARD
 VERSION:3.0
-FN:${contact.username}
-TEL;TYPE=CELL:${contact.phone}
+FN:${user.name}
+TEL;TYPE=CELL:${user.phone}
 END:VCARD
 
 `;
             }
 
-            const buffer =
-                Buffer.from(vcf, 'utf-8');
+            const fileBuffer =
+                Buffer.from(vcfData, 'utf-8');
 
             const preview =
-                contacts.slice(0, 50);
+                contacts.slice(0, 30);
 
-            const caption =
-`╭─⌈ 📇 *VCF CONTACTS* ⌋
-├─⊷ *Total:* ${contacts.length} contacts _(first ${preview.length})_
-╰─── *SAVAGE TECH* ───
+            const message =
+`╭━━━〔 📇 VCF EXPORT 〕━━━⬣
+┃ 👥 Contacts : ${contacts.length}
+┃ 📦 Format   : VCF
+┃ 🏷️ Group    : ${metadata.subject}
+╰━━━━━━━━━━━━━━━━⬣
+
+📜 *Preview Contacts*
 
 \`\`\`json
-${JSON.stringify({
-    total: contacts.length,
-    contacts: preview
-}, null, 2)}
+${JSON.stringify(preview, null, 2)}
 \`\`\`
 
-_...and ${contacts.length - preview.length} more_`;
+_...and ${contacts.length - preview.length} more_
+
+⚡ Powered by *Savage Tech*`;
 
             await sock.sendMessage(
                 from,
                 {
-                    document: buffer,
+                    document: fileBuffer,
                     mimetype: 'text/vcard',
                     fileName:
-                        `${metadata.subject}_contacts.vcf`,
-                    caption
+                        `${metadata.subject}_SavageTech.vcf`,
+                    caption: message
                 },
                 { quoted: msg }
             );
@@ -193,9 +189,12 @@ _...and ${contacts.length - preview.length} more_`;
 
             await sock.sendMessage(from, {
                 text:
-`❌ Failed to export contacts.
+`❌ Failed to generate VCF file.
 
-${err.message}`
+Reason:
+${err.message}
+
+⚡ Powered by *Savage Tech*`
             });
         }
     }

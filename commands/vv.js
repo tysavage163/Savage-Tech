@@ -1,4 +1,4 @@
-const { downloadContentFromMessage } = require('@iqbalrmdi/baileys'); // <- changed from '@whiskeysockets/baileys'
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 
 module.exports = {
     category: 'tools',

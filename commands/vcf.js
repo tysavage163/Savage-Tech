@@ -36,12 +36,20 @@ module.exports = {
 
             const contacts = [];
             for (const p of participants) {
-                let jid = p.id;
-                let phone = jid.split('@')[0].replace(/[^0-9]/g, '');
-                if (!phone) continue;
-                phone = '+' + phone;
-                let name = p.notify || phone;
-                name = name.trim() || phone;
+                const jid = p.id;
+                let phone = '';
+                let name = p.notify || p.name || p.pushname || '';
+                if (jid.includes('@s.whatsapp.net')) {
+                    phone = jid.split('@')[0].replace(/[^0-9]/g, '');
+                    if (phone) phone = '+' + phone;
+                } else {
+                    phone = 'Number hidden by WhatsApp';
+                }
+                if (!name || name === phone || name === 'Number hidden by WhatsApp') {
+                    name = jid.split('@')[0];
+                }
+                name = name.trim();
+                if (!name) name = phone;
                 contacts.push({ name, phone });
             }
 

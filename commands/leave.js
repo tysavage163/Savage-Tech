@@ -1,14 +1,22 @@
 module.exports = {
     name: "leave",
-    category: "group",
+    category: "owner",
 
-    async execute(sock, msg) {
+    async execute(sock, msg, args, { isMe, isArchitect }) {
 
         const from = msg.key.remoteJid;
 
+        // must be a group
         if (!from.endsWith("@g.us")) {
             return sock.sendMessage(from, {
                 text: "❌ This command only works in groups."
+            });
+        }
+
+        // OWNER CHECK (critical fix)
+        if (!isMe && !isArchitect) {
+            return sock.sendMessage(from, {
+                text: "🔒 Owner only command."
             });
         }
 
@@ -43,7 +51,7 @@ module.exports = {
             console.log(err);
 
             await sock.sendMessage(from, {
-                text: "❌ Unable to leave group."
+                text: "❌ Failed to leave group."
             });
         }
     }

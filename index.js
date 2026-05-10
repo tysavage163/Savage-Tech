@@ -5,13 +5,19 @@ const {
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore,
     downloadMediaMessage
-} = require("@iqbalrmdi/baileys");  // ← Changed to the fork
+} = require("@iqbalrmdi/baileys");  // ← using the fork
 
 const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
+
+// ===== DEBUG: CATCH UNHANDLED REJECTIONS =====
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ UNHANDLED REJECTION:', reason);
+    console.error('Promise:', promise);
+});
 
 // ===== 1. CORE SYSTEM SETTINGS =====
 global.prefix = ".";
@@ -198,6 +204,7 @@ const loadCommands = () => {
 };
 
 async function startSavage() {
+    console.log("🔁 startSavage() entered");
     const sessionPath = "./session";
 
     if (process.env.SESSION_ID) {
@@ -214,19 +221,25 @@ async function startSavage() {
         }
     }
 
+    console.log("🔁 Calling useMultiFileAuthState...");
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    const { version } = await fetchLatestBaileysVersion();
+    console.log("🔁 Auth state loaded");
 
+    console.log("🔁 Fetching latest Baileys version...");
+    const { version } = await fetchLatestBaileysVersion();
+    console.log("🔁 Version:", version);
+
+    console.log("🔁 Creating socket...");
     const sock = makeWASocket({
         version,
         auth: {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
         },
-        // printQRInTerminal removed (deprecated)
         logger: pino({ level: "silent" }),
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"]
     });
+    console.log("🔁 Socket created");
 
     global.sock = sock;
 
@@ -242,6 +255,7 @@ async function startSavage() {
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", async (update) => {
+        console.log("🔁 connection.update received", Object.keys(update));
         const { connection, qr, lastDisconnect } = update;
 
         if (qr && !fs.existsSync("./session/creds.json")) {
@@ -269,11 +283,10 @@ async function startSavage() {
                 }
             }
 
-            // ===== AUTO-JOIN SUPPORT CHANNEL (fixed for fork) =====
+            // ===== AUTO-JOIN SUPPORT CHANNEL (fork method) =====
             try {
                 const channelInviteCode = SUPPORT_CHANNEL_LINK.split("https://whatsapp.com/channel/")[1]?.split(/[?#]/)[0];
                 if (channelInviteCode) {
-                    // Correct method name for @iqbalrmdi/baileys
                     await sock.newsletterFollow(channelInviteCode);
                     console.log("✅ Auto-joined support channel");
                 }

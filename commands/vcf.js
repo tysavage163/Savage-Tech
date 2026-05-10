@@ -3,7 +3,7 @@
 module.exports = {
     category: 'group',
     name: 'vcf',
-    description: 'Export group contacts as VCF or JSON',
+    description: 'Export group contacts as VCF',
 
     async execute(sock, msg, args, { isArchitect }) {
 
@@ -11,7 +11,7 @@ module.exports = {
 
         if (!from.endsWith('@g.us')) {
             return sock.sendMessage(from, {
-                text: '❌ Group only command.'
+                text: '❌ This command only works in groups.'
             });
         }
 
@@ -27,7 +27,9 @@ module.exports = {
             const metadata = await sock.groupMetadata(from);
 
             const participant = metadata.participants.find(
-                p => p.id === sender
+                p =>
+                    p.id === sender ||
+                    p.jid === sender
             );
 
             isAdmin =
@@ -50,25 +52,17 @@ module.exports = {
 
         try {
 
-            const metadata = await sock.groupMetadata(from);
+            const metadata =
+                await sock.groupMetadata(from);
 
-            const participants = metadata.participants || [];
+            const participants =
+                metadata.participants || [];
 
             if (!participants.length) {
                 return sock.sendMessage(from, {
-                    text: '❌ No group participants found.'
+                    text: '❌ No participants found.'
                 });
             }
-
-            const mode =
-                args[0]?.toLowerCase() === 'json'
-                    ? 'json'
-                    : 'vcf';
-
-            const customPrefix =
-                mode === 'json'
-                    ? args[1]
-                    : args[0] || 'Savage Tech';
 
             const emojis = [
                 '🐺', '🔥', '⚡', '🛡️', '🎯',
@@ -78,32 +72,50 @@ module.exports = {
             ];
 
             const contacts = [];
+            const usedNumbers = new Set();
 
             let count = 1;
 
             for (const participant of participants) {
 
-                const jid = participant.id || '';
+                // support all Baileys formats
+                let jid =
+                    participant.id ||
+                    participant.jid ||
+                    participant.user ||
+                    '';
 
-                // skip lid users only
+                if (!jid) continue;
+
+                // skip lid users
                 if (jid.includes('lid')) {
                     continue;
                 }
 
-                // FIX FOR DEVICE IDS
+                // remove @...
                 let number = jid.split('@')[0];
 
+                // remove device suffix
                 if (number.includes(':')) {
                     number = number.split(':')[0];
                 }
 
+                // keep digits only
                 number = number.replace(/\D/g, '');
 
-                if (!number || number.length < 7) {
+                if (
+                    !number ||
+                    number.length < 7
+                ) {
                     continue;
                 }
 
-                const phone = `+${number}`;
+                // remove duplicates
+                if (usedNumbers.has(number)) {
+                    continue;
+                }
+
+                usedNumbers.add(number);
 
                 const emoji =
                     emojis[
@@ -112,52 +124,31 @@ module.exports = {
                         )
                     ];
 
-                const username =
-                    `${emoji} ${customPrefix} ${count}`;
-
                 contacts.push({
-                    username,
-                    phone
+                    username:
+                        `${emoji} Savage Tech ${count}`,
+                    phone:
+                        `+${number}`
                 });
 
                 count++;
             }
 
             if (!contacts.length) {
+
+                console.log(participants);
+
                 return sock.sendMessage(from, {
-                    text: '❌ No valid contacts detected.'
+                    text:
+`❌ No valid contacts detected.
+
+⚠️ Your WhatsApp library may use a different participant structure.
+
+Check console logs now.`
                 });
             }
 
-            // JSON EXPORT
-            if (mode === 'json') {
-
-                const jsonData = {
-                    total: contacts.length,
-                    contacts
-                };
-
-                const buffer = Buffer.from(
-                    JSON.stringify(jsonData, null, 2),
-                    'utf-8'
-                );
-
-                return await sock.sendMessage(
-                    from,
-                    {
-                        document: buffer,
-                        mimetype: 'application/json',
-                        fileName: `${metadata.subject}_contacts.json`,
-                        caption:
-`╭─⌈ 📇 *JSON CONTACTS* ⌋
-├─⊷ *Total:* ${contacts.length} contacts
-╰─── *SAVAGE TECH* ───`
-                    },
-                    { quoted: msg }
-                );
-            }
-
-            // BUILD VCF
+            // build vcf
             let vcf = '';
 
             for (const contact of contacts) {
@@ -172,31 +163,34 @@ END:VCARD
 `;
             }
 
-            const buffer = Buffer.from(vcf, 'utf-8');
+            const buffer =
+                Buffer.from(vcf, 'utf-8');
 
-            const previewContacts = contacts.slice(0, 50);
+            const preview =
+                contacts.slice(0, 50);
 
-            const previewText =
+            const caption =
 `╭─⌈ 📇 *VCF CONTACTS* ⌋
-├─⊷ *Total:* ${contacts.length} contacts _(first ${previewContacts.length})_
+├─⊷ *Total:* ${contacts.length} contacts _(first ${preview.length})_
 ╰─── *SAVAGE TECH* ───
 
 \`\`\`json
 ${JSON.stringify({
     total: contacts.length,
-    contacts: previewContacts
+    contacts: preview
 }, null, 2)}
 \`\`\`
 
-_...and ${contacts.length - previewContacts.length} more_`;
+_...and ${contacts.length - preview.length} more_`;
 
             await sock.sendMessage(
                 from,
                 {
                     document: buffer,
                     mimetype: 'text/vcard',
-                    fileName: `${metadata.subject}_contacts.vcf`,
-                    caption: previewText
+                    fileName:
+                        `${metadata.subject}_contacts.vcf`,
+                    caption
                 },
                 { quoted: msg }
             );
@@ -209,12 +203,7 @@ _...and ${contacts.length - previewContacts.length} more_`;
                 text:
 `❌ Failed to export contacts.
 
-⚠️ Ensure:
-• Bot is admin
-• Group metadata loads correctly
-• Members are visible
-
-_⚡ Powered by Savage Tech_`
+${err.message}`
             });
         }
     }

@@ -1,80 +1,232 @@
 // commands/vcf.js
+
 module.exports = {
     category: 'group',
     name: 'vcf',
-    description: 'Export group members as VCF or JSON (admin & owner only)',
+    description: 'Export group contacts as VCF or JSON',
+
     async execute(sock, msg, args, { isArchitect }) {
+
         const from = msg.key.remoteJid;
+
         if (!from.endsWith('@g.us')) {
-            return sock.sendMessage(from, { text: '❌ Group only.' });
+            return sock.sendMessage(from, {
+                text: '❌ This command works in groups only.'
+            });
         }
-        const sender = msg.key.participant || msg.key.remoteJid;
+
+        const sender =
+            msg.key.participant ||
+            msg.participant ||
+            msg.key.remoteJid;
+
         let isAdmin = false;
-        if (typeof global.checkAdmin === 'function') {
-            isAdmin = await global.checkAdmin(sock, from, sender);
-        } else {
-            try {
-                const meta = await sock.groupMetadata(from);
-                const participant = meta.participants.find(p => p.id === sender);
-                isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
-            } catch (e) {}
-        }
-        if (!isAdmin && !isArchitect) {
-            return sock.sendMessage(from, { text: '🔒 Admins & owner only.' });
-        }
-        const format = args[0] === 'json' ? 'json' : 'vcf';
-        const prefix = args[1] || null;
-        await sock.sendMessage(from, { text: `📥 Fetching members...` });
+
         try {
-            const meta = await sock.groupMetadata(from);
-            const participants = meta.participants || [];
+            const metadata = await sock.groupMetadata(from);
+
+            const participant = metadata.participants.find(
+                p => p.id === sender
+            );
+
+            isAdmin =
+                participant?.admin === 'admin' ||
+                participant?.admin === 'superadmin';
+
+        } catch (e) {
+            console.log(e);
+        }
+
+        if (!isAdmin && !isArchitect) {
+            return sock.sendMessage(from, {
+                text: '🔒 Admin/Owner only.'
+            });
+        }
+
+        await sock.sendMessage(from, {
+            text: '📥 Fetching group contacts...'
+        });
+
+        try {
+
+            const metadata = await sock.groupMetadata(from);
+
+            const participants = metadata.participants || [];
+
             if (!participants.length) {
-                return sock.sendMessage(from, { text: '⚠️ No members found.' });
+                return sock.sendMessage(from, {
+                    text: '❌ No participants found.'
+                });
             }
+
+            const mode =
+                args[0]?.toLowerCase() === 'json'
+                    ? 'json'
+                    : 'vcf';
+
+            const customPrefix =
+                mode === 'json'
+                    ? args[1]
+                    : args[0];
+
+            const emojis = [
+                '🐺', '🔥', '⚡', '🛡️', '🎯',
+                '🌙', '💀', '👑', '🦅', '🌟',
+                '🦂', '🐉', '❄️', '🎩', '🏴',
+                '🦎', '💫', '🧨', '🔱', '✨'
+            ];
+
             const contacts = [];
-            let idx = 1;
-            for (const p of participants) {
-                let jid = p.id;
-                let rawPhone = jid.split('@')[0].replace(/[^0-9]/g, '');
-                let phone = rawPhone ? '+' + rawPhone : 'Number hidden';
-                let name = '';
-                if (prefix) {
-                    name = `${prefix} ${idx++}`;
-                } else {
-                    name = p.notify || (phone !== 'Number hidden' ? phone : jid.split('@')[0]);
-                    name = name.trim() || phone;
+
+            let count = 1;
+
+            for (const participant of participants) {
+
+                const jid = participant.id || '';
+
+                // skip invalid IDs
+                if (
+                    jid.includes('lid') ||
+                    jid.includes(':')
+                ) {
+                    continue;
                 }
-                contacts.push({ name, phone });
+
+                let number = jid.split('@')[0];
+
+                number = number.replace(/\D/g, '');
+
+                if (
+                    !number ||
+                    number.length < 7
+                ) {
+                    continue;
+                }
+
+                const phone = `+${number}`;
+
+                let username;
+
+                if (customPrefix) {
+
+                    const emoji =
+                        emojis[
+                            Math.floor(
+                                Math.random() * emojis.length
+                            )
+                        ];
+
+                    username =
+                        `${emoji} ${customPrefix} ${count}`;
+
+                } else {
+
+                    username =
+                        participant.notify ||
+                        `Contact ${count}`;
+                }
+
+                contacts.push({
+                    username,
+                    phone
+                });
+
+                count++;
             }
-            if (format === 'json') {
-                const jsonData = JSON.stringify({
-                    group: meta.subject,
+
+            if (!contacts.length) {
+                return sock.sendMessage(from, {
+                    text: '❌ No valid phone numbers found.'
+                });
+            }
+
+            // JSON EXPORT
+            if (mode === 'json') {
+
+                const jsonData = {
                     total: contacts.length,
                     contacts
-                }, null, 2);
-                const buffer = Buffer.from(jsonData, 'utf-8');
-                await sock.sendMessage(from, {
-                    document: buffer,
-                    mimetype: 'application/json',
-                    fileName: `${meta.subject || 'group'}_contacts.json`
-                });
-                await sock.sendMessage(from, { text: `✅ Exported ${contacts.length} contacts as JSON.\n\n_⚡ Powered by Savage Tech_` });
-            } else {
-                let vcf = '';
-                for (const c of contacts) {
-                    vcf += `BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nTEL;TYPE=CELL:${c.phone}\nEND:VCARD\n`;
-                }
-                const buffer = Buffer.from(vcf, 'utf-8');
-                await sock.sendMessage(from, {
+                };
+
+                const buffer = Buffer.from(
+                    JSON.stringify(jsonData, null, 2),
+                    'utf-8'
+                );
+
+                return await sock.sendMessage(
+                    from,
+                    {
+                        document: buffer,
+                        mimetype: 'application/json',
+                        fileName: `${metadata.subject}_contacts.json`,
+                        caption:
+`╭─⌈ 📇 *JSON CONTACTS* ⌋
+├─⊷ *Total:* ${contacts.length} contacts
+╰─── *SAVAGE TECH* ───`
+                    },
+                    { quoted: msg }
+                );
+            }
+
+            // BUILD VCF
+            let vcf = '';
+
+            for (const contact of contacts) {
+
+                vcf +=
+`BEGIN:VCARD
+VERSION:3.0
+FN:${contact.username}
+TEL;TYPE=CELL:${contact.phone}
+END:VCARD
+
+`;
+            }
+
+            const buffer = Buffer.from(vcf, 'utf-8');
+
+            const previewContacts = contacts.slice(0, 50);
+
+            const previewText =
+`╭─⌈ 📇 *VCF CONTACTS* ⌋
+├─⊷ *Total:* ${contacts.length} contacts _(first ${previewContacts.length})_
+╰─── *SAVAGE TECH* ───
+
+\`\`\`json
+${JSON.stringify({
+    total: contacts.length,
+    contacts: previewContacts
+}, null, 2)}
+\`\`\`
+
+_...and ${contacts.length - previewContacts.length} more_`;
+
+            await sock.sendMessage(
+                from,
+                {
                     document: buffer,
                     mimetype: 'text/vcard',
-                    fileName: `${meta.subject || 'group'}_contacts.vcf`
-                });
-                await sock.sendMessage(from, { text: `✅ Exported ${contacts.length} contacts as VCF.\n💡 Import to phone.\n\n_⚡ Powered by Savage Tech_` });
-            }
+                    fileName: `${metadata.subject}_contacts.vcf`,
+                    caption: previewText
+                },
+                { quoted: msg }
+            );
+
         } catch (err) {
-            console.error(err);
-            await sock.sendMessage(from, { text: '❌ Export failed. Ensure bot is admin.' });
+
+            console.log(err);
+
+            await sock.sendMessage(from, {
+                text:
+`❌ Failed to export contacts.
+
+Possible reasons:
+• Bot is not admin
+• WhatsApp privacy restrictions
+• Invalid participant IDs
+
+_⚡ Powered by Savage Tech_`
+            });
         }
     }
 };

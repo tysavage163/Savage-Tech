@@ -11,7 +11,7 @@ module.exports = {
 
         if (!from.endsWith('@g.us')) {
             return sock.sendMessage(from, {
-                text: '❌ This command works in groups only.'
+                text: '❌ Group only command.'
             });
         }
 
@@ -23,6 +23,7 @@ module.exports = {
         let isAdmin = false;
 
         try {
+
             const metadata = await sock.groupMetadata(from);
 
             const participant = metadata.participants.find(
@@ -55,7 +56,7 @@ module.exports = {
 
             if (!participants.length) {
                 return sock.sendMessage(from, {
-                    text: '❌ No participants found.'
+                    text: '❌ No group participants found.'
                 });
             }
 
@@ -67,7 +68,7 @@ module.exports = {
             const customPrefix =
                 mode === 'json'
                     ? args[1]
-                    : args[0];
+                    : args[0] || 'Savage Tech';
 
             const emojis = [
                 '🐺', '🔥', '⚡', '🛡️', '🎯',
@@ -84,47 +85,35 @@ module.exports = {
 
                 const jid = participant.id || '';
 
-                // skip invalid IDs
-                if (
-                    jid.includes('lid') ||
-                    jid.includes(':')
-                ) {
+                // skip lid users only
+                if (jid.includes('lid')) {
                     continue;
                 }
 
+                // FIX FOR DEVICE IDS
                 let number = jid.split('@')[0];
+
+                if (number.includes(':')) {
+                    number = number.split(':')[0];
+                }
 
                 number = number.replace(/\D/g, '');
 
-                if (
-                    !number ||
-                    number.length < 7
-                ) {
+                if (!number || number.length < 7) {
                     continue;
                 }
 
                 const phone = `+${number}`;
 
-                let username;
+                const emoji =
+                    emojis[
+                        Math.floor(
+                            Math.random() * emojis.length
+                        )
+                    ];
 
-                if (customPrefix) {
-
-                    const emoji =
-                        emojis[
-                            Math.floor(
-                                Math.random() * emojis.length
-                            )
-                        ];
-
-                    username =
-                        `${emoji} ${customPrefix} ${count}`;
-
-                } else {
-
-                    username =
-                        participant.notify ||
-                        `Contact ${count}`;
-                }
+                const username =
+                    `${emoji} ${customPrefix} ${count}`;
 
                 contacts.push({
                     username,
@@ -136,7 +125,7 @@ module.exports = {
 
             if (!contacts.length) {
                 return sock.sendMessage(from, {
-                    text: '❌ No valid phone numbers found.'
+                    text: '❌ No valid contacts detected.'
                 });
             }
 
@@ -220,10 +209,10 @@ _...and ${contacts.length - previewContacts.length} more_`;
                 text:
 `❌ Failed to export contacts.
 
-Possible reasons:
-• Bot is not admin
-• WhatsApp privacy restrictions
-• Invalid participant IDs
+⚠️ Ensure:
+• Bot is admin
+• Group metadata loads correctly
+• Members are visible
 
 _⚡ Powered by Savage Tech_`
             });

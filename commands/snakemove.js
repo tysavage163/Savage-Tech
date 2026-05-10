@@ -11,17 +11,23 @@ module.exports = {
 
         if (!game) {
             return sock.sendMessage(from, {
-                text: "❌ No snake game running"
+                text: "❌ No snake game running. Use .snake"
             });
         }
 
         const dir = args[0]?.toUpperCase();
 
-        if (["UP","DOWN","LEFT","RIGHT"].includes(dir)) {
-            game.dir = dir;
+        if (!["UP","DOWN","LEFT","RIGHT"].includes(dir)) {
+            return sock.sendMessage(from, {
+                text: "❌ Use: .snakeMove up/down/left/right"
+            });
         }
 
-        move(game);
+        game.dir = dir;
+
+        const { move: step, render } = require('../lib/snakeEngine');
+
+        step(game);
 
         if (game.over) {
             delete global.snake[from];

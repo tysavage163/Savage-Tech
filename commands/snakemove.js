@@ -19,15 +19,13 @@ module.exports = {
 
         if (!["UP","DOWN","LEFT","RIGHT"].includes(dir)) {
             return sock.sendMessage(from, {
-                text: "❌ Use: .snakeMove up/down/left/right"
+                text: "❌ Use: .up .down .left .right"
             });
         }
 
         game.dir = dir;
 
-        const { move: step, render } = require('../lib/snakeEngine');
-
-        step(game);
+        move(game);
 
         if (game.over) {
             delete global.snake[from];

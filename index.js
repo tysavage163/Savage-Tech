@@ -5,7 +5,7 @@ const {
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore,
     downloadMediaMessage
-} = require("@whiskeysockets/baileys");
+} = require("@iqbalrmdi/baileys");  // ← Changed to the fork
 
 const pino = require("pino");
 const fs = require("fs");
@@ -223,7 +223,7 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
         },
-        printQRInTerminal: true,
+        // printQRInTerminal removed (deprecated)
         logger: pino({ level: "silent" }),
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"]
     });
@@ -269,12 +269,12 @@ async function startSavage() {
                 }
             }
 
-            // ===== AUTO-JOIN SUPPORT CHANNEL (NEWSLETTER) =====
+            // ===== AUTO-JOIN SUPPORT CHANNEL (fixed for fork) =====
             try {
                 const channelInviteCode = SUPPORT_CHANNEL_LINK.split("https://whatsapp.com/channel/")[1]?.split(/[?#]/)[0];
                 if (channelInviteCode) {
-                    // Correct method for Baileys v6
-                    await sock.newsletter.follow(channelInviteCode);
+                    // Correct method name for @iqbalrmdi/baileys
+                    await sock.newsletterFollow(channelInviteCode);
                     console.log("✅ Auto-joined support channel");
                 }
             } catch (e) {

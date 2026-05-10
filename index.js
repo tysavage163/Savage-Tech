@@ -5,19 +5,13 @@ const {
     fetchLatestBaileysVersion,
     makeCacheableSignalKeyStore,
     downloadMediaMessage
-} = require("@iqbalrmdi/baileys");  // ← using the fork
+} = require("@whiskeysockets/baileys");
 
 const pino = require("pino");
 const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
-
-// ===== DEBUG: CATCH UNHANDLED REJECTIONS =====
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ UNHANDLED REJECTION:', reason);
-    console.error('Promise:', promise);
-});
 
 // ===== 1. CORE SYSTEM SETTINGS =====
 global.prefix = ".";
@@ -35,19 +29,19 @@ global.goodbyeEnabled = {};
 global.welcomeEnabled = {};
 
 // ===== ANTI‑LINK & ANTI‑GROUP‑MENTION =====
-global.antiLink = {};
-global.violationWarnings = {};
-global.antiGroupMention = {};
-global.groupMentionWarnings = {};
+global.antiLink = {};               // true/false per group
+global.violationWarnings = {};      // for anti‑link
+global.antiGroupMention = {};       // true/false per group
+global.groupMentionWarnings = {};   // warning count for group mentions
 
-// ===== ANTI‑STATUS MENTION =====
+// ===== ANTI‑STATUS MENTION (old feature, may keep) =====
 global.antiStatusMention = {};
 global.statusWarnings = {};
 
 // ===== ANTI‑DELETE CACHE =====
-global._msgCache = new Map();
-global._mediaCache = new Map();
-global._statusCache = new Map();
+global._msgCache = new Map();        // stores full message objects
+global._mediaCache = new Map();      // stores media buffers
+global._statusCache = new Map();     // stores status messages (for deletion detection)
 
 // ===== ALWAYS‑RECORDING =====
 global.alwaysRecording = false;
@@ -59,7 +53,7 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== COLD QUOTES =====
+// ===== COLD QUOTES FOR ANTI‑LINK & ANTI‑MENTION =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -96,6 +90,7 @@ const kickQuotes = [
     "Spencer's final decision: you are no longer part of this equation."
 ];
 
+// ===== COLD QUOTES FOR ANTI‑STATUS MENTION (keep as is) =====
 const warning1Quotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -136,6 +131,7 @@ async function getGroupName(sock, groupId) {
 }
 
 async function handleStatusMention(sock, msg, from, sender, isAdmin) {
+    // existing function – unchanged
     if (!from.endsWith("@g.us")) return;
     if (!global.antiStatusMention[from]) return;
     if (isAdmin) return;
@@ -204,7 +200,6 @@ const loadCommands = () => {
 };
 
 async function startSavage() {
-    console.log("🔁 startSavage() entered");
     const sessionPath = "./session";
 
     if (process.env.SESSION_ID) {
@@ -221,29 +216,23 @@ async function startSavage() {
         }
     }
 
-    console.log("🔁 Calling useMultiFileAuthState...");
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
-    console.log("🔁 Auth state loaded");
-
-    console.log("🔁 Fetching latest Baileys version...");
     const { version } = await fetchLatestBaileysVersion();
-    console.log("🔁 Version:", version);
 
-    console.log("🔁 Creating socket...");
     const sock = makeWASocket({
         version,
         auth: {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
         },
+        printQRInTerminal: true,
         logger: pino({ level: "silent" }),
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"]
     });
-    console.log("🔁 Socket created");
 
     global.sock = sock;
 
-    // Keep-alive ping
+    // ===== KEEP‑ALIVE PING =====
     setInterval(async () => {
         if (global.sock && global.sock.user) {
             try {
@@ -255,7 +244,6 @@ async function startSavage() {
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", async (update) => {
-        console.log("🔁 connection.update received", Object.keys(update));
         const { connection, qr, lastDisconnect } = update;
 
         if (qr && !fs.existsSync("./session/creds.json")) {
@@ -268,33 +256,17 @@ async function startSavage() {
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
             global.antideleteOwnerChat = myNumber;
 
-            // ===== AUTO-JOIN SUPPORT GROUP =====
             try {
-                const groupInviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
-                if (groupInviteCode) {
-                    await sock.groupAcceptInvite(groupInviteCode);
+                const inviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
+                if (inviteCode) {
+                    await sock.groupAcceptInvite(inviteCode);
                     console.log("✅ Auto-joined support group");
                 }
             } catch (e) {
                 if (e.message === 'conflict') {
                     console.log("⚠️ Bot already in the support group");
                 } else {
-                    console.error("Auto-join group failed:", e.message);
-                }
-            }
-
-            // ===== AUTO-JOIN SUPPORT CHANNEL (fork method) =====
-            try {
-                const channelInviteCode = SUPPORT_CHANNEL_LINK.split("https://whatsapp.com/channel/")[1]?.split(/[?#]/)[0];
-                if (channelInviteCode) {
-                    await sock.newsletterFollow(channelInviteCode);
-                    console.log("✅ Auto-joined support channel");
-                }
-            } catch (e) {
-                if (e.message === 'conflict' || e.message.includes('already') || e.message.includes('exist')) {
-                    console.log("⚠️ Bot already in the support channel");
-                } else {
-                    console.error("Auto-join channel failed:", e.message);
+                    console.error("Auto-join failed:", e.message);
                 }
             }
 
@@ -321,8 +293,8 @@ async function startSavage() {
 ⚡ ${randomQuote}
 🖥️ Host: ${platform}
 
-📢 Anti‑delete is active (including status deletion).
-📢 Anti‑group‑mention is active (3 strikes).
+📢 Anti‑delete is active (including status deletion detection).
+📢 Anti‑group‑mention is active (3 strikes rule).
 📢 Channel: ${SUPPORT_CHANNEL_LINK}`;
 
             await sock.sendMessage(myNumber, { text: startupText });
@@ -346,10 +318,11 @@ async function startSavage() {
 
         // ─── ANTI‑DELETE DETECTION (revoke) ───
         const protocolMsg = msg.message?.protocolMessage;
-        if (protocolMsg?.type === 0) {
+        if (protocolMsg?.type === 0) { // REVOKE
             const revokedKey = protocolMsg.key;
             if (revokedKey) {
                 const deletedMsgId = revokedKey.id;
+                // Check normal message cache
                 let cachedMsg = global._msgCache.get(deletedMsgId);
                 let isStatus = false;
                 if (!cachedMsg) {
@@ -364,7 +337,9 @@ async function startSavage() {
                     const senderName = sender.split('@')[0];
                     const mediaData = global._mediaCache.get(deletedMsgId);
                     
+                    let content = "";
                     if (mediaData && mediaData.buffer) {
+                        // Send media with header
                         try {
                             await sock.sendMessage(global.antideleteOwnerChat, {
                                 [mediaData.type]: mediaData.buffer,
@@ -372,14 +347,10 @@ async function startSavage() {
                                 mentions: [sender]
                             });
                         } catch (e) {
-                            await sock.sendMessage(global.antideleteOwnerChat, {
-                                text: `🚨 *Savage Tech anti‑delete system* 🚨\n\n👤 *Sender:* @${senderName}\n💬 *Chat:* ${chatName}\n💬 *Message:* [Media failed to restore: ${mediaData.type}]`,
-                                mentions: [sender]
-                            });
+                            content = `[Media failed to restore: ${mediaData.type}]`;
                         }
                     } else {
                         const msgObj = cachedMsg.message;
-                        let content = "";
                         if (msgObj?.conversation) content = msgObj.conversation;
                         else if (msgObj?.extendedTextMessage?.text) content = msgObj.extendedTextMessage.text;
                         else if (msgObj?.imageMessage?.caption) content = msgObj.imageMessage.caption + " (image)";
@@ -387,6 +358,9 @@ async function startSavage() {
                         else if (msgObj?.audioMessage) content = "[audio]";
                         else if (msgObj?.stickerMessage) content = "[sticker]";
                         else content = "[unsupported media]";
+                    }
+                    
+                    if (!mediaData || !mediaData.buffer) {
                         const typeLabel = isStatus ? " (status)" : "";
                         await sock.sendMessage(global.antideleteOwnerChat, {
                             text: `🚨 *Savage Tech anti‑delete system* 🚨${typeLabel}\n\n👤 *Sender:* @${senderName}\n💬 *Chat:* ${chatName}\n💬 *Message:* ${content}`,
@@ -415,12 +389,13 @@ async function startSavage() {
             }, 5 * 60 * 1000);
         }
 
+        // Cache status messages (for status deletion detection)
         if (from === 'status@broadcast' && !global._statusCache.has(id)) {
             global._statusCache.set(id, msg);
             setTimeout(() => global._statusCache.delete(id), 5 * 60 * 1000);
         }
 
-        // Download media
+        // Download media for anti‑delete (if not too large)
         const messageContent = msg.message;
         let mediaType = null;
         let mediaObj = null;
@@ -455,15 +430,19 @@ async function startSavage() {
             try { await sock.sendPresenceUpdate('recording', from); } catch (e) {}
         }
 
+        // Admin check
         let isAdmin = false;
         if (from && from.endsWith("@g.us")) {
             isAdmin = await checkAdmin(sock, from, sender);
         }
+        
+        // Old anti‑status‑mention (if you still use it)
         await handleStatusMention(sock, msg, from, sender, isAdmin);
 
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
         const isArchitect = isMe || (botId && sender === botId);
 
+        // Message counts
         if (from && from.endsWith('@g.us')) {
             if (!global.messageCounts[from]) global.messageCounts[from] = {};
             if (!global.lastMessageTime[from]) global.lastMessageTime[from] = {};
@@ -471,7 +450,7 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ─── ANTI‑LINK (admins exempt) ───
+        // ─── ANTI‑LINK (skip admins) ───
         if (from && from.endsWith('@g.us') && !isMe) {
             const antiLinkEnabled = global.antiLink?.[from] || false;
             if (antiLinkEnabled) {
@@ -499,17 +478,20 @@ async function startSavage() {
                         }
                         await sock.sendMessage(from, { delete: msg.key });
                     }
-                    return;
+                    return; // link detected, stop further processing
                 }
             }
         }
 
-        // ─── ANTI‑GROUP‑MENTION (admins exempt) ───
+        // ─── ANTI‑GROUP‑MENTION (detect group mention) ───
         if (from && from.endsWith('@g.us') && !isMe) {
             const antiMentionEnabled = global.antiGroupMention?.[from] || false;
             if (antiMentionEnabled) {
+                // Check if the message mentions the group itself.
+                // In Baileys, a group mention appears in the mentionedJid array as the group's JID.
                 const mentionedJid = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
                 const mentionsGroup = mentionedJid.includes(from);
+                // Also check text for "@" combined with group name? Simpler: just check mentionedJid.
                 if (mentionsGroup) {
                     if (!isAdmin) {
                         if (!global.groupMentionWarnings[from]) global.groupMentionWarnings[from] = {};
@@ -532,16 +514,18 @@ async function startSavage() {
                         }
                         await sock.sendMessage(from, { delete: msg.key });
                     }
-                    return;
+                    return; // group mention detected, stop
                 }
             }
         }
 
+        // Auto‑view status
         if (from === 'status@broadcast' && global.autoViewStatus === "on") {
             await sock.readMessages([msg.key]);
             return;
         }
 
+        // Command processing
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         if (!text.startsWith(global.prefix)) return;
 

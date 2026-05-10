@@ -3,7 +3,8 @@ const {
     useMultiFileAuthState,
     DisconnectReason,
     fetchLatestBaileysVersion,
-    makeCacheableSignalKeyStore
+    makeCacheableSignalKeyStore,
+    downloadMediaMessage
 } = require("@whiskeysockets/baileys");
 
 const pino = require("pino");
@@ -33,9 +34,9 @@ global.violationWarnings = {};
 global.antiStatusMention = {};
 global.statusWarnings = {};
 
-// ===== IMPROVED ANTI‑DELETE CACHE =====
-global._msgCache = new Map();
-global._mediaCache = new Map();
+// ===== ANTI‑DELETE CACHE (stores full media buffers) =====
+global._msgCache = new Map();      // stores message objects
+global._mediaCache = new Map();    // stores { buffer, mimetype, caption, type }
 
 // ===== ALWAYS‑RECORDING =====
 global.alwaysRecording = false;
@@ -278,7 +279,7 @@ async function startSavage() {
 ⚡ ${randomQuote}
 🖥️ Host: ${platform}
 
-📢 Anti‑delete is active. Deleted messages will be forwarded here.
+📢 Anti‑delete is active. Deleted messages will be forwarded here (including media).
 
 📢 Channel: ${SUPPORT_CHANNEL_LINK}
 
@@ -302,19 +303,120 @@ async function startSavage() {
         }
     });
 
-    // ===== MESSAGE HANDLER =====
+    // ===== MESSAGE HANDLER (includes ANTI-DELETE + MEDIA CACHING) =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // Cache message for anti‑delete
+        // ─── ANTI‑DELETE DETECTION (protocolMessage REVOKE) ───
+        const protocolMsg = msg.message?.protocolMessage;
+        if (protocolMsg?.type === 0) { // REVOKE = 0
+            const revokedKey = protocolMsg.key;
+            if (revokedKey) {
+                const deletedMsgId = revokedKey.id;
+                const cachedMsg = global._msgCache.get(deletedMsgId);
+                if (cachedMsg && !cachedMsg.key?.fromMe && global.antideleteOwnerChat) {
+                    const sender = cachedMsg.key.participant || cachedMsg.key.remoteJid;
+                    const msgObj = cachedMsg.message;
+                    
+                    // Check if we have cached media for this message
+                    const mediaData = global._mediaCache.get(deletedMsgId);
+                    
+                    if (mediaData && mediaData.buffer) {
+                        // Send the actual media back
+                        try {
+                            const mediaMessage = {
+                                [mediaData.type]: { url: await uploadBufferAsUrl?.(mediaData.buffer) || await bufferToDataUrl(mediaData.buffer) } // fallback
+                            };
+                            // Better: use sendMessage with buffer directly
+                            await sock.sendMessage(global.antideleteOwnerChat, {
+                                [mediaData.type]: mediaData.buffer,
+                                caption: `⚠️ *[ANTI-DELETE MEDIA]*\n👤 @${sender.split("@")[0]}\n📎 ${mediaData.caption || "No caption"}`,
+                                mentions: [sender],
+                                mimetype: mediaData.mimetype
+                            });
+                        } catch (e) {
+                            console.error("Failed to resend media:", e);
+                            // Fallback to text notification
+                            await sock.sendMessage(global.antideleteOwnerChat, {
+                                text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 [Media failed to restore: ${mediaData.type}]`,
+                                mentions: [sender]
+                            });
+                        }
+                    } else {
+                        // Text only
+                        let content = "";
+                        if (msgObj?.conversation) content = msgObj.conversation;
+                        else if (msgObj?.extendedTextMessage?.text) content = msgObj.extendedTextMessage.text;
+                        else if (msgObj?.imageMessage?.caption) content = msgObj.imageMessage.caption + " (image)";
+                        else if (msgObj?.videoMessage?.caption) content = msgObj.videoMessage.caption + " (video)";
+                        else if (msgObj?.audioMessage) content = "[audio]";
+                        else if (msgObj?.stickerMessage) content = "[sticker]";
+                        else content = "[unsupported media]";
+                        
+                        await sock.sendMessage(global.antideleteOwnerChat, {
+                            text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 ${content}`,
+                            mentions: [sender]
+                        });
+                    }
+                }
+                global._msgCache.delete(deletedMsgId);
+                global._mediaCache.delete(deletedMsgId);
+            }
+            return; // Don't process deletions further (no command, no anti‑link)
+        }
+
+        // ─── CACHE NORMAL MESSAGES AND MEDIA ───
         const id = msg.key.id;
         if (!global._msgCache.has(id)) {
             global._msgCache.set(id, msg);
+            // Auto‑remove after 5 minutes to prevent memory leak
+            setTimeout(() => {
+                if (global._msgCache.has(id)) global._msgCache.delete(id);
+                if (global._mediaCache.has(id)) global._mediaCache.delete(id);
+            }, 5 * 60 * 1000);
         }
-        const mObj = msg.message;
-        if (mObj.imageMessage || mObj.videoMessage || mObj.audioMessage || mObj.stickerMessage) {
-            global._mediaCache.set(id, msg);
+
+        // Check for media and download buffer (if not too large)
+        const messageContent = msg.message;
+        let mediaType = null;
+        let mediaObj = null;
+        if (messageContent.imageMessage) {
+            mediaType = "image";
+            mediaObj = messageContent.imageMessage;
+        } else if (messageContent.videoMessage) {
+            mediaType = "video";
+            mediaObj = messageContent.videoMessage;
+        } else if (messageContent.stickerMessage) {
+            mediaType = "sticker";
+            mediaObj = messageContent.stickerMessage;
+        } else if (messageContent.audioMessage) {
+            mediaType = "audio";
+            mediaObj = messageContent.audioMessage;
+        }
+
+        if (mediaType && mediaObj) {
+            // Skip caching if file is too large (> 5MB for images, >10MB for video - adjust as needed)
+            const fileSize = mediaObj.fileLength ? parseInt(mediaObj.fileLength) : 0;
+            const maxSize = mediaType === "video" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+            if (fileSize > maxSize) {
+                console.log(`⚠️ Media too large (${fileSize} bytes), skipping cache for anti-delete: ${id}`);
+            } else {
+                try {
+                    const buffer = await downloadMediaMessage(msg, "buffer", {});
+                    if (buffer && buffer.length) {
+                        global._mediaCache.set(id, {
+                            buffer: buffer,
+                            mimetype: mediaObj.mimetype,
+                            caption: mediaObj.caption || "",
+                            type: mediaType
+                        });
+                        console.log(`📦 Cached ${mediaType} (${buffer.length} bytes) for anti-delete`);
+                    }
+                } catch (err) {
+                    console.error(`Failed to download media for caching:`, err);
+                }
+            }
         }
 
         const from = msg.key.remoteJid;
@@ -329,7 +431,7 @@ async function startSavage() {
             try { await sock.sendPresenceUpdate('recording', from); } catch (e) {}
         }
 
-        // Admin check for anti‑statusmention
+        // Admin check for anti‑statusmention (and later for anti‑link)
         let isAdmin = false;
         if (from && from.endsWith("@g.us")) {
             isAdmin = await checkAdmin(sock, from, sender);
@@ -347,9 +449,12 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ========== ANTI‑LINK ==========
+        // ========== ANTI‑LINK (skip admins) ==========
         if (from && from.endsWith('@g.us')) {
             if (isMe) return;
+            // ✨ NEW: Skip if sender is admin
+            if (isAdmin) return;
+            
             const antiLinkEnabled = global.antiLink?.[from] || false;
             if (antiLinkEnabled) {
                 const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
@@ -404,38 +509,6 @@ async function startSavage() {
             } catch (e) {
                 console.error(`❌ Command Error [${commandName}]:`, e);
             }
-        }
-    });
-
-    // ===== FIXED ANTI‑DELETE HANDLER (only on actual deletions) =====
-    sock.ev.on("messages.update", async (updates) => {
-        if (!global.antideleteOwnerChat) return;
-        for (const update of updates) {
-            const deletedMsg = update.update?.message;
-            if (!deletedMsg) continue; // Not a deletion
-            const key = update.key;
-            const id = key.id;
-            const cached = global._msgCache.get(id);
-            if (!cached) continue;
-            if (cached.key?.fromMe) continue;
-            const sender = cached.key.participant || cached.key.remoteJid;
-            const msg = cached.message;
-            let content = "";
-            if (msg?.conversation) content = msg.conversation;
-            else if (msg?.extendedTextMessage?.text) content = msg.extendedTextMessage.text;
-            else if (msg?.imageMessage?.caption) content = msg.imageMessage.caption + " (image)";
-            else if (msg?.videoMessage?.caption) content = msg.videoMessage.caption + " (video)";
-            else if (msg?.audioMessage) content = "[audio]";
-            else if (msg?.stickerMessage) content = "[sticker]";
-            else content = "[unsupported media]";
-            try {
-                await global.sock.sendMessage(global.antideleteOwnerChat, {
-                    text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 ${content}`,
-                    mentions: [sender]
-                });
-            } catch (e) {}
-            global._msgCache.delete(id);
-            global._mediaCache.delete(id);
         }
     });
 

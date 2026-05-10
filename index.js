@@ -325,10 +325,6 @@ async function startSavage() {
                     if (mediaData && mediaData.buffer) {
                         // Send the actual media back
                         try {
-                            const mediaMessage = {
-                                [mediaData.type]: { url: await uploadBufferAsUrl?.(mediaData.buffer) || await bufferToDataUrl(mediaData.buffer) } // fallback
-                            };
-                            // Better: use sendMessage with buffer directly
                             await sock.sendMessage(global.antideleteOwnerChat, {
                                 [mediaData.type]: mediaData.buffer,
                                 caption: `⚠️ *[ANTI-DELETE MEDIA]*\n👤 @${sender.split("@")[0]}\n📎 ${mediaData.caption || "No caption"}`,
@@ -396,7 +392,7 @@ async function startSavage() {
         }
 
         if (mediaType && mediaObj) {
-            // Skip caching if file is too large (> 5MB for images, >10MB for video - adjust as needed)
+            // Skip caching if file is too large (> 5MB for images, >10MB for video)
             const fileSize = mediaObj.fileLength ? parseInt(mediaObj.fileLength) : 0;
             const maxSize = mediaType === "video" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
             if (fileSize > maxSize) {
@@ -449,11 +445,9 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ========== ANTI‑LINK (skip admins) ==========
+        // ========== ANTI‑LINK (admins exempt from warning/kick) ==========
         if (from && from.endsWith('@g.us')) {
             if (isMe) return;
-            // ✨ NEW: Skip if sender is admin
-            if (isAdmin) return;
             
             const antiLinkEnabled = global.antiLink?.[from] || false;
             if (antiLinkEnabled) {
@@ -461,30 +455,35 @@ async function startSavage() {
                 const senderJid = sender;
                 const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
                 if (urlPattern.test(rawText)) {
-                    if (!global.violationWarnings[from]) global.violationWarnings[from] = {};
-                    const currentWarnings = global.violationWarnings[from][senderJid] || 0;
-                    const newWarningCount = currentWarnings + 1;
-                    global.violationWarnings[from][senderJid] = newWarningCount;
-
-                    if (newWarningCount < 3) {
-                        const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
-                        const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                        await sock.sendMessage(from, { text: warningText, mentions: [senderJid] });
+                    // ✅ Skip warning/kick if sender is admin
+                    if (isAdmin) {
+                        // Admin sent link – ignore silently
                     } else {
-                        const kickQuote = kickQuotes[Math.floor(Math.random() * kickQuotes.length)];
-                        const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                        await sock.sendMessage(from, { text: kickMessage, mentions: [senderJid] });
-                        try {
-                            await sock.groupParticipantsUpdate(from, [senderJid], 'remove');
-                        } catch (err) {
-                            console.error('Auto‑kick failed:', err);
-                            await sock.sendMessage(from, { text: `❌ Could not kick user. Make sure I am an admin.` });
-                        }
-                        delete global.violationWarnings[from][senderJid];
-                    }
+                        if (!global.violationWarnings[from]) global.violationWarnings[from] = {};
+                        const currentWarnings = global.violationWarnings[from][senderJid] || 0;
+                        const newWarningCount = currentWarnings + 1;
+                        global.violationWarnings[from][senderJid] = newWarningCount;
 
-                    await sock.sendMessage(from, { delete: msg.key });
-                    return;
+                        if (newWarningCount < 3) {
+                            const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
+                            const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                            await sock.sendMessage(from, { text: warningText, mentions: [senderJid] });
+                        } else {
+                            const kickQuote = kickQuotes[Math.floor(Math.random() * kickQuotes.length)];
+                            const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                            await sock.sendMessage(from, { text: kickMessage, mentions: [senderJid] });
+                            try {
+                                await sock.groupParticipantsUpdate(from, [senderJid], 'remove');
+                            } catch (err) {
+                                console.error('Auto‑kick failed:', err);
+                                await sock.sendMessage(from, { text: `❌ Could not kick user. Make sure I am an admin.` });
+                            }
+                            delete global.violationWarnings[from][senderJid];
+                        }
+
+                        await sock.sendMessage(from, { delete: msg.key });
+                    }
+                    return; // Link detected – no further processing (command won't run)
                 }
             }
         }

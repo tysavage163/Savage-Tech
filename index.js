@@ -28,15 +28,20 @@ global.antideleteOwnerChat = null;
 global.goodbyeEnabled = {};
 global.welcomeEnabled = {};
 
-// ===== ANTI‑LINK & ANTI‑STATUS MENTION =====
-global.antiLink = {};
-global.violationWarnings = {};
+// ===== ANTI‑LINK & ANTI‑GROUP‑MENTION =====
+global.antiLink = {};               // true/false per group
+global.violationWarnings = {};      // for anti‑link
+global.antiGroupMention = {};       // true/false per group
+global.groupMentionWarnings = {};   // warning count for group mentions
+
+// ===== ANTI‑STATUS MENTION (old feature, may keep) =====
 global.antiStatusMention = {};
 global.statusWarnings = {};
 
-// ===== ANTI‑DELETE CACHE (stores full media buffers) =====
-global._msgCache = new Map();      // stores message objects
-global._mediaCache = new Map();    // stores { buffer, mimetype, caption, type }
+// ===== ANTI‑DELETE CACHE =====
+global._msgCache = new Map();        // stores full message objects
+global._mediaCache = new Map();      // stores media buffers
+global._statusCache = new Map();     // stores status messages (for deletion detection)
 
 // ===== ALWAYS‑RECORDING =====
 global.alwaysRecording = false;
@@ -48,7 +53,7 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== COLD QUOTES FOR ANTI‑LINK =====
+// ===== COLD QUOTES FOR ANTI‑LINK & ANTI‑MENTION =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -85,7 +90,7 @@ const kickQuotes = [
     "Spencer's final decision: you are no longer part of this equation."
 ];
 
-// ===== COLD QUOTES FOR ANTI‑STATUS MENTION =====
+// ===== COLD QUOTES FOR ANTI‑STATUS MENTION (keep as is) =====
 const warning1Quotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -116,7 +121,17 @@ async function checkAdmin(sock, groupId, sender) {
     }
 }
 
+async function getGroupName(sock, groupId) {
+    try {
+        const meta = await sock.groupMetadata(groupId);
+        return meta.subject || groupId;
+    } catch {
+        return groupId;
+    }
+}
+
 async function handleStatusMention(sock, msg, from, sender, isAdmin) {
+    // existing function – unchanged
     if (!from.endsWith("@g.us")) return;
     if (!global.antiStatusMention[from]) return;
     if (isAdmin) return;
@@ -241,7 +256,6 @@ async function startSavage() {
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
             global.antideleteOwnerChat = myNumber;
 
-            // Auto‑join support group
             try {
                 const inviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
                 if (inviteCode) {
@@ -279,15 +293,9 @@ async function startSavage() {
 ⚡ ${randomQuote}
 🖥️ Host: ${platform}
 
-📢 Anti‑delete is active. Deleted messages will be forwarded here (including media).
-
-📢 Channel: ${SUPPORT_CHANNEL_LINK}
-
-⚡ Join the channel for:
-• Bot updates & feature releases
-• Bug fixes & security patches
-• Plugin drops & improvements
-• Important announcements`;
+📢 Anti‑delete is active (including status deletion detection).
+📢 Anti‑group‑mention is active (3 strikes rule).
+📢 Channel: ${SUPPORT_CHANNEL_LINK}`;
 
             await sock.sendMessage(myNumber, { text: startupText });
         }
@@ -303,45 +311,46 @@ async function startSavage() {
         }
     });
 
-    // ===== MESSAGE HANDLER (includes ANTI-DELETE + MEDIA CACHING) =====
+    // ===== MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // ─── ANTI‑DELETE DETECTION (protocolMessage REVOKE) ───
+        // ─── ANTI‑DELETE DETECTION (revoke) ───
         const protocolMsg = msg.message?.protocolMessage;
-        if (protocolMsg?.type === 0) { // REVOKE = 0
+        if (protocolMsg?.type === 0) { // REVOKE
             const revokedKey = protocolMsg.key;
             if (revokedKey) {
                 const deletedMsgId = revokedKey.id;
-                const cachedMsg = global._msgCache.get(deletedMsgId);
+                // Check normal message cache
+                let cachedMsg = global._msgCache.get(deletedMsgId);
+                let isStatus = false;
+                if (!cachedMsg) {
+                    cachedMsg = global._statusCache.get(deletedMsgId);
+                    isStatus = true;
+                }
                 if (cachedMsg && !cachedMsg.key?.fromMe && global.antideleteOwnerChat) {
                     const sender = cachedMsg.key.participant || cachedMsg.key.remoteJid;
-                    const msgObj = cachedMsg.message;
-                    
-                    // Check if we have cached media for this message
+                    const isGroup = cachedMsg.key.remoteJid?.endsWith('@g.us');
+                    let chatName = "Private chat";
+                    if (isGroup) chatName = await getGroupName(sock, cachedMsg.key.remoteJid);
+                    const senderName = sender.split('@')[0];
                     const mediaData = global._mediaCache.get(deletedMsgId);
                     
+                    let content = "";
                     if (mediaData && mediaData.buffer) {
-                        // Send the actual media back
+                        // Send media with header
                         try {
                             await sock.sendMessage(global.antideleteOwnerChat, {
                                 [mediaData.type]: mediaData.buffer,
-                                caption: `⚠️ *[ANTI-DELETE MEDIA]*\n👤 @${sender.split("@")[0]}\n📎 ${mediaData.caption || "No caption"}`,
-                                mentions: [sender],
-                                mimetype: mediaData.mimetype
-                            });
-                        } catch (e) {
-                            console.error("Failed to resend media:", e);
-                            // Fallback to text notification
-                            await sock.sendMessage(global.antideleteOwnerChat, {
-                                text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 [Media failed to restore: ${mediaData.type}]`,
+                                caption: `🚨 *Savage Tech anti‑delete system* 🚨\n\n👤 *Sender:* @${senderName}\n💬 *Chat:* ${chatName}\n📎 *Message:* ${mediaData.caption || "No caption"}`,
                                 mentions: [sender]
                             });
+                        } catch (e) {
+                            content = `[Media failed to restore: ${mediaData.type}]`;
                         }
                     } else {
-                        // Text only
-                        let content = "";
+                        const msgObj = cachedMsg.message;
                         if (msgObj?.conversation) content = msgObj.conversation;
                         else if (msgObj?.extendedTextMessage?.text) content = msgObj.extendedTextMessage.text;
                         else if (msgObj?.imageMessage?.caption) content = msgObj.imageMessage.caption + " (image)";
@@ -349,55 +358,56 @@ async function startSavage() {
                         else if (msgObj?.audioMessage) content = "[audio]";
                         else if (msgObj?.stickerMessage) content = "[sticker]";
                         else content = "[unsupported media]";
-                        
+                    }
+                    
+                    if (!mediaData || !mediaData.buffer) {
+                        const typeLabel = isStatus ? " (status)" : "";
                         await sock.sendMessage(global.antideleteOwnerChat, {
-                            text: `⚠️ *[ANTI-DELETE]*\n👤 @${sender.split("@")[0]}\n💬 ${content}`,
+                            text: `🚨 *Savage Tech anti‑delete system* 🚨${typeLabel}\n\n👤 *Sender:* @${senderName}\n💬 *Chat:* ${chatName}\n💬 *Message:* ${content}`,
                             mentions: [sender]
                         });
                     }
                 }
                 global._msgCache.delete(deletedMsgId);
                 global._mediaCache.delete(deletedMsgId);
+                global._statusCache.delete(deletedMsgId);
             }
-            return; // Don't process deletions further (no command, no anti‑link)
+            return;
         }
 
-        // ─── CACHE NORMAL MESSAGES AND MEDIA ───
+        // ─── CACHE NORMAL MESSAGES ───
         const id = msg.key.id;
+        const from = msg.key.remoteJid;
+        const isMe = msg.key.fromMe;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        
         if (!global._msgCache.has(id)) {
             global._msgCache.set(id, msg);
-            // Auto‑remove after 5 minutes to prevent memory leak
             setTimeout(() => {
                 if (global._msgCache.has(id)) global._msgCache.delete(id);
                 if (global._mediaCache.has(id)) global._mediaCache.delete(id);
             }, 5 * 60 * 1000);
         }
 
-        // Check for media and download buffer (if not too large)
+        // Cache status messages (for status deletion detection)
+        if (from === 'status@broadcast' && !global._statusCache.has(id)) {
+            global._statusCache.set(id, msg);
+            setTimeout(() => global._statusCache.delete(id), 5 * 60 * 1000);
+        }
+
+        // Download media for anti‑delete (if not too large)
         const messageContent = msg.message;
         let mediaType = null;
         let mediaObj = null;
-        if (messageContent.imageMessage) {
-            mediaType = "image";
-            mediaObj = messageContent.imageMessage;
-        } else if (messageContent.videoMessage) {
-            mediaType = "video";
-            mediaObj = messageContent.videoMessage;
-        } else if (messageContent.stickerMessage) {
-            mediaType = "sticker";
-            mediaObj = messageContent.stickerMessage;
-        } else if (messageContent.audioMessage) {
-            mediaType = "audio";
-            mediaObj = messageContent.audioMessage;
-        }
+        if (messageContent.imageMessage) { mediaType = "image"; mediaObj = messageContent.imageMessage; }
+        else if (messageContent.videoMessage) { mediaType = "video"; mediaObj = messageContent.videoMessage; }
+        else if (messageContent.stickerMessage) { mediaType = "sticker"; mediaObj = messageContent.stickerMessage; }
+        else if (messageContent.audioMessage) { mediaType = "audio"; mediaObj = messageContent.audioMessage; }
 
         if (mediaType && mediaObj) {
-            // Skip caching if file is too large (> 5MB for images, >10MB for video)
             const fileSize = mediaObj.fileLength ? parseInt(mediaObj.fileLength) : 0;
             const maxSize = mediaType === "video" ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
-            if (fileSize > maxSize) {
-                console.log(`⚠️ Media too large (${fileSize} bytes), skipping cache for anti-delete: ${id}`);
-            } else {
+            if (fileSize <= maxSize) {
                 try {
                     const buffer = await downloadMediaMessage(msg, "buffer", {});
                     if (buffer && buffer.length) {
@@ -407,19 +417,12 @@ async function startSavage() {
                             caption: mediaObj.caption || "",
                             type: mediaType
                         });
-                        console.log(`📦 Cached ${mediaType} (${buffer.length} bytes) for anti-delete`);
                     }
-                } catch (err) {
-                    console.error(`Failed to download media for caching:`, err);
-                }
+                } catch (err) {}
             }
         }
 
-        const from = msg.key.remoteJid;
-        const isMe = msg.key.fromMe;
-        const sender = msg.key.participant || msg.key.remoteJid;
-
-        // Auto‑typing / always‑recording
+        // Auto‑typing / recording
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
             try { await sock.sendPresenceUpdate('composing', from); } catch (e) {}
         }
@@ -427,17 +430,19 @@ async function startSavage() {
             try { await sock.sendPresenceUpdate('recording', from); } catch (e) {}
         }
 
-        // Admin check for anti‑statusmention (and later for anti‑link)
+        // Admin check
         let isAdmin = false;
         if (from && from.endsWith("@g.us")) {
             isAdmin = await checkAdmin(sock, from, sender);
         }
+        
+        // Old anti‑status‑mention (if you still use it)
         await handleStatusMention(sock, msg, from, sender, isAdmin);
 
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
         const isArchitect = isMe || (botId && sender === botId);
 
-        // Track message counts for groups
+        // Message counts
         if (from && from.endsWith('@g.us')) {
             if (!global.messageCounts[from]) global.messageCounts[from] = {};
             if (!global.lastMessageTime[from]) global.lastMessageTime[from] = {};
@@ -445,49 +450,76 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ========== ANTI‑LINK (admins exempt from warning/kick) ==========
-        if (from && from.endsWith('@g.us')) {
-            if (isMe) return;
-            
+        // ─── ANTI‑LINK (skip admins) ───
+        if (from && from.endsWith('@g.us') && !isMe) {
             const antiLinkEnabled = global.antiLink?.[from] || false;
             if (antiLinkEnabled) {
                 const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
-                const senderJid = sender;
                 const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
                 if (urlPattern.test(rawText)) {
-                    // ✅ Skip warning/kick if sender is admin
-                    if (isAdmin) {
-                        // Admin sent link – ignore silently
-                    } else {
+                    if (!isAdmin) {
                         if (!global.violationWarnings[from]) global.violationWarnings[from] = {};
-                        const currentWarnings = global.violationWarnings[from][senderJid] || 0;
+                        const currentWarnings = global.violationWarnings[from][sender] || 0;
                         const newWarningCount = currentWarnings + 1;
-                        global.violationWarnings[from][senderJid] = newWarningCount;
+                        global.violationWarnings[from][sender] = newWarningCount;
 
                         if (newWarningCount < 3) {
                             const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
-                            const warningText = `⚠️ *VIOLATION* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                            await sock.sendMessage(from, { text: warningText, mentions: [senderJid] });
+                            const warningText = `⚠️ *VIOLATION* @${sender.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                            await sock.sendMessage(from, { text: warningText, mentions: [sender] });
                         } else {
                             const kickQuote = kickQuotes[Math.floor(Math.random() * kickQuotes.length)];
-                            const kickMessage = `⚠️ *AUTOMATIC KICK* @${senderJid.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                            await sock.sendMessage(from, { text: kickMessage, mentions: [senderJid] });
+                            const kickMessage = `⚠️ *AUTOMATIC KICK* @${sender.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                            await sock.sendMessage(from, { text: kickMessage, mentions: [sender] });
                             try {
-                                await sock.groupParticipantsUpdate(from, [senderJid], 'remove');
-                            } catch (err) {
-                                console.error('Auto‑kick failed:', err);
-                                await sock.sendMessage(from, { text: `❌ Could not kick user. Make sure I am an admin.` });
-                            }
-                            delete global.violationWarnings[from][senderJid];
+                                await sock.groupParticipantsUpdate(from, [sender], 'remove');
+                            } catch (err) {}
+                            delete global.violationWarnings[from][sender];
                         }
-
                         await sock.sendMessage(from, { delete: msg.key });
                     }
-                    return; // Link detected – no further processing (command won't run)
+                    return; // link detected, stop further processing
                 }
             }
         }
 
+        // ─── ANTI‑GROUP‑MENTION (detect group mention) ───
+        if (from && from.endsWith('@g.us') && !isMe) {
+            const antiMentionEnabled = global.antiGroupMention?.[from] || false;
+            if (antiMentionEnabled) {
+                // Check if the message mentions the group itself.
+                // In Baileys, a group mention appears in the mentionedJid array as the group's JID.
+                const mentionedJid = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+                const mentionsGroup = mentionedJid.includes(from);
+                // Also check text for "@" combined with group name? Simpler: just check mentionedJid.
+                if (mentionsGroup) {
+                    if (!isAdmin) {
+                        if (!global.groupMentionWarnings[from]) global.groupMentionWarnings[from] = {};
+                        const currentWarnings = global.groupMentionWarnings[from][sender] || 0;
+                        const newWarningCount = currentWarnings + 1;
+                        global.groupMentionWarnings[from][sender] = newWarningCount;
+
+                        if (newWarningCount < 3) {
+                            const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
+                            const warningText = `⚠️ *VIOLATION* @${sender.split('@')[0]}\n\nReason: group mention (@group)\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                            await sock.sendMessage(from, { text: warningText, mentions: [sender] });
+                        } else {
+                            const kickQuote = kickQuotes[Math.floor(Math.random() * kickQuotes.length)];
+                            const kickMessage = `⚠️ *AUTOMATIC KICK* @${sender.split('@')[0]}\n\nReason: group mention (@group)\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
+                            await sock.sendMessage(from, { text: kickMessage, mentions: [sender] });
+                            try {
+                                await sock.groupParticipantsUpdate(from, [sender], 'remove');
+                            } catch (err) {}
+                            delete global.groupMentionWarnings[from][sender];
+                        }
+                        await sock.sendMessage(from, { delete: msg.key });
+                    }
+                    return; // group mention detected, stop
+                }
+            }
+        }
+
+        // Auto‑view status
         if (from === 'status@broadcast' && global.autoViewStatus === "on") {
             await sock.readMessages([msg.key]);
             return;
@@ -516,7 +548,6 @@ async function startSavage() {
         const { id, participants, action } = anu;
         console.log(`📢 Group event: action="${action}", participants=${participants.join(', ')}, group=${id}`);
 
-        // Capture join requests
         if (action === 'request' || action === 'join-request' || action === 'join_request') {
             if (!global.pendingJoinRequests[id]) global.pendingJoinRequests[id] = [];
             for (let participant of participants) {
@@ -527,7 +558,6 @@ async function startSavage() {
             }
         }
 
-        // Welcome / goodbye handlers
         try {
             const eventHandler = require('./commands/events.js');
             if (eventHandler && typeof eventHandler.sendWelcome === 'function') {

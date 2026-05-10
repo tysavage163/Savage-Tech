@@ -3,8 +3,8 @@
 const axios = require('axios');
 
 module.exports = {
-    category: 'fun and games',
     name: 'country',
+    category: 'fun',
     description: 'Get information about any country',
 
     async execute(sock, msg, args) {
@@ -24,16 +24,14 @@ Example:
         const query = args.join(' ');
 
         await sock.sendMessage(from, {
-            text: '🌍 Fetching country information...'
+            text: '🌍 Fetching country data...'
         });
 
         try {
 
-            const url =
-                `https://restcountries.com/v3.1/name/${encodeURIComponent(query)}?fullText=true`;
-
-            const response =
-                await axios.get(url);
+            const response = await axios.get(
+                `https://restcountries.com/v3.1/name/${encodeURIComponent(query)}?fullText=true`
+            );
 
             const data = response.data[0];
 
@@ -42,6 +40,9 @@ Example:
                     text: '❌ Country not found.'
                 });
             }
+
+            const flag =
+                data.flag || '🌍';
 
             const name =
                 data.name?.common || 'Unknown';
@@ -87,9 +88,6 @@ Example:
             const tld =
                 data.tld?.join(', ') || 'Unknown';
 
-            const flag =
-                data.flag || '🌍';
-
             const text =
 `${flag} *${name}* (${official})
 
@@ -103,7 +101,7 @@ Example:
 🚗 *Driving Side:* ${drivingSide}
 🌐 *TLD:* ${tld}
 
-⚡ Powered by *Savage Tech*`;
+⚡ Powered by *SΛVΛGΞ-TECH*`;
 
             await sock.sendMessage(from, {
                 text
@@ -119,7 +117,7 @@ Example:
 
 Make sure the country name is valid.
 
-⚡ Powered by *Savage Tech*`
+⚡ Powered by *SΛVΛGΞ-TECH*`
             });
         }
     }

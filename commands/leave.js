@@ -2,24 +2,50 @@ module.exports = {
     name: "leave",
     category: "owner",
 
-    async execute(sock, msg, args, { isMe, isArchitect }) {
+    async execute(sock, msg) {
 
         const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
 
-        // must be a group
         if (!from.endsWith("@g.us")) {
             return sock.sendMessage(from, {
                 text: "❌ This command only works in groups."
             });
         }
 
-        // OWNER CHECK (critical fix)
-        if (!isMe && !isArchitect) {
+        // OWNER IDENTIFICATION (same logic as index.js)
+        const botId = sock.user?.id
+            ? sock.user.id.split(':')[0] + '@s.whatsapp.net'
+            : null;
+
+        const isMe = msg.key.fromMe;
+        const isArchitect = isMe || (botId && sender === botId);
+
+        // 🔒 RUTHLESS DENIAL BLOCK
+        if (!isArchitect) {
+
+            const rejects = [
+                "🚫 Access denied. You are not authorized to command me.",
+                "⚠️ Nice try. But authority was never yours to use.",
+                "🧠 System verdict: Unauthorized user detected.",
+                "🔒 You don’t control me. Stay in your lane.",
+                "💀 Permission denied. This bot obeys its creator only.",
+                "🚷 You lack clearance for this operation.",
+                "⚡ Attempt logged. Authority mismatch confirmed.",
+                "🧊 You are not the operator of this system.",
+                "⛔ Command rejected. Ownership not recognized.",
+                "🛑 You cannot exit what you do not control."
+            ];
+
+            const pick =
+                rejects[Math.floor(Math.random() * rejects.length)];
+
             return sock.sendMessage(from, {
-                text: "🔒 Owner only command."
+                text: pick
             });
         }
 
+        // 🔥 OWNER EXIT MESSAGES
         const exits = [
             "👋 I was never part of this chaos... leaving now.",
             "💀 Group quality detected: insufficient. Exiting.",
@@ -33,8 +59,7 @@ module.exports = {
             "⚔️ Even bots need dignity. I'm leaving."
         ];
 
-        const pick =
-            exits[Math.floor(Math.random() * exits.length)];
+        const pick = exits[Math.floor(Math.random() * exits.length)];
 
         try {
 
@@ -47,7 +72,6 @@ module.exports = {
             }, 1200);
 
         } catch (err) {
-
             console.log(err);
 
             await sock.sendMessage(from, {

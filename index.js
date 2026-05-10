@@ -269,15 +269,16 @@ async function startSavage() {
                 }
             }
 
-            // ===== AUTO-JOIN SUPPORT CHANNEL =====
+            // ===== AUTO-JOIN SUPPORT CHANNEL (NEWSLETTER) =====
             try {
                 const channelInviteCode = SUPPORT_CHANNEL_LINK.split("https://whatsapp.com/channel/")[1]?.split(/[?#]/)[0];
                 if (channelInviteCode) {
-                    await sock.joinChannelInvite(channelInviteCode);
+                    // Correct method for Baileys v6
+                    await sock.newsletter.follow(channelInviteCode);
                     console.log("✅ Auto-joined support channel");
                 }
             } catch (e) {
-                if (e.message === 'conflict' || e.message.includes('already')) {
+                if (e.message === 'conflict' || e.message.includes('already') || e.message.includes('exist')) {
                     console.log("⚠️ Bot already in the support channel");
                 } else {
                     console.error("Auto-join channel failed:", e.message);

@@ -11,7 +11,7 @@ module.exports = {
 
         if (!from.endsWith('@g.us')) {
             return sock.sendMessage(from, {
-                text: '❌ This command only works in groups.'
+                text: '❌ Group only command.'
             });
         }
 
@@ -24,13 +24,15 @@ module.exports = {
 
         try {
 
-            const metadata = await sock.groupMetadata(from);
+            const metadata =
+                await sock.groupMetadata(from);
 
-            const participant = metadata.participants.find(
-                p =>
-                    p.id === sender ||
-                    p.jid === sender
-            );
+            const participant =
+                metadata.participants.find(
+                    p =>
+                        p.id === sender ||
+                        p.jid === sender
+                );
 
             isAdmin =
                 participant?.admin === 'admin' ||
@@ -78,30 +80,26 @@ module.exports = {
 
             for (const participant of participants) {
 
-                // support all Baileys formats
-                let jid =
-                    participant.id ||
+                // IMPORTANT FIX
+                const jid =
                     participant.jid ||
-                    participant.user ||
+                    participant.id ||
                     '';
 
                 if (!jid) continue;
 
-                // skip lid users
-                if (jid.includes('lid')) {
-                    continue;
-                }
-
-                // remove @...
-                let number = jid.split('@')[0];
+                let number =
+                    jid.split('@')[0];
 
                 // remove device suffix
                 if (number.includes(':')) {
-                    number = number.split(':')[0];
+                    number =
+                        number.split(':')[0];
                 }
 
-                // keep digits only
-                number = number.replace(/\D/g, '');
+                // digits only
+                number =
+                    number.replace(/\D/g, '');
 
                 if (
                     !number ||
@@ -110,7 +108,7 @@ module.exports = {
                     continue;
                 }
 
-                // remove duplicates
+                // skip duplicates
                 if (usedNumbers.has(number)) {
                     continue;
                 }
@@ -120,7 +118,8 @@ module.exports = {
                 const emoji =
                     emojis[
                         Math.floor(
-                            Math.random() * emojis.length
+                            Math.random() *
+                            emojis.length
                         )
                     ];
 
@@ -135,20 +134,13 @@ module.exports = {
             }
 
             if (!contacts.length) {
-
-                console.log(participants);
-
                 return sock.sendMessage(from, {
                     text:
-`❌ No valid contacts detected.
-
-⚠️ Your WhatsApp library may use a different participant structure.
-
-Check console logs now.`
+                        '❌ No valid contacts detected.'
                 });
             }
 
-            // build vcf
+            // BUILD VCF
             let vcf = '';
 
             for (const contact of contacts) {

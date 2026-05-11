@@ -28,6 +28,7 @@ module.exports = {
         ];
 
         const savageLine = coldLines[Math.floor(Math.random() * coldLines.length)];
+        const header = `*───「 SAVAGE-EXPOSE 」───*\n\n"${savageLine}"`;
 
         try {
             let mediaType;
@@ -39,6 +40,9 @@ module.exports = {
             } else if (target.videoMessage) {
                 mediaType = 'video';
                 message = target.videoMessage;
+            } else if (target.audioMessage) {
+                mediaType = 'audio';
+                message = target.audioMessage;
             } else {
                 return sock.sendMessage(from, { text: 'This isn\'t a media secret.' });
             }
@@ -49,12 +53,14 @@ module.exports = {
                 buffer = Buffer.concat([buffer, chunk]);
             }
 
-            const header = `*───「 SAVAGE-EXPOSE 」───*\n\n"${savageLine}"`;
-
             if (mediaType === 'image') {
                 await sock.sendMessage(from, { image: buffer, caption: header }, { quoted: msg });
-            } else {
+            } else if (mediaType === 'video') {
                 await sock.sendMessage(from, { video: buffer, caption: header }, { quoted: msg });
+            } else if (mediaType === 'audio') {
+                // Audio (voice note) – send as an audio file with the header as optional caption (audio messages don't support captions, so send separate text)
+                await sock.sendMessage(from, { audio: buffer, mimetype: message.mimetype || 'audio/mpeg', ptt: false }, { quoted: msg });
+                await sock.sendMessage(from, { text: header }, { quoted: msg });
             }
 
         } catch (e) {

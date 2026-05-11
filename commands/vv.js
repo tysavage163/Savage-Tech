@@ -36,7 +36,8 @@ module.exports = {
         ];
 
         const savageLine = coldLines[Math.floor(Math.random() * coldLines.length)];
-        const header = `*───「 SAVAGE-EXPOSE 」───*\n\n${savageLine}`;  // No quotes around the line
+        const header = `*───「 SAVAGE-EXPOSE 」───*\n\n${savageLine}`;
+        const footer = `\n\n⚡ Retrieved by Savage Tech`;
 
         try {
             let mediaType;
@@ -62,12 +63,12 @@ module.exports = {
             }
 
             if (mediaType === 'image') {
-                await sock.sendMessage(from, { image: buffer, caption: header }, { quoted: msg });
+                await sock.sendMessage(from, { image: buffer, caption: header + footer }, { quoted: msg });
             } else if (mediaType === 'video') {
-                await sock.sendMessage(from, { video: buffer, caption: header }, { quoted: msg });
+                await sock.sendMessage(from, { video: buffer, caption: header + footer }, { quoted: msg });
             } else if (mediaType === 'audio') {
                 await sock.sendMessage(from, { audio: buffer, mimetype: message.mimetype || 'audio/mpeg', ptt: false }, { quoted: msg });
-                await sock.sendMessage(from, { text: header }, { quoted: msg });
+                await sock.sendMessage(from, { text: header + footer }, { quoted: msg });
             }
         } catch (e) {
             console.error(e);

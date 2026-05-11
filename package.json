@@ -3,7 +3,7 @@ cat > package.json << 'EOF'
   "name": "savage-tech-2.0",
   "version": "2.0.0",
   "type": "module",
-  "description": "Savage Tech 2.0 – WhatsApp bot (latest Baileys, ESM)",
+  "description": "Savage Tech 2.0 - WhatsApp Bot (Latest Baileys)",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -22,9 +22,6 @@ cat > package.json << 'EOF'
     "qrcode-terminal": "^0.12.0",
     "yt-search": "^2.13.1",
     "ytdl-core": "^4.11.5"
-  },
-  "devDependencies": {
-    "javascript-obfuscator": "^5.4.2"
   }
 }
 EOF

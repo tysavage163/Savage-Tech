@@ -53,7 +53,7 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== COLD QUOTES FOR ANTI‑LINK & ANTI‑MENTION =====
+// ===== COLD QUOTES =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -544,19 +544,17 @@ async function startSavage() {
             }
         }
 
-        // ─── ANTI‑LEAVE ENFORCEMENT ───
+        // ANTI‑LEAVE ENFORCEMENT
         if (action === 'remove') {
             if (global.antiLeave && global.antiLeave[id]) {
                 for (let user of participants) {
                     try {
-                        // Re‑add the user immediately
                         await sock.groupParticipantsUpdate(id, [user], "add");
                         await sock.sendMessage(id, {
                             text: `🛡️ *ANTI-LEAVE ACTIVE*\n\n👤 @${user.split("@")[0]} attempted to leave\n🔁 Re-added automatically\n\n⚡ Savage Tech Enforcement`,
                             mentions: [user]
                         });
                     } catch (err) {
-                        // If re‑add fails (e.g., bot not admin), send invite link to the user privately
                         try {
                             const code = await sock.groupInviteCode(id);
                             const link = `https://chat.whatsapp.com/${code}`;
@@ -581,6 +579,22 @@ async function startSavage() {
                         await eventHandler.sendGoodbye(sock, id, participant);
                     }
                 }
+            }
+        } catch (e) {}
+    });
+
+    // ===== ANTI‑PROMOTE & ANTI‑DEMOTE HOOK (group-admins.update) =====
+    sock.ev.on('group-admins.update', async (update) => {
+        try {
+            const antiPromoteCmd = require('./commands/antipromote');
+            if (antiPromoteCmd && typeof antiPromoteCmd.onGroupParticipantsUpdate === 'function') {
+                await antiPromoteCmd.onGroupParticipantsUpdate(sock, update);
+            }
+        } catch (e) {}
+        try {
+            const antiDemoteCmd = require('./commands/antidemote');
+            if (antiDemoteCmd && typeof antiDemoteCmd.onGroupParticipantsUpdate === 'function') {
+                await antiDemoteCmd.onGroupParticipantsUpdate(sock, update);
             }
         } catch (e) {}
     });

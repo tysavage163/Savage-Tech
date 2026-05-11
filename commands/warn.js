@@ -22,13 +22,10 @@ module.exports = {
         let isAdmin = false;
 
         try {
-
             const meta = await sock.groupMetadata(from);
 
             const participant = meta.participants.find(
-                p =>
-                    p.id === sender ||
-                    p.jid === sender
+                p => p.id === sender || p.jid === sender
             );
 
             isAdmin =
@@ -38,32 +35,25 @@ module.exports = {
         } catch {}
 
         if (!isAdmin && !isArchitect && !isMe) {
-
             return sock.sendMessage(from, {
                 text: "🔒 Admins only command."
             });
         }
 
         // ===== TARGET DETECTION =====
-
-        // mention support
         let mentioned =
             msg.message?.extendedTextMessage
                 ?.contextInfo
                 ?.mentionedJid?.[0];
 
-        // reply support
         if (!mentioned) {
-
             mentioned =
                 msg.message?.extendedTextMessage
                     ?.contextInfo
                     ?.participant;
         }
 
-        // no target found
         if (!mentioned) {
-
             return sock.sendMessage(from, {
                 text:
 `⚠️ Reply to a message or mention a user.
@@ -72,35 +62,29 @@ Example:
 .warn @user spam
 
 OR
-
-Reply to someone's message:
+Reply:
 .warn spam`
             });
         }
 
-        // prevent warning bot owner
         if (global.owner?.includes(mentioned)) {
-
             return sock.sendMessage(from, {
                 text: "⚡ You cannot warn the creator of Savage Tech."
             });
         }
 
-        const reason = args.join(" ") || "No reason provided";
+        // ===== FIXED REASON LOGIC =====
+        const reason = mentioned
+            ? args.slice(1).join(" ") || "No reason provided"
+            : args.join(" ") || "No reason provided";
 
         // ===== WARN STORAGE =====
-        if (!global.warns[from]) {
-            global.warns[from] = {};
-        }
-
-        if (!global.warns[from][mentioned]) {
-            global.warns[from][mentioned] = 0;
-        }
+        if (!global.warns[from]) global.warns[from] = {};
+        if (!global.warns[from][mentioned]) global.warns[from][mentioned] = 0;
 
         global.warns[from][mentioned]++;
 
         const warns = global.warns[from][mentioned];
-
         const remaining = 3 - warns;
 
         // ===== SAVAGE QUOTES =====
@@ -117,8 +101,7 @@ Reply to someone's message:
             "You are testing a system designed to win."
         ];
 
-        const quote =
-            quotes[Math.floor(Math.random() * quotes.length)];
+        const quote = quotes[Math.floor(Math.random() * quotes.length)];
 
         // ===== AUTO KICK =====
         if (warns >= 3) {
@@ -142,20 +125,9 @@ Reply to someone's message:
             });
 
             try {
-
-                await sock.groupParticipantsUpdate(
-                    from,
-                    [mentioned],
-                    "remove"
-                );
-
+                await sock.groupParticipantsUpdate(from, [mentioned], "remove");
             } catch (err) {
-
                 console.log(err);
-
-                await sock.sendMessage(from, {
-                    text: "❌ Failed to remove user."
-                });
             }
 
             return;

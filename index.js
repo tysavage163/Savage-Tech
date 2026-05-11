@@ -274,7 +274,7 @@ async function startSavage() {
             const cmdCount = global.commands.size;
             const activeTime = new Date().toLocaleString();
 
-            // ===== COMPACT STARTUP MESSAGE (with channel benefits) =====
+            // ===== COMPACT STARTUP MESSAGE =====
             let startupText = `┌─────────────────────────┐
 │ ✅ Savage-Tech ONLINE   │
 ├─────────────────────────┤
@@ -313,7 +313,7 @@ async function startSavage() {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // ─── ANTI‑DELETE DETECTION (revoke) ───
+        // ANTI‑DELETE DETECTION (revoke)
         const protocolMsg = msg.message?.protocolMessage;
         if (protocolMsg?.type === 0) {
             const revokedKey = protocolMsg.key;
@@ -370,7 +370,7 @@ async function startSavage() {
             return;
         }
 
-        // ─── CACHE NORMAL MESSAGES ───
+        // CACHE NORMAL MESSAGES
         const id = msg.key.id;
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe;
@@ -389,7 +389,7 @@ async function startSavage() {
             setTimeout(() => global._statusCache.delete(id), 5 * 60 * 1000);
         }
 
-        // Download media for anti‑delete (if not too large)
+        // Download media for anti‑delete
         const messageContent = msg.message;
         let mediaType = null;
         let mediaObj = null;
@@ -440,7 +440,7 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ─── ANTI‑LINK (skip admins) ───
+        // ANTI‑LINK (skip admins)
         if (from && from.endsWith('@g.us') && !isMe) {
             const antiLinkEnabled = global.antiLink?.[from] || false;
             if (antiLinkEnabled) {
@@ -473,7 +473,7 @@ async function startSavage() {
             }
         }
 
-        // ─── ANTI‑GROUP‑MENTION (detect group mention) ───
+        // ANTI‑GROUP‑MENTION (detect group mention)
         if (from && from.endsWith('@g.us') && !isMe) {
             const antiMentionEnabled = global.antiGroupMention?.[from] || false;
             if (antiMentionEnabled) {
@@ -533,6 +533,7 @@ async function startSavage() {
         const { id, participants, action } = anu;
         console.log(`📢 Group event: action="${action}", participants=${participants.join(', ')}, group=${id}`);
 
+        // Handle join requests
         if (action === 'request' || action === 'join-request' || action === 'join_request') {
             if (!global.pendingJoinRequests[id]) global.pendingJoinRequests[id] = [];
             for (let participant of participants) {
@@ -543,6 +544,32 @@ async function startSavage() {
             }
         }
 
+        // ─── ANTI‑LEAVE ENFORCEMENT ───
+        if (action === 'remove') {
+            if (global.antiLeave && global.antiLeave[id]) {
+                for (let user of participants) {
+                    try {
+                        // Re‑add the user immediately
+                        await sock.groupParticipantsUpdate(id, [user], "add");
+                        await sock.sendMessage(id, {
+                            text: `🛡️ *ANTI-LEAVE ACTIVE*\n\n👤 @${user.split("@")[0]} attempted to leave\n🔁 Re-added automatically\n\n⚡ Savage Tech Enforcement`,
+                            mentions: [user]
+                        });
+                    } catch (err) {
+                        // If re‑add fails (e.g., bot not admin), send invite link to the user privately
+                        try {
+                            const code = await sock.groupInviteCode(id);
+                            const link = `https://chat.whatsapp.com/${code}`;
+                            await sock.sendMessage(user, {
+                                text: `🛡️ You tried to leave a protected group.\n\nRe-entry link:\n${link}\n\n⚡ Savage Tech Anti-Leave System`
+                            });
+                        } catch (e) {}
+                    }
+                }
+            }
+        }
+
+        // Welcome / goodbye messages (existing)
         try {
             const eventHandler = require('./commands/events.js');
             if (eventHandler && typeof eventHandler.sendWelcome === 'function') {

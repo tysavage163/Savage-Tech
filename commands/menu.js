@@ -65,10 +65,21 @@ module.exports = {
 
             const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + otherMenu + footer;
 
-            // If a custom menu image is set, use it; otherwise send text only
-            if (global.menuImageUrl) {
+            let imageUrl = null;
+            if (global.menuImages && global.menuImages.length > 0) {
+                if (typeof global.menuImageIndex !== 'number') global.menuImageIndex = 0;
+                imageUrl = global.menuImages[global.menuImageIndex];
+                global.menuImageIndex = (global.menuImageIndex + 1) % global.menuImages.length;
+            } else if (global.menuImageUrl) {
+                imageUrl = global.menuImageUrl;
+            } else {
+                const DEFAULT_MENU_IMAGE = 'https://files.catbox.moe/waffn1.png';
+                imageUrl = DEFAULT_MENU_IMAGE;
+            }
+
+            if (imageUrl) {
                 await sock.sendMessage(from, { 
-                    image: { url: global.menuImageUrl }, 
+                    image: { url: imageUrl }, 
                     caption: fullMenu,
                     mentions: mention
                 }, { quoted: msg });

@@ -7,6 +7,7 @@ module.exports = {
         if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only command.' });
 
         const sender = msg.key.participant || msg.key.remoteJid;
+        // Extract numeric part (remove @s.whatsapp.net or @lid and any :0 suffix)
         const senderNumber = sender.split('@')[0].split(':')[0];
 
         let isAdmin = false;
@@ -17,7 +18,7 @@ module.exports = {
                 return pNumber === senderNumber;
             });
             isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
-            console.log(`togstatus: sender=${senderNumber}, isAdmin=${isAdmin}`);
+            console.log(`togstatus: senderNumber=${senderNumber}, isAdmin=${isAdmin}`);
         } catch (err) {
             console.error('Admin check error:', err);
         }
@@ -25,14 +26,17 @@ module.exports = {
         if (!isAdmin) return sock.sendMessage(from, { text: 'Only group admins can use this command.' });
 
         const statusText = args.join(' ');
-        if (!statusText) return sock.sendMessage(from, { text: 'Usage: .togstatus <text>' });
+        if (!statusText) {
+            return sock.sendMessage(from, { text: '❓ Usage: .togstatus <your story text>' });
+        }
 
         try {
+            // Post the group story (disappears after 24h)
             await sock.sendMessage(from, { groupStatusMessage: { text: statusText } });
             await sock.sendMessage(from, { text: '✅ Group status story posted! It will disappear in 24 hours.' });
         } catch (err) {
             console.error('Story error:', err);
-            await sock.sendMessage(from, { text: `Failed: ${err.message}` });
+            await sock.sendMessage(from, { text: `❌ Failed to post story: ${err.message}` });
         }
     }
 };

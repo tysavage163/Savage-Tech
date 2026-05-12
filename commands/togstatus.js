@@ -1,39 +1,27 @@
 module.exports = {
     name: 'togstatus',
     category: 'group',
+    description: 'Post a status story to the group (24h expiry). Admins only.',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only.' });
+        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only command.' });
 
         const sender = msg.key.participant || msg.key.remoteJid;
-        console.log(`Sender JID: ${sender}`);
-
-        let isAdmin = false;
-        try {
-            const meta = await sock.groupMetadata(from);
-            console.log(`Group participants: ${meta.participants.map(p => p.id).join(', ')}`);
-            const participant = meta.participants.find(p => {
-                // Normalise both JIDs: remove any :0 suffix and compare the base part
-                const pId = p.id.split(':')[0];
-                const sId = sender.split(':')[0];
-                return pId === sId;
-            });
-            isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
-            console.log(`Is admin? ${isAdmin}`);
-        } catch (err) {
-            console.error('Admin check error:', err);
-        }
+        const isAdmin = await global.checkAdmin?.(sock, from, sender);
         if (!isAdmin) return sock.sendMessage(from, { text: 'Only group admins can use this command.' });
 
         const statusText = args.join(' ');
-        if (!statusText) return sock.sendMessage(from, { text: 'Usage: .togstatus <text>' });
+        if (!statusText) {
+            return sock.sendMessage(from, { text: '❓ Usage: .togstatus <your story text>' });
+        }
 
         try {
+            // Post group status story (disappears after 24h)
             await sock.sendMessage(from, { groupStatusMessage: { text: statusText } });
-            await sock.sendMessage(from, { text: '✅ Group story posted (24h).' });
+            await sock.sendMessage(from, { text: '✅ Group status story posted! It will disappear in 24 hours.' });
         } catch (err) {
             console.error('Story error:', err);
-            await sock.sendMessage(from, { text: `❌ Failed: ${err.message}` });
+            await sock.sendMessage(from, { text: `❌ Failed to post story: ${err.message}` });
         }
     }
 };

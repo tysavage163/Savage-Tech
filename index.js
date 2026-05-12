@@ -53,7 +53,7 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== COLD QUOTES FOR ANTI‑LINK & ANTI‑MENTION =====
+// ===== COLD QUOTES =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -119,6 +119,7 @@ async function checkAdmin(sock, groupId, sender) {
         return false;
     }
 }
+global.checkAdmin = checkAdmin;   // <-- ADDED THIS LINE
 
 async function getGroupName(sock, groupId) {
     try {

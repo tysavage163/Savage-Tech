@@ -7,7 +7,15 @@ module.exports = {
         if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only command.' });
 
         const sender = msg.key.participant || msg.key.remoteJid;
-        const isAdmin = await global.checkAdmin?.(sock, from, sender) || false;
+        let isAdmin = false;
+        try {
+            const meta = await sock.groupMetadata(from);
+            const participant = meta.participants.find(p => p.id === sender);
+            isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
+            console.log(`Admin check: ${sender} -> ${isAdmin}`);
+        } catch (err) {
+            console.error('Admin check error:', err);
+        }
         if (!isAdmin) return sock.sendMessage(from, { text: 'Only group admins can use this command.' });
 
         const statusText = args.join(' ');
@@ -16,11 +24,11 @@ module.exports = {
         }
 
         try {
-            // Post the group story (text)
+            // Post the story using the fork's method
             await sock.sendMessage(from, { groupStatusMessage: { text: statusText } });
             await sock.sendMessage(from, { text: '✅ Group status story posted! It will disappear in 24 hours.' });
         } catch (err) {
-            console.error(err);
+            console.error('Story post error:', err);
             await sock.sendMessage(from, { text: `❌ Failed to post story: ${err.message}` });
         }
     }

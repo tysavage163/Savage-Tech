@@ -110,16 +110,21 @@ const finalQuotes = [
     "Spencer gave you two warnings. You gave him nothing. Goodbye."
 ];
 
+// ✅ FIXED: admin check that matches by numeric ID (ignores @s.whatsapp.net vs @lid)
 async function checkAdmin(sock, groupId, sender) {
     try {
         const meta = await sock.groupMetadata(groupId);
-        const participant = meta.participants.find(p => p.id === sender);
-        return participant?.admin === "admin" || participant?.admin === "superadmin";
+        const senderNumber = sender.split('@')[0].split(':')[0];
+        const participant = meta.participants.find(p => {
+            const pNumber = p.id.split('@')[0].split(':')[0];
+            return pNumber === senderNumber;
+        });
+        return participant?.admin === 'admin' || participant?.admin === 'superadmin';
     } catch {
         return false;
     }
 }
-global.checkAdmin = checkAdmin;   // <-- ADDED THIS LINE
+global.checkAdmin = checkAdmin;   // make available to all commands
 
 async function getGroupName(sock, groupId) {
     try {
@@ -307,6 +312,7 @@ async function startSavage() {
         }
     });
 
+    // ===== MESSAGE HANDLER ===== (unchanged)
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
@@ -520,6 +526,7 @@ async function startSavage() {
         }
     });
 
+    // ===== GROUP EVENT HANDLER =====
     sock.ev.on('group-participants.update', async (anu) => {
         const { id, participants, action } = anu;
         console.log(`📢 Group event: action="${action}", participants=${participants.join(', ')}, group=${id}`);

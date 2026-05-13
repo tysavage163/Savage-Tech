@@ -47,7 +47,7 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== QUOTES (same as your original) =====
+// ===== QUOTES (same as before) =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -302,22 +302,28 @@ async function startSavage() {
         }
     });
 
+    // ===== MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // ===== AUTO-READ (FIXED for Baileys v6) =====
+        // === AUTO READ ===
         if (global.autoRead === true && !msg.key.fromMe) {
             try {
-                // Mark the specific message as read
                 await sock.readMessages([msg.key]);
-                // Mark the entire chat as read (ensures all messages are seen)
-                await sock.chatModify({ markRead: true }, msg.key.remoteJid);
-                console.log(`[AUTO-READ] Read receipt processed for ${msg.key.id}`);
-            } catch (e) {
-                console.error('[AUTO-READ] Error:', e.message);
+                console.log(`[AUTO-READ] Marked read: ${msg.key.id}`);
+            } catch (err) {
+                console.log("AutoRead Error:", err);
             }
         }
+
+        // === AUTO REACT ===
+        try {
+            const autoReact = require('./commands/autoreact.js');
+            if (typeof autoReact.reactToMessage === "function") {
+                await autoReact.reactToMessage(sock, msg);
+            }
+        } catch (e) {}
 
         // ─── ANTI‑DELETE DETECTION (revoke) ───
         const protocolMsg = msg.message?.protocolMessage;
@@ -376,7 +382,7 @@ async function startSavage() {
             return;
         }
 
-        // CACHE NORMAL MESSAGES
+        // ─── CACHE NORMAL MESSAGES ───
         const id = msg.key.id;
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe;

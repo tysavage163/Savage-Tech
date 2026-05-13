@@ -21,6 +21,7 @@ global.antideleteMode = "on";
 global.autoViewStatus = "on";
 global.autoTyping = "off";
 global.worktype = "public";
+global.autoRead = false;   // default disabled
 
 global.messageCounts = {};
 global.lastMessageTime = {};
@@ -314,11 +315,15 @@ async function startSavage() {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // ===== AUTO-READ (added) =====
+        // ===== AUTO-READ (improved) =====
         if (global.autoRead === true) {
             try {
                 await sock.readMessages([msg.key]);
-            } catch (e) {}
+                await sock.chatModify({ markRead: true }, msg.key.remoteJid);
+                console.log(`[AUTO-READ] Marked read: ${msg.key.id} in ${msg.key.remoteJid}`);
+            } catch (e) {
+                console.error('[AUTO-READ] Failed:', e.message);
+            }
         }
 
         // ANTI‑DELETE DETECTION (revoke)

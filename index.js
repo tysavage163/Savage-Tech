@@ -13,7 +13,7 @@ const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
 
-// ===== 1. CORE SYSTEM SETTINGS =====
+// ===== CORE SETTINGS =====
 global.prefix = ".";
 global.commands = new Map();
 global.blacklist = new Set();
@@ -29,32 +29,25 @@ global.antideleteOwnerChat = null;
 global.goodbyeEnabled = {};
 global.welcomeEnabled = {};
 
-// ===== ANTI‑LINK & ANTI‑GROUP‑MENTION =====
 global.antiLink = {};
 global.violationWarnings = {};
 global.antiGroupMention = {};
 global.groupMentionWarnings = {};
 
-// ===== ANTI‑STATUS MENTION (old feature) =====
 global.antiStatusMention = {};
 global.statusWarnings = {};
 
-// ===== ANTI‑DELETE CACHE =====
 global._msgCache = new Map();
 global._mediaCache = new Map();
 global._statusCache = new Map();
 
-// ===== ALWAYS‑RECORDING =====
 global.alwaysRecording = false;
-
-// ===== PENDING JOIN REQUESTS =====
 global.pendingJoinRequests = {};
 
-// ===== SUPPORT LINKS =====
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== COLD QUOTES =====
+// ===== QUOTES (truncated for brevity – same as your original) =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -72,7 +65,6 @@ const warnQuotes = [
     "You're not above Spencer's logic.",
     "Spencer's system allows one mistake. This is it."
 ];
-
 const kickQuotes = [
     "You ignored two warnings. Spencer's system doesn't offer third chances.",
     "Two strikes and you're out. Spencer's rules are absolute.",
@@ -90,7 +82,6 @@ const kickQuotes = [
     "The algorithm decided you were noise. Silence enforced.",
     "Spencer's final decision: you are no longer part of this equation."
 ];
-
 const warning1Quotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -315,18 +306,20 @@ async function startSavage() {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // ===== AUTO-READ (improved) =====
-        if (global.autoRead === true) {
+        // ===== AUTO-READ (FIXED with sendReadReceipt) =====
+        if (global.autoRead === true && !msg.key.fromMe) {
             try {
-                await sock.readMessages([msg.key]);
-                await sock.chatModify({ markRead: true }, msg.key.remoteJid);
-                console.log(`[AUTO-READ] Marked read: ${msg.key.id} in ${msg.key.remoteJid}`);
+                // The participant (if group) or the remoteJid (private) is the sender
+                const chatId = msg.key.remoteJid;
+                const senderId = msg.key.participant || chatId;
+                await sock.sendReadReceipt(chatId, senderId, [msg.key.id]);
+                console.log(`[AUTO-READ] Receipt sent for ${msg.key.id}`);
             } catch (e) {
-                console.error('[AUTO-READ] Failed:', e.message);
+                console.error('[AUTO-READ] Receipt error:', e.message);
             }
         }
 
-        // ANTI‑DELETE DETECTION (revoke)
+        // ─── ANTI‑DELETE DETECTION (revoke) ───
         const protocolMsg = msg.message?.protocolMessage;
         if (protocolMsg?.type === 0) {
             const revokedKey = protocolMsg.key;
@@ -383,6 +376,7 @@ async function startSavage() {
             return;
         }
 
+        // ─── CACHE NORMAL MESSAGES ───
         const id = msg.key.id;
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe;
@@ -401,6 +395,7 @@ async function startSavage() {
             setTimeout(() => global._statusCache.delete(id), 5 * 60 * 1000);
         }
 
+        // Download media for anti‑delete
         const messageContent = msg.message;
         let mediaType = null;
         let mediaObj = null;
@@ -427,6 +422,7 @@ async function startSavage() {
             }
         }
 
+        // Auto‑typing / recording
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
             try { await sock.sendPresenceUpdate('composing', from); } catch (e) {}
         }
@@ -450,6 +446,7 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
+        // ANTI‑LINK
         if (from && from.endsWith('@g.us') && !isMe) {
             const antiLinkEnabled = global.antiLink?.[from] || false;
             if (antiLinkEnabled) {
@@ -482,6 +479,7 @@ async function startSavage() {
             }
         }
 
+        // ANTI-GROUP-MENTION
         if (from && from.endsWith('@g.us') && !isMe) {
             const antiMentionEnabled = global.antiGroupMention?.[from] || false;
             if (antiMentionEnabled) {

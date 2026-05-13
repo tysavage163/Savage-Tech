@@ -21,7 +21,7 @@ global.antideleteMode = "on";
 global.autoViewStatus = "on";
 global.autoTyping = "off";
 global.worktype = "public";
-global.autoRead = false;   // default disabled
+global.autoRead = false;
 
 global.messageCounts = {};
 global.lastMessageTime = {};
@@ -47,7 +47,7 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== QUOTES (truncated for brevity – same as your original) =====
+// ===== QUOTES (same as your original) =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -306,16 +306,16 @@ async function startSavage() {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // ===== AUTO-READ (FIXED with sendReadReceipt) =====
+        // ===== AUTO-READ (FIXED for Baileys v6) =====
         if (global.autoRead === true && !msg.key.fromMe) {
             try {
-                // The participant (if group) or the remoteJid (private) is the sender
-                const chatId = msg.key.remoteJid;
-                const senderId = msg.key.participant || chatId;
-                await sock.sendReadReceipt(chatId, senderId, [msg.key.id]);
-                console.log(`[AUTO-READ] Receipt sent for ${msg.key.id}`);
+                // Mark the specific message as read
+                await sock.readMessages([msg.key]);
+                // Mark the entire chat as read (ensures all messages are seen)
+                await sock.chatModify({ markRead: true }, msg.key.remoteJid);
+                console.log(`[AUTO-READ] Read receipt processed for ${msg.key.id}`);
             } catch (e) {
-                console.error('[AUTO-READ] Receipt error:', e.message);
+                console.error('[AUTO-READ] Error:', e.message);
             }
         }
 
@@ -376,7 +376,7 @@ async function startSavage() {
             return;
         }
 
-        // ─── CACHE NORMAL MESSAGES ───
+        // CACHE NORMAL MESSAGES
         const id = msg.key.id;
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe;

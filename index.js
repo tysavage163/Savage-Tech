@@ -22,7 +22,6 @@ global.autoViewStatus = "on";
 global.autoTyping = "off";
 global.worktype = "public";
 global.autoRead = false;
-global.autoReactStatus = false;   // <-- ADDED
 
 global.messageCounts = {};
 global.lastMessageTime = {};
@@ -48,7 +47,6 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== QUOTES =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",

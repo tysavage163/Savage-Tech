@@ -22,6 +22,7 @@ global.autoViewStatus = "on";
 global.autoTyping = "off";
 global.worktype = "public";
 global.autoRead = false;
+global.autoReactStatus = false;   // <-- ADDED
 
 global.messageCounts = {};
 global.lastMessageTime = {};
@@ -47,7 +48,7 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// ===== QUOTES (same as before) =====
+// ===== QUOTES =====
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -322,6 +323,14 @@ async function startSavage() {
             const autoReact = require('./commands/autoreact.js');
             if (typeof autoReact.reactToMessage === "function") {
                 await autoReact.reactToMessage(sock, msg);
+            }
+        } catch (e) {}
+
+        // === AUTO REACT STATUS ===
+        try {
+            const autoReactStatus = require('./commands/autoreactstatus.js');
+            if (typeof autoReactStatus.reactToStatus === "function") {
+                await autoReactStatus.reactToStatus(sock, msg);
             }
         } catch (e) {}
 

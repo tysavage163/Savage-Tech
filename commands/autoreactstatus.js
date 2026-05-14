@@ -45,14 +45,20 @@ module.exports.reactToStatus = async function(sock, msg) {
 
         const emoji = statusReactions[Math.floor(Math.random() * statusReactions.length)];
         const participantJid = msg.key.participant;
+        if (!participantJid) {
+            console.log("[AUTO-REACT-STATUS] No participant JID found");
+            return;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         await sock.sendMessage(
             "status@broadcast",
-            { react: { key: msg.key, text: emoji } },
-            { statusJidList: [participantJid] }
+            { react: { text: emoji, key: msg.key } },
+            { statusJid: participantJid }
         );
 
-        console.log(`[AUTO-REACT-STATUS] Reacted with ${emoji} for ${participantJid}`);
+        console.log(`[AUTO-REACT-STATUS] Reacted with ${emoji} to ${participantJid}`);
     } catch (err) {
         console.error("[AUTO-REACT-STATUS ERROR]", err);
     }

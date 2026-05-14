@@ -1,4 +1,4 @@
-global.autoReactStatus = global.autoReactStatus !== undefined ? global.autoReactStatus : false;
+global.autoReactStatus = global.autoReactStatus === undefined ? false : global.autoReactStatus;
 
 const statusReactions = [
     "❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔",
@@ -32,22 +32,19 @@ module.exports = {
             return sock.sendMessage(from, { text: "Usage: .autoreactstatus on/off" });
         }
         global.autoReactStatus = (state === "on");
-        console.log(`[AUTO-REACT-STATUS] Command toggled to ${global.autoReactStatus}`);
         await sock.sendMessage(from, { text: `✅ Auto‑reaction to status updates: ${state.toUpperCase()}` });
     }
 };
 
 module.exports.reactToStatus = async function(sock, msg) {
     try {
-        const from = msg.key.remoteJid;
-        if (from !== 'status@broadcast') return;
-        if (msg.key.fromMe) return;
-        console.log(`[AUTO-REACT-STATUS] Status received. Current flag: ${global.autoReactStatus}`);
         if (!global.autoReactStatus) return;
+        if (msg.key.fromMe) return;
+        const isStatus = (msg.key.remoteJid === 'status@broadcast');
+        if (!isStatus) return;
         const emoji = statusReactions[Math.floor(Math.random() * statusReactions.length)];
-        await sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
-        console.log(`[AUTO-REACT-STATUS] Reacted with ${emoji}`);
+        await sock.sendMessage('status@broadcast', { react: { text: emoji, key: msg.key } });
     } catch (err) {
-        console.error(`[AUTO-REACT-STATUS] Reaction error:`, err.message);
+        console.error(`[AUTO-REACT-STATUS] Failed: ${err.message}`);
     }
 };

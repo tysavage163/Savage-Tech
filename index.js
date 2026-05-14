@@ -13,6 +13,7 @@ const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
 
+// ===== CORE SETTINGS =====
 global.prefix = ".";
 global.commands = new Map();
 global.blacklist = new Set();
@@ -300,10 +301,12 @@ async function startSavage() {
         }
     });
 
+    // ===== MESSAGE HANDLER =====
     sock.ev.on("messages.upsert", async (m) => {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
+        // === AUTO READ ===
         if (global.autoRead === true && !msg.key.fromMe) {
             try {
                 await sock.readMessages([msg.key]);
@@ -313,6 +316,7 @@ async function startSavage() {
             }
         }
 
+        // === AUTO REACT ===
         try {
             const autoReact = require('./commands/autoreact.js');
             if (typeof autoReact.reactToMessage === "function") {
@@ -320,6 +324,15 @@ async function startSavage() {
             }
         } catch (e) {}
 
+        // === AUTO REACT STATUS ===
+        try {
+            const autoReactStatus = require('./commands/autoreactstatus.js');
+            if (typeof autoReactStatus.reactToStatus === "function") {
+                await autoReactStatus.reactToStatus(sock, msg);
+            }
+        } catch (e) {}
+
+        // ─── ANTI‑DELETE DETECTION (revoke) ───
         const protocolMsg = msg.message?.protocolMessage;
         if (protocolMsg?.type === 0) {
             const revokedKey = protocolMsg.key;
@@ -376,6 +389,7 @@ async function startSavage() {
             return;
         }
 
+        // ─── CACHE NORMAL MESSAGES ───
         const id = msg.key.id;
         const from = msg.key.remoteJid;
         const isMe = msg.key.fromMe;
@@ -394,6 +408,7 @@ async function startSavage() {
             setTimeout(() => global._statusCache.delete(id), 5 * 60 * 1000);
         }
 
+        // Download media for anti‑delete
         const messageContent = msg.message;
         let mediaType = null;
         let mediaObj = null;
@@ -420,6 +435,7 @@ async function startSavage() {
             }
         }
 
+        // Auto‑typing / recording
         if (global.autoTyping === "on" && !isMe && from && !from.endsWith('@broadcast')) {
             try { await sock.sendPresenceUpdate('composing', from); } catch (e) {}
         }
@@ -443,6 +459,7 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
+        // ANTI‑LINK
         if (from && from.endsWith('@g.us') && !isMe) {
             const antiLinkEnabled = global.antiLink?.[from] || false;
             if (antiLinkEnabled) {
@@ -475,6 +492,7 @@ async function startSavage() {
             }
         }
 
+        // ANTI-GROUP-MENTION
         if (from && from.endsWith('@g.us') && !isMe) {
             const antiMentionEnabled = global.antiGroupMention?.[from] || false;
             if (antiMentionEnabled) {
@@ -507,17 +525,8 @@ async function startSavage() {
             }
         }
 
-        // === UPDATED STATUS HANDLER WITH AUTO REACT ===
-        if (from === 'status@broadcast') {
-            if (global.autoViewStatus === "on") {
-                await sock.readMessages([msg.key]);
-            }
-            try {
-                const autoReactStatus = require('./commands/autoreactstatus.js');
-                if (typeof autoReactStatus.reactToStatus === "function") {
-                    await autoReactStatus.reactToStatus(sock, msg);
-                }
-            } catch (e) {}
+        if (from === 'status@broadcast' && global.autoViewStatus === "on") {
+            await sock.readMessages([msg.key]);
             return;
         }
 

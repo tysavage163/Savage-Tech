@@ -1,101 +1,53 @@
-// commands/autoreactstatus.js
-
-global.autoReactStatus = global.autoReactStatus || false;
+global.autoReactStatus = global.autoReactStatus !== undefined ? global.autoReactStatus : false;
 
 const statusReactions = [
-    "🔥","⚡","💀","🧊","🚀","😈","😂","❤️","👀","🐐",
-    "💯","🤖","😎","🥶","☠️","🫡","👑","🎯","🛸","🌙",
-    "⭐","🌟","✨","💫","⚔️","🧠","🦅","🐉","🐺","🦂",
-    "🍷","🍿","🎮","🎧","📱","💻","🖤","🤍","💜","💙",
-    "💚","💛","🧡","❤️‍🔥","💥","☢️","🔱","🪬","🌀","🌪️",
-    "🌊","🌋","⛈️","☄️","🌌","🪐","🌈","🍀","🎲","🎭",
-    "🎪","🎨","🎤","🎼","🥷","🕶️","⌛","🕰️","📡","🛰️",
-    "🚨","🛡️","🔮","🧿","🪙","💎","👻","🤡","😹","😤",
-    "🥵","🥴","🤯","😵","🤠","🫠","🫥","🫣","🫨","🦾",
-    "🦿","🫀","🧬","🧪","⚙️","🔋","💡","📀","🗿","☣️"
+    "❤️","🧡","💛","💚","💙","💜","🖤","🤍","🤎","💔",
+    "❤️‍🔥","❤️‍🩹","💖","💗","💓","💞","💕","💟","❣️","💝",
+    "😀","😃","😄","😁","😆","😅","😂","🤣","🥲","😊",
+    "😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙",
+    "😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎",
+    "🥸","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁",
+    "😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡",
+    "🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓",
+    "🤗","🤔","🫣","🤭","🤫","🤥","😶","😐","😑","😬",
+    "🫨","😴","🤤","😪","😵","🤐","🥴","🤢","🤮","🤧",
+    "😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡",
+    "💩","👻","💀","☠️","👽","👾","🤖","🎃","😺","😸",
+    "😹","😻","😼","😽","🙀","😿","😾","🙈","🙉","🙊",
+    "💋","💌","💐","🌸","🌼","🌻","🌺","🌹","🥀","🌷",
+    "⚡","🔥","💥","✨","🌟","⭐","🌙","☀️","🌈","☁️",
+    "🎉","🎊","🎈","🎁","🎀","🪅","🪄","🧸","🍀","🌿"
 ];
 
 module.exports = {
     name: "autoreactstatus",
-    category: "settings",
-
+    category: "owner",
     async execute(sock, msg, args, { isArchitect, isMe }) {
-
         const from = msg.key.remoteJid;
-
         if (!isArchitect && !isMe) {
-            return sock.sendMessage(from, {
-                text: "❌ Owner only command."
-            });
+            return sock.sendMessage(from, { text: "❌ Owner only command." });
         }
-
         const state = args[0]?.toLowerCase();
-
         if (!["on", "off"].includes(state)) {
-            return sock.sendMessage(from, {
-                text: "Usage: .autoreactstatus on/off"
-            });
+            return sock.sendMessage(from, { text: "Usage: .autoreactstatus on/off" });
         }
-
-        global.autoReactStatus = state === "on";
-
-        const quotesOn = [
-            "Every status will now feel watched.",
-            "Status reaction protocol activated.",
-            "Silence on statuses has ended.",
-            "The bot now reacts from the shadows.",
-            "Every viewed story now leaves a trace."
-        ];
-
-        const quotesOff = [
-            "Status reactions disabled.",
-            "The bot has stopped haunting statuses.",
-            "Reaction engine disconnected from stories.",
-            "Status emotion module shut down.",
-            "The shadows are silent again."
-        ];
-
-        const quote = state === "on"
-            ? quotesOn[Math.floor(Math.random() * quotesOn.length)]
-            : quotesOff[Math.floor(Math.random() * quotesOff.length)];
-
-        await sock.sendMessage(from, {
-            text:
-`⚡ *AUTO-REACT STATUS*
-
-📌 Status: ${state.toUpperCase()}
-
-🧊 ${quote}
-
-🎭 Loaded Emojis: ${statusReactions.length}
-
-⚡ Powered by Savage Tech`
-        });
+        global.autoReactStatus = (state === "on");
+        console.log(`[AUTO-REACT-STATUS] Command toggled to ${global.autoReactStatus}`);
+        await sock.sendMessage(from, { text: `✅ Auto‑reaction to status updates: ${state.toUpperCase()}` });
     }
 };
 
-// ===== STATUS AUTO REACT =====
-
 module.exports.reactToStatus = async function(sock, msg) {
-
     try {
-
-        if (!global.autoReactStatus) return;
-
         const from = msg.key.remoteJid;
-
-        if (from !== "status@broadcast") return;
-
-        const emoji = statusReactions[
-            Math.floor(Math.random() * statusReactions.length)
-        ];
-
-        await sock.sendMessage(from, {
-            react: {
-                text: emoji,
-                key: msg.key
-            }
-        });
-
-    } catch {}
+        if (from !== 'status@broadcast') return;
+        if (msg.key.fromMe) return;
+        console.log(`[AUTO-REACT-STATUS] Status received. Current flag: ${global.autoReactStatus}`);
+        if (!global.autoReactStatus) return;
+        const emoji = statusReactions[Math.floor(Math.random() * statusReactions.length)];
+        await sock.sendMessage(from, { react: { text: emoji, key: msg.key } });
+        console.log(`[AUTO-REACT-STATUS] Reacted with ${emoji}`);
+    } catch (err) {
+        console.error(`[AUTO-REACT-STATUS] Reaction error:`, err.message);
+    }
 };

@@ -10,32 +10,34 @@ module.exports = {
         if (!quoted) {
             return sock.sendMessage(from, { text: "❌ Reply to a status message (story)." });
         }
-        const quotedRemoteJid = quoted?.key?.remoteJid;
-        if (quotedRemoteJid !== "status@broadcast") {
-            return sock.sendMessage(from, { text: "❌ This is not a status message. Reply to a story." });
-        }
         let mediaType = null;
-        let mediaObj = null;
+        let mediaMsg = null;
         if (quoted.imageMessage) {
             mediaType = "image";
-            mediaObj = quoted.imageMessage;
+            mediaMsg = quoted.imageMessage;
         } else if (quoted.videoMessage) {
             mediaType = "video";
-            mediaObj = quoted.videoMessage;
+            mediaMsg = quoted.videoMessage;
         } else {
-            return sock.sendMessage(from, { text: "❌ Unsupported status type (only images and videos)." });
+            return sock.sendMessage(from, { text: "❌ This is not a status message with image/video. Reply to a story." });
         }
         try {
             const buffer = await downloadMediaMessage({ message: quoted }, "buffer", {});
-            if (!buffer) throw new Error("Download failed");
-            const caption = `📥 *Status saved*\nFrom: ${quoted.key.participant?.split('@')[0] || "Unknown"}\nType: ${mediaType}`;
+            if (!buffer || buffer.length === 0) throw new Error("Download failed");
+            let owner = "Unknown";
+            if (quoted.key?.participant) {
+                owner = quoted.key.participant.split('@')[0];
+            } else if (quoted.key?.remoteJid && quoted.key.remoteJid !== "status@broadcast") {
+                owner = quoted.key.remoteJid.split('@')[0];
+            }
+            const caption = `📥 *Status saved*\nFrom: ${owner}\nType: ${mediaType}\n\n_⚡ Powered by Savage Tech_`;
             if (mediaType === "image") {
-                await sock.sendMessage(from, { image: buffer, caption });
-            } else {
-                await sock.sendMessage(from, { video: buffer, caption });
+                await sock.sendMessage(from, { image: buffer, caption: caption });
+            } else if (mediaType === "video") {
+                await sock.sendMessage(from, { video: buffer, caption: caption });
             }
         } catch (err) {
-            console.error(err);
+            console.error("savestatus error:", err);
             await sock.sendMessage(from, { text: `❌ Failed to save status: ${err.message}` });
         }
     }

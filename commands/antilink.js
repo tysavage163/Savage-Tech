@@ -15,18 +15,19 @@ module.exports = {
                 return pNumber === senderNumber;
             });
             isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
-        } catch (e) {}
+        } catch (e) {
+            console.error("Admin check error:", e);
+        }
         if (!isAdmin) return sock.sendMessage(from, { text: '🔒 Only group admins can manage antilink.' });
 
         if (!global.antiLinkConfig) global.antiLinkConfig = {};
         if (!global.antiLinkWarnings) global.antiLinkWarnings = {};
         if (global.antiLinkConfig[from] === undefined) {
-            global.antiLinkConfig[from] = { action: "delete", warnLimit: 3, enabled: false };
+            global.antiLinkConfig[from] = { enabled: false, action: "delete", warnLimit: 3 };
         }
 
         const sub = args[0]?.toLowerCase();
         const param = args[1]?.toLowerCase();
-        const value = args[2]?.toLowerCase();
 
         if (sub === "on") {
             global.antiLinkConfig[from].enabled = true;

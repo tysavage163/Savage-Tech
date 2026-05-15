@@ -43,10 +43,14 @@ global._statusCache = new Map();
 global.alwaysRecording = false;
 global.pendingJoinRequests = {};
 
+global.badWords = {};
+global.badWordWarnings = {};
+global.badWordEnabled = {};
+global.badWordConfig = {};
+
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// Load saved owner JID
 const ownerFile = path.join(__dirname, 'owner.json');
 if (fs.existsSync(ownerFile)) {
     try {
@@ -280,7 +284,6 @@ async function startSavage() {
             const platform = getHostPlatform();
             const cmdCount = global.commands.size;
 
-            // ===== FIXED STARTUP MESSAGE (boxed, always shows lock and .regowner) =====
             const startupText = `┌─────────────────────────┐
 │ ✅ Savage Tech ONLINE   │
 ├─────────────────────────┤
@@ -525,6 +528,48 @@ async function startSavage() {
                     }
                     return;
                 }
+            }
+        }
+
+        // ===== ANTI‑BAD WORD (supports delete/warn/kick/warn+kick) =====
+        if (global.badWordEnabled && global.badWordEnabled[from] && global.badWords && global.badWords[from]) {
+            const msgText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase();
+            const badSet = global.badWords[from];
+            let found = false;
+            for (let word of badSet) {
+                if (msgText.includes(word)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found && !isMe) {
+                const cfg = global.badWordConfig[from] || { action: "delete", warnLimit: 3 };
+                const action = cfg.action;
+                let shouldDelete = (action === "delete" || action === "warn" || action === "warn+kick" || action === "kick");
+                let shouldWarn = (action === "warn" || action === "warn+kick");
+                let shouldKick = (action === "kick" || action === "warn+kick");
+
+                if (shouldDelete) {
+                    try {
+                        await sock.sendMessage(from, { delete: msg.key });
+                    } catch (err) {}
+                }
+                if (shouldWarn || shouldKick) {
+                    if (!global.badWordWarnings[from]) global.badWordWarnings[from] = {};
+                    const warns = (global.badWordWarnings[from][sender] || 0) + 1;
+                    global.badWordWarnings[from][sender] = warns;
+                    if (shouldWarn) {
+                        await sock.sendMessage(from, { text: `⚠️ @${sender.split('@')[0]}, bad word detected. Warning ${warns}/${cfg.warnLimit}`, mentions: [sender] });
+                    }
+                    if (shouldKick && warns >= cfg.warnLimit) {
+                        try {
+                            await sock.groupParticipantsUpdate(from, [sender], "remove");
+                            delete global.badWordWarnings[from][sender];
+                            await sock.sendMessage(from, { text: `🚫 @${sender.split('@')[0]} removed (exceeded warning limit).`, mentions: [sender] });
+                        } catch (err) {}
+                    }
+                }
+                return;
             }
         }
 

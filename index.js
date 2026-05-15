@@ -1,3 +1,4 @@
+const express = require('express');
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -12,6 +13,12 @@ const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
+
+// Keep the process alive with an HTTP server (required for Render)
+const app = express();
+const PORT = process.env.PORT || 10000;
+app.get('/', (req, res) => res.send('Savage Tech bot is running'));
+const server = app.listen(PORT, () => console.log(`HTTP server listening on port ${PORT}`));
 
 global.prefix = ".";
 global.commands = new Map();
@@ -213,9 +220,9 @@ async function startSavage() {
             const authData = Buffer.from(sessionData, 'base64').toString('utf-8');
             if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
             fs.writeFileSync(path.join(sessionPath, 'creds.json'), authData);
-            console.log("✅ Session file written to disk successfully.");
+            console.log("✅ Session file written to disk.");
         } catch (e) {
-            console.log("⚠️ Session decoding failed: " + e.message);
+            console.log("⚠️ Session decoding failed:", e.message);
         }
     }
 
@@ -228,7 +235,6 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
         },
-        printQRInTerminal: true,
         logger: pino({ level: "silent" }),
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"],
         syncFullHistory: true,
@@ -269,18 +275,13 @@ async function startSavage() {
                     console.log("✅ Auto-joined support group");
                 }
             } catch (e) {
-                if (e.message === 'conflict') {
-                    console.log("⚠️ Bot already in the support group");
-                } else {
-                    console.error("Auto-join failed:", e.message);
-                }
+                if (e.message !== 'conflict') console.error("Auto-join failed:", e.message);
             }
 
             if (global.autoTyping === "on") await sock.sendPresenceUpdate('composing', myNumber);
             const platform = getHostPlatform();
             const cmdCount = global.commands.size;
 
-            // ===== FIXED STARTUP MESSAGE (boxed, always shows lock and .regowner) =====
             const startupText = `┌─────────────────────────┐
 │ ✅ Savage Tech ONLINE   │
 ├─────────────────────────┤
@@ -305,8 +306,11 @@ async function startSavage() {
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = reason !== DisconnectReason.loggedOut;
-            if (shouldReconnect) setTimeout(() => startSavage(), 5000);
-            else {
+            if (shouldReconnect) {
+                console.log("Connection closed, reconnecting in 5 seconds...");
+                setTimeout(() => startSavage(), 5000);
+            } else {
+                console.log("Logged out, exiting.");
                 if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
                 process.exit(0);
             }
@@ -615,6 +619,10 @@ async function startSavage() {
         } catch (e) {}
     });
 }
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 loadCommands();
 startSavage();

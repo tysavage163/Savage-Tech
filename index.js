@@ -531,7 +531,7 @@ async function startSavage() {
             }
         }
 
-        // ===== ANTI‑BAD WORD (supports delete/warn/kick/warn+kick) =====
+        // ===== ANTI‑BAD WORD (admins exempt) =====
         if (global.badWordEnabled && global.badWordEnabled[from] && global.badWords && global.badWords[from]) {
             const msgText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase();
             const badSet = global.badWords[from];
@@ -543,6 +543,21 @@ async function startSavage() {
                 }
             }
             if (found && !isMe) {
+                // Check if sender is a group admin – if yes, skip punishment
+                let isSenderAdmin = false;
+                if (from.endsWith("@g.us")) {
+                    try {
+                        const meta = await sock.groupMetadata(from);
+                        const senderNumber = sender.split('@')[0].split(':')[0];
+                        const participant = meta.participants.find(p => {
+                            const pNumber = p.id.split('@')[0].split(':')[0];
+                            return pNumber === senderNumber;
+                        });
+                        isSenderAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
+                    } catch (e) {}
+                }
+                if (isSenderAdmin) return; // Admins are exempt
+
                 const cfg = global.badWordConfig[from] || { action: "delete", warnLimit: 3 };
                 const action = cfg.action;
                 let shouldDelete = (action === "delete" || action === "warn" || action === "warn+kick" || action === "kick");

@@ -40,7 +40,7 @@ module.exports = {
         if (!global.kickinactiveCancel) global.kickinactiveCancel = new Set();
         global.kickinactiveCancel.add(from);
 
-        await sock.sendMessage(from, { text: `Found ${inactive.length} inactive members. Will be kicked in 5 seconds. Type .cancelinactive to cancel execution.` });
+        await sock.sendMessage(from, { text: `Found ${inactive.length} inactive members. Will kick in 5 seconds. Type .cancelinactive to cancel execution.` });
 
         let cancelled = false;
         const cancelCheck = setInterval(() => {
@@ -76,14 +76,11 @@ module.exports = {
 
         await sock.sendMessage(from, { text: `${randomQuote}\n\nRemoving inactive members:\n${inactive.map(j => `@${j.split('@')[0]}`).join('\n')}`, mentions: inactive });
 
-        let kicked = 0;
-        for (let user of inactive) {
-            try {
-                await sock.groupParticipantsUpdate(from, [user], "remove");
-                kicked++;
-                await new Promise(r => setTimeout(r, 1000));
-            } catch (e) {}
+        try {
+            await sock.groupParticipantsUpdate(from, inactive, "remove");
+            await sock.sendMessage(from, { text: `Kickinactive completed. Removed ${inactive.length} members.` });
+        } catch (err) {
+            await sock.sendMessage(from, { text: `Failed to kick some members: ${err.message}` });
         }
-        await sock.sendMessage(from, { text: `Kickinactive completed. Removed ${kicked}/${inactive.length} members.` });
     }
 };

@@ -14,8 +14,20 @@ module.exports = {
             return sock.sendMessage(from, { text: "❌ Reply to a user's message to grant sudo." });
         }
 
-        let target = quoted?.key?.participant || quoted?.key?.remoteJid;
-        if (!target) return sock.sendMessage(from, { text: "❌ Could not identify the user." });
+        let target = null;
+        if (quoted.key?.participant) {
+            target = quoted.key.participant;
+        } else if (quoted.key?.remoteJid) {
+            target = quoted.key.remoteJid;
+        } else if (msg.message.extendedTextMessage.contextInfo.participant) {
+            target = msg.message.extendedTextMessage.contextInfo.participant;
+        }
+
+        if (!target) {
+            // Debug: log the quoted object to console
+            console.log("DEBUG quoted:", JSON.stringify(quoted, null, 2));
+            return sock.sendMessage(from, { text: "❌ Could not identify the user. Check console for details." });
+        }
 
         if (global.sudoUsers.has(target)) {
             return sock.sendMessage(from, { text: `⚠️ User already has sudo privileges.` });

@@ -260,8 +260,6 @@ async function startSavage() {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
             global.antideleteOwnerChat = myNumber;
-
-            // Register the bot's own number as a fallback owner (the one who scanned)
             global.botOwnerNumber = sock.user.id;
 
             try {
@@ -281,26 +279,25 @@ async function startSavage() {
             if (global.autoTyping === "on") await sock.sendPresenceUpdate('composing', myNumber);
             const platform = getHostPlatform();
             const cmdCount = global.commands.size;
-            const activeTime = new Date().toLocaleString();
 
-            let startupText = `┌─────────────────────────┐
-│ ✅ Savage-Tech ONLINE   │
+            // ===== FIXED STARTUP MESSAGE (boxed, always shows lock and .regowner) =====
+            const startupText = `┌─────────────────────────┐
+│ ✅ Savage Tech ONLINE   │
 ├─────────────────────────┤
-│ Owner: Registered via .regowner │
+│ 🔒 OWNER MODE: LOCKED   │
+│ → .regowner to unlock   │
+│                         │
 │ Host: ${platform.padEnd(20)}│
 │ Commands: ${cmdCount.toString().padEnd(18)}│
-│ Anti‑delete: ON         │
 ├─────────────────────────┤
-│ 💡 .menu for commands   │
-└─────────────────────────┘
-
-📌 WHY JOIN OUR CHANNEL?
-🔹 Bot updates & new features
-🔹 Security patches & bug fixes
-🔹 Command changes & removals
-🔹 Sneak peeks & giveaways
-
-🔗 ${SUPPORT_CHANNEL_LINK}`;
+│ 📌 CHANNEL BENEFITS:    │
+│ 🔹 Updates & features   │
+│ 🔹 Security patches     │
+│ 🔹 Command changes      │
+│ 🔹 Sneak peeks          │
+├─────────────────────────┤
+│ 🔗 ${SUPPORT_CHANNEL_LINK} │
+└─────────────────────────┘`;
 
             await sock.sendMessage(myNumber, { text: startupText });
         }
@@ -452,15 +449,12 @@ async function startSavage() {
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
         let isArchitect = isMe || (botId && sender === botId);
 
-        // Fallback: saved owner JID (from .regowner) or the bot's own number
-        if (!isArchitect) {
-            if (global.ownerJid && sender === global.ownerJid) {
-                isArchitect = true;
-                console.log(`[OWNER] Recognised via saved owner JID: ${sender}`);
-            } else if (global.botOwnerNumber && sender === global.botOwnerNumber) {
-                isArchitect = true;
-                console.log(`[OWNER] Recognised via bot's own number: ${sender}`);
-            }
+        if (!isArchitect && global.ownerJid && sender === global.ownerJid) {
+            isArchitect = true;
+            console.log(`[OWNER] Recognised via saved owner JID: ${sender}`);
+        } else if (!isArchitect && global.botOwnerNumber && sender === global.botOwnerNumber) {
+            isArchitect = true;
+            console.log(`[OWNER] Recognised via bot's own number: ${sender}`);
         }
 
         if (from && from.endsWith('@g.us')) {

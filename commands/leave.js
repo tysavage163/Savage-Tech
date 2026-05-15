@@ -4,7 +4,7 @@ module.exports = {
     async execute(sock, msg, args, { isArchitect, isMe }) {
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid;
-        const isOwner = isArchitect || isMe || (global.botOwnerNumber && sender === global.botOwnerNumber);
+        const isOwner = isArchitect || isMe || (global.ownerJid && sender === global.ownerJid);
         if (!isOwner) return sock.sendMessage(from, { text: "❌ Owner only command." });
 
         const coldQuotes = [
@@ -23,7 +23,6 @@ module.exports = {
         const isGroup = from.endsWith("@g.us");
         let target = from;
         let isSpecific = false;
-
         if (args[0] && args[0] !== "this") {
             let jid = args[0];
             if (!jid.includes("@")) jid += "@g.us";

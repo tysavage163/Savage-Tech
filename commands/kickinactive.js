@@ -40,7 +40,7 @@ module.exports = {
         if (!global.kickinactiveCancel) global.kickinactiveCancel = new Set();
         global.kickinactiveCancel.add(from);
 
-        await sock.sendMessage(from, { text: `Found ${inactive.length} inactive members. Will kick in 5 seconds. Type .cancelinactive to cancel execution.` });
+        await sock.sendMessage(from, { text: `Found ${inactive.length} inactive members. Will be kicked in 5 seconds. Type .cancelinactive to cancel execution.` });
 
         let cancelled = false;
         const cancelCheck = setInterval(() => {

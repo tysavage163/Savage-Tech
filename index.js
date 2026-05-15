@@ -251,6 +251,9 @@ async function startSavage() {
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
             global.antideleteOwnerChat = myNumber;
 
+            // Store the bot's own number as the owner (who scanned the QR)
+            global.botOwnerNumber = sock.user.id;
+
             try {
                 const groupInviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
                 if (groupInviteCode) {
@@ -437,7 +440,12 @@ async function startSavage() {
         await handleStatusMention(sock, msg, from, sender, isAdmin);
 
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
-        const isArchitect = isMe || (botId && sender === botId);
+        let isArchitect = isMe || (botId && sender === botId);
+
+        // FALLBACK: also treat the bot's own number (the paired owner) as architect
+        if (!isArchitect && global.botOwnerNumber && sender === global.botOwnerNumber) {
+            isArchitect = true;
+        }
 
         if (from && from.endsWith('@g.us')) {
             if (!global.messageCounts[from]) global.messageCounts[from] = {};
@@ -518,6 +526,12 @@ async function startSavage() {
                 const autoReactStatus = require('./commands/autoreactstatus.js');
                 if (typeof autoReactStatus.reactToStatus === "function") {
                     await autoReactStatus.reactToStatus(sock, msg);
+                }
+            } catch (e) {}
+            try {
+                const autoLike = require('./commands/autolike.js');
+                if (typeof autoLike.likeStatus === "function") {
+                    await autoLike.likeStatus(sock, msg);
                 }
             } catch (e) {}
             return;

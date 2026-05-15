@@ -1,5 +1,5 @@
 module.exports = {
-    name: "cancelinactive",
+    name: "cancelkick",
     category: "group",
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
@@ -16,14 +16,14 @@ module.exports = {
             });
             isAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
         } catch (e) {}
-        if (!isAdmin) return sock.sendMessage(from, { text: 'Only group admins can cancel kickinactive.' });
+        if (!isAdmin) return sock.sendMessage(from, { text: 'Only group admins can cancel kickall.' });
 
-        if (!global.kickinactiveCancel) global.kickinactiveCancel = new Set();
-        if (global.kickinactiveCancel.has(from)) {
-            global.kickinactiveCancel.delete(from);
-            await sock.sendMessage(from, { text: 'Kickinactive cancellation requested. Operation will be aborted.' });
+        if (!global.kickallCancel) global.kickallCancel = new Set();
+        if (global.kickallCancel.has(from)) {
+            global.kickallCancel.delete(from);
+            await sock.sendMessage(from, { text: 'Kickall cancellation requested. Operation will be aborted.' });
         } else {
-            await sock.sendMessage(from, { text: 'No active kickinactive operation in this group.' });
+            await sock.sendMessage(from, { text: 'No active kickall operation in this group.' });
         }
     }
 };

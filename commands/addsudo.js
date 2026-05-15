@@ -24,16 +24,15 @@ module.exports = {
         }
 
         if (!target) {
-            // Debug: log the quoted object to console
             console.log("DEBUG quoted:", JSON.stringify(quoted, null, 2));
             return sock.sendMessage(from, { text: "❌ Could not identify the user. Check console for details." });
         }
 
         if (global.sudoUsers.has(target)) {
-            return sock.sendMessage(from, { text: `⚠️ User already has sudo privileges.` });
+            return sock.sendMessage(from, { text: `⚠️ ${target.split('@')[0]} already has sudo privileges.` });
         }
 
         global.sudoUsers.add(target);
-        await sock.sendMessage(from, { text: `✅ Sudo granted to ${target.split('@')[0]}` });
+        await sock.sendMessage(from, { text: `✅ ${target.split('@')[0]} added to sudo list.\n🔓 They can now use owner commands.` });
     }
 };

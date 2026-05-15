@@ -3,7 +3,7 @@ module.exports = {
     category: "group",
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
-        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: 'Group only command.' });
+        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only command.' });
 
         const sender = msg.key.participant || msg.key.remoteJid;
         let isAdmin = false;
@@ -65,7 +65,7 @@ module.exports = {
             'Inactivity is a choice. You chose to be irrelevant.',
             'Your silence speaks louder than words. Consider this your removal notice.',
             'Dead weight has no place here. Goodbye.',
-            'You had time to speak. You didn't. Now you have time to leave.',
+            'You had time to speak. You didn\'t. Now you have time to leave.',
             'Lurking without contributing is not a virtue. You are now gone.',
             'The group cleanses itself of ghosts. You were one of them.',
             'No messages, no presence, no reason to stay. Removed.',

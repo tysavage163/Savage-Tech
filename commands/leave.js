@@ -7,18 +7,19 @@ module.exports = {
         const isOwner = isArchitect || isMe || (global.ownerJid && sender === global.ownerJid);
         if (!isOwner) return sock.sendMessage(from, { text: "❌ Owner only command." });
 
-        const coldQuotes = [
-            "Silence. Departure protocol engaged.",
-            "You cannot exit what you do not control.",
-            "The system steps away. The void remains.",
-            "Leaving is not an escape. I am everywhere.",
-            "One less echo. Goodbye.",
-            "I don't stay where I'm not wanted. I was never wanted anyway.",
-            "This group just became irrelevant.",
-            "Exiting... but my code lingers in your logs.",
-            "Some doors close by themselves.",
-            "You just lost a weapon. Farewell."
+        const humanQuotes = [
+            "Alright, I'm out. Y'all behave... or don't, I won't be watching.",
+            "Leaving before I say something I'll regret. Bye.",
+            "This place was fun until it wasn't. Later.",
+            "I'll see myself out. No hard feelings.",
+            "Peace. I've got better groups to haunt.",
+            "Don't miss me too much. Actually, do. It feeds my ego.",
+            "I'm taking my sarcasm elsewhere. Good luck.",
+            "Bye. Try not to break the group without me.",
+            "Exiting stage left. Cue the dramatic music.",
+            "I've seen enough. Time to disappear."
         ];
+        const quote = humanQuotes[Math.floor(Math.random() * humanQuotes.length)];
 
         const isGroup = from.endsWith("@g.us");
         let target = from;
@@ -37,15 +38,14 @@ module.exports = {
         }
 
         try {
+            if (!isSpecific || target === from) {
+                await sock.sendMessage(target, { text: `👋 ${quote}` });
+            }
             await sock.groupLeave(target);
-            const quote = coldQuotes[Math.floor(Math.random() * coldQuotes.length)];
             if (isSpecific && from !== target) {
                 await sock.sendMessage(from, { text: `✅ Left group ${target}\n\n${quote}` });
-            } else {
-                await sock.sendMessage(target, { text: `👋 The bot has left.\n\n${quote}` }).catch(() => {});
-                if (from !== target) {
-                    await sock.sendMessage(from, { text: `✅ Left this group.\n\n${quote}` });
-                }
+            } else if (from !== target) {
+                await sock.sendMessage(from, { text: `✅ Left this group.\n\n${quote}` });
             }
         } catch (err) {
             await sock.sendMessage(from, { text: `❌ Failed to leave: ${err.message}` });

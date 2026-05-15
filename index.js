@@ -253,6 +253,7 @@ async function startSavage() {
 
             // Store the bot's own number as the owner (who scanned the QR)
             global.botOwnerNumber = sock.user.id;
+            console.log(`[OWNER] Bot owner number set to: ${global.botOwnerNumber}`);
 
             try {
                 const groupInviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
@@ -442,9 +443,15 @@ async function startSavage() {
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
         let isArchitect = isMe || (botId && sender === botId);
 
-        // FALLBACK: also treat the bot's own number (the paired owner) as architect
-        if (!isArchitect && global.botOwnerNumber && sender === global.botOwnerNumber) {
-            isArchitect = true;
+        // robust owner detection by numeric JID
+        if (!isArchitect && global.botOwnerNumber) {
+            const normalize = (jid) => jid.split('@')[0].split(':')[0];
+            const senderNum = normalize(sender);
+            const ownerNum = normalize(global.botOwnerNumber);
+            if (senderNum === ownerNum) {
+                isArchitect = true;
+                console.log(`[OWNER] Owner detected via number: ${senderNum}`);
+            }
         }
 
         if (from && from.endsWith('@g.us')) {

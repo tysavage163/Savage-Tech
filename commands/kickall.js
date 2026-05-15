@@ -27,7 +27,7 @@ module.exports = {
         if (!global.kickallCancel) global.kickallCancel = new Set();
         global.kickallCancel.add(from);
 
-        await sock.sendMessage(from, { text: `Kickall initiated. Will kick ${targets.length} members in 5 seconds. Type cancelkick to abort.` });
+        await sock.sendMessage(from, { text: `Kickall initiated. Will kick ${targets.length} members in 5 seconds. Type .cancelkick to cancel execution.` });
 
         let cancelled = false;
         const cancelCheck = setInterval(() => {
@@ -46,15 +46,28 @@ module.exports = {
         }
 
         global.kickallCancel.delete(from);
-        await sock.sendMessage(from, { text: `Removing ${targets.length} members...` });
 
-        for (let user of targets) {
-            try {
-                await sock.groupParticipantsUpdate(from, [user], "remove");
-                await new Promise(r => setTimeout(r, 1000));
-            } catch (e) {}
+        const savageQuotes = [
+            'Purge protocol engaged. You have been deemed unnecessary.',
+            'The group is cleaning house. You are the dust.',
+            'No mercy for the weak. Removal in progress.',
+            'Your presence has been terminated. Do not return.',
+            'A culling has begun. You are part of the fallen.',
+            'This group does not carry dead weight. Goodbye.',
+            'You are being erased from this chat. No regrets.',
+            'The machine has decided. You are out.',
+            'Savage Tech does not tolerate irrelevance. Removed.',
+            'Consider this an eviction. No appeals.'
+        ];
+        const randomQuote = savageQuotes[Math.floor(Math.random() * savageQuotes.length)];
+
+        await sock.sendMessage(from, { text: `${randomQuote}\n\nRemoving ${targets.length} members:\n${targets.map(j => `@${j.split('@')[0]}`).join('\n')}`, mentions: targets });
+
+        try {
+            await sock.groupParticipantsUpdate(from, targets, "remove");
+            await sock.sendMessage(from, { text: `Kickall completed. Removed ${targets.length} members.` });
+        } catch (err) {
+            await sock.sendMessage(from, { text: `Failed to kick some members: ${err.message}` });
         }
-
-        await sock.sendMessage(from, { text: `Kickall completed. Removed ${targets.length} members.` });
     }
 };

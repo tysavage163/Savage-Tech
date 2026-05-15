@@ -1,3 +1,4 @@
+const http = require('http');
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -12,6 +13,9 @@ const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
+
+const PORT = process.env.PORT || 10000;
+http.createServer((req, res) => res.end('Bot running')).listen(PORT, () => console.log(`HTTP server on ${PORT}`));
 
 global.prefix = ".";
 global.commands = new Map();
@@ -48,7 +52,6 @@ global.badWordWarnings = {};
 global.badWordEnabled = {};
 global.badWordConfig = {};
 
-// New anti-link config globals
 global.antiLinkConfig = {};
 global.antiLinkWarnings = {};
 
@@ -471,14 +474,12 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
-        // ===== NEW ANTI‑LINK (configurable, admins exempt) =====
         if (from && from.endsWith('@g.us') && !isMe) {
             const cfg = global.antiLinkConfig?.[from] || { enabled: false, action: "delete", warnLimit: 3 };
             if (cfg.enabled) {
                 const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
                 const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
                 if (urlPattern.test(rawText)) {
-                    // skip admins
                     let isSenderAdmin = false;
                     if (from.endsWith("@g.us")) {
                         try {
@@ -555,7 +556,6 @@ async function startSavage() {
             }
         }
 
-        // ===== ANTI‑BAD WORD (admins exempt) =====
         if (global.badWordEnabled && global.badWordEnabled[from] && global.badWords && global.badWords[from]) {
             const msgText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").toLowerCase();
             const badSet = global.badWords[from];
@@ -567,7 +567,6 @@ async function startSavage() {
                 }
             }
             if (found && !isMe) {
-                // Check if sender is a group admin – if yes, skip punishment
                 let isSenderAdmin = false;
                 if (from.endsWith("@g.us")) {
                     try {
@@ -580,7 +579,7 @@ async function startSavage() {
                         isSenderAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
                     } catch (e) {}
                 }
-                if (isSenderAdmin) return; // Admins are exempt
+                if (isSenderAdmin) return;
 
                 const cfg = global.badWordConfig[from] || { action: "delete", warnLimit: 3 };
                 const action = cfg.action;
@@ -699,6 +698,10 @@ async function startSavage() {
         } catch (e) {}
     });
 }
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection:', reason);
+});
 
 loadCommands();
 startSavage();

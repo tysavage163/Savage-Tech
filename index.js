@@ -48,6 +48,10 @@ global.badWordWarnings = {};
 global.badWordEnabled = {};
 global.badWordConfig = {};
 
+// New anti-link config globals
+global.antiLinkConfig = {};
+global.antiLinkWarnings = {};
+
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
@@ -467,32 +471,52 @@ async function startSavage() {
             global.lastMessageTime[from][sender] = Date.now();
         }
 
+        // ===== NEW ANTI‑LINK (configurable, admins exempt) =====
         if (from && from.endsWith('@g.us') && !isMe) {
-            const antiLinkEnabled = global.antiLink?.[from] || false;
-            if (antiLinkEnabled) {
+            const cfg = global.antiLinkConfig?.[from] || { enabled: false, action: "delete", warnLimit: 3 };
+            if (cfg.enabled) {
                 const rawText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "");
                 const urlPattern = /(https?:\/\/[^\s]+|www\.[^\s]+|\.[a-z]{2,}\/[^\s]*|chat\.whatsapp\.com\/[A-Za-z0-9]+)/i;
                 if (urlPattern.test(rawText)) {
-                    if (!isAdmin) {
-                        if (!global.violationWarnings[from]) global.violationWarnings[from] = {};
-                        const currentWarnings = global.violationWarnings[from][sender] || 0;
-                        const newWarningCount = currentWarnings + 1;
-                        global.violationWarnings[from][sender] = newWarningCount;
+                    // skip admins
+                    let isSenderAdmin = false;
+                    if (from.endsWith("@g.us")) {
+                        try {
+                            const meta = await sock.groupMetadata(from);
+                            const senderNumber = sender.split('@')[0].split(':')[0];
+                            const participant = meta.participants.find(p => {
+                                const pNumber = p.id.split('@')[0].split(':')[0];
+                                return pNumber === senderNumber;
+                            });
+                            isSenderAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
+                        } catch (e) {}
+                    }
+                    if (isSenderAdmin) return;
 
-                        if (newWarningCount < 3) {
-                            const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
-                            const warningText = `⚠️ *VIOLATION* @${sender.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                            await sock.sendMessage(from, { text: warningText, mentions: [sender] });
-                        } else {
-                            const kickQuote = kickQuotes[Math.floor(Math.random() * kickQuotes.length)];
-                            const kickMessage = `⚠️ *AUTOMATIC KICK* @${sender.split('@')[0]}\n\nReason: sending a link\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                            await sock.sendMessage(from, { text: kickMessage, mentions: [sender] });
-                            try {
-                                await sock.groupParticipantsUpdate(from, [sender], 'remove');
-                            } catch (err) {}
-                            delete global.violationWarnings[from][sender];
+                    const action = cfg.action;
+                    let shouldDelete = (action === "delete" || action === "warn" || action === "warn+kick" || action === "kick");
+                    let shouldWarn = (action === "warn" || action === "warn+kick");
+                    let shouldKick = (action === "kick" || action === "warn+kick");
+
+                    if (shouldDelete) {
+                        try {
+                            await sock.sendMessage(from, { delete: msg.key });
+                        } catch (err) {}
+                    }
+                    if (shouldWarn || shouldKick) {
+                        if (!global.antiLinkWarnings[from]) global.antiLinkWarnings[from] = {};
+                        const warns = (global.antiLinkWarnings[from][sender] || 0) + 1;
+                        global.antiLinkWarnings[from][sender] = warns;
+                        if (shouldWarn) {
+                            await sock.sendMessage(from, { text: `⚠️ @${sender.split('@')[0]}, Unauthorized link detected. Warning ${warns}/${cfg.warnLimit}`, mentions: [sender] });
                         }
-                        await sock.sendMessage(from, { delete: msg.key });
+                        if (shouldKick && warns >= cfg.warnLimit) {
+                            try {
+                                await sock.groupParticipantsUpdate(from, [sender], "remove");
+                                delete global.antiLinkWarnings[from][sender];
+                                await sock.sendMessage(from, { text: `🚫 @${sender.split('@')[0]} removed (exceeded warning limit).`, mentions: [sender] });
+                            } catch (err) {}
+                        }
                     }
                     return;
                 }

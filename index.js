@@ -46,6 +46,16 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
+// Load saved owner JID
+const ownerFile = path.join(__dirname, 'owner.json');
+if (fs.existsSync(ownerFile)) {
+    try {
+        const data = JSON.parse(fs.readFileSync(ownerFile, 'utf-8'));
+        global.ownerJid = data.ownerJid;
+        console.log(`[OWNER] Loaded owner JID: ${global.ownerJid}`);
+    } catch (e) {}
+}
+
 const warnQuotes = [
     "You just broke a rule Spencer wrote to protect this place.",
     "Spencer didn't code this bot for chaos. Respect the rules.",
@@ -251,9 +261,8 @@ async function startSavage() {
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
             global.antideleteOwnerChat = myNumber;
 
-            // Store the bot's own number as the owner (who scanned the QR)
+            // Register the bot's own number as a fallback owner (the one who scanned)
             global.botOwnerNumber = sock.user.id;
-            console.log(`[OWNER] Bot owner number set to: ${global.botOwnerNumber}`);
 
             try {
                 const groupInviteCode = SUPPORT_GROUP_LINK.split("https://chat.whatsapp.com/")[1]?.split("?")[0];
@@ -277,7 +286,7 @@ async function startSavage() {
             let startupText = `┌─────────────────────────┐
 │ ✅ Savage-Tech ONLINE   │
 ├─────────────────────────┤
-│ Owner: Spencer          │
+│ Owner: Registered via .regowner │
 │ Host: ${platform.padEnd(20)}│
 │ Commands: ${cmdCount.toString().padEnd(18)}│
 │ Anti‑delete: ON         │
@@ -443,16 +452,14 @@ async function startSavage() {
         const botId = sock.user?.id ? sock.user.id.split(':')[0] + '@s.whatsapp.net' : null;
         let isArchitect = isMe || (botId && sender === botId);
 
-        console.log(`[DEBUG] isMe=${isMe}, botId=${botId}, sender=${sender}, isArchitect after original=${isArchitect}`);
-
-        if (!isArchitect && global.botOwnerNumber) {
-            const normalize = (jid) => jid.split('@')[0].split(':')[0];
-            const senderNum = normalize(sender);
-            const ownerNum = normalize(global.botOwnerNumber);
-            console.log(`[DEBUG] senderNum=${senderNum}, ownerNum=${ownerNum}, match=${senderNum === ownerNum}`);
-            if (senderNum === ownerNum) {
+        // Fallback: saved owner JID (from .regowner) or the bot's own number
+        if (!isArchitect) {
+            if (global.ownerJid && sender === global.ownerJid) {
                 isArchitect = true;
-                console.log(`[OWNER] Owner detected via number: ${senderNum}`);
+                console.log(`[OWNER] Recognised via saved owner JID: ${sender}`);
+            } else if (global.botOwnerNumber && sender === global.botOwnerNumber) {
+                isArchitect = true;
+                console.log(`[OWNER] Recognised via bot's own number: ${sender}`);
             }
         }
 

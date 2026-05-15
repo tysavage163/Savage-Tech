@@ -1,4 +1,3 @@
-const http = require('http');
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -13,14 +12,6 @@ const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
-
-// Keep the process alive with a simple HTTP server (no extra dependencies)
-const PORT = process.env.PORT || 10000;
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Savage Tech bot is running\n');
-});
-server.listen(PORT, () => console.log(`HTTP server listening on port ${PORT}`));
 
 global.prefix = ".";
 global.commands = new Map();
@@ -55,6 +46,7 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
+// Load saved owner JID
 const ownerFile = path.join(__dirname, 'owner.json');
 if (fs.existsSync(ownerFile)) {
     try {
@@ -221,9 +213,9 @@ async function startSavage() {
             const authData = Buffer.from(sessionData, 'base64').toString('utf-8');
             if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
             fs.writeFileSync(path.join(sessionPath, 'creds.json'), authData);
-            console.log("✅ Session file written to disk.");
+            console.log("✅ Session file written to disk successfully.");
         } catch (e) {
-            console.log("⚠️ Session decoding failed:", e.message);
+            console.log("⚠️ Session decoding failed: " + e.message);
         }
     }
 
@@ -236,6 +228,7 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
         },
+        printQRInTerminal: true,
         logger: pino({ level: "silent" }),
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"],
         syncFullHistory: true,
@@ -276,13 +269,18 @@ async function startSavage() {
                     console.log("✅ Auto-joined support group");
                 }
             } catch (e) {
-                if (e.message !== 'conflict') console.error("Auto-join failed:", e.message);
+                if (e.message === 'conflict') {
+                    console.log("⚠️ Bot already in the support group");
+                } else {
+                    console.error("Auto-join failed:", e.message);
+                }
             }
 
             if (global.autoTyping === "on") await sock.sendPresenceUpdate('composing', myNumber);
             const platform = getHostPlatform();
             const cmdCount = global.commands.size;
 
+            // ===== FIXED STARTUP MESSAGE (boxed, always shows lock and .regowner) =====
             const startupText = `┌─────────────────────────┐
 │ ✅ Savage Tech ONLINE   │
 ├─────────────────────────┤
@@ -307,11 +305,8 @@ async function startSavage() {
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = reason !== DisconnectReason.loggedOut;
-            if (shouldReconnect) {
-                console.log("Connection closed, reconnecting in 5 seconds...");
-                setTimeout(() => startSavage(), 5000);
-            } else {
-                console.log("Logged out, exiting.");
+            if (shouldReconnect) setTimeout(() => startSavage(), 5000);
+            else {
                 if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
                 process.exit(0);
             }
@@ -620,10 +615,6 @@ async function startSavage() {
         } catch (e) {}
     });
 }
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
 
 loadCommands();
 startSavage();

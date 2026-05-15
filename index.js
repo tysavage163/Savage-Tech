@@ -1,4 +1,4 @@
-const express = require('express');
+const http = require('http');
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -14,11 +14,13 @@ const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
 
-// Keep the process alive with an HTTP server (required for Render)
-const app = express();
+// Keep the process alive with a simple HTTP server (no extra dependencies)
 const PORT = process.env.PORT || 10000;
-app.get('/', (req, res) => res.send('Savage Tech bot is running'));
-const server = app.listen(PORT, () => console.log(`HTTP server listening on port ${PORT}`));
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Savage Tech bot is running\n');
+});
+server.listen(PORT, () => console.log(`HTTP server listening on port ${PORT}`));
 
 global.prefix = ".";
 global.commands = new Map();
@@ -53,7 +55,6 @@ global.pendingJoinRequests = {};
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
-// Load saved owner JID
 const ownerFile = path.join(__dirname, 'owner.json');
 if (fs.existsSync(ownerFile)) {
     try {

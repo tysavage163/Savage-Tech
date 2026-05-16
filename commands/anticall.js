@@ -22,6 +22,18 @@ module.exports = {
             } else {
                 await sock.sendMessage(from, { text: "❌ Mode must be: off, decline, or block" });
             }
+        } else if (sub === "on") {
+            global.anticall.mode = "decline";
+            await sock.sendMessage(from, { text: "✅ Anti‑call mode set to: ON (decline)" });
+        } else if (sub === "off") {
+            global.anticall.mode = "off";
+            await sock.sendMessage(from, { text: "✅ Anti‑call mode set to: OFF" });
+        } else if (sub === "block") {
+            global.anticall.mode = "block";
+            await sock.sendMessage(from, { text: "✅ Anti‑call mode set to: BLOCK" });
+        } else if (sub === "decline") {
+            global.anticall.mode = "decline";
+            await sock.sendMessage(from, { text: "✅ Anti‑call mode set to: DECLINE" });
         } else if (sub === "msg") {
             if (param) {
                 global.anticall.msg = args.slice(1).join(" ");
@@ -30,11 +42,15 @@ module.exports = {
                 await sock.sendMessage(from, { text: `📝 Current anti‑call message:\n${global.anticall.msg}` });
             }
         } else if (sub === "show") {
-            await sock.sendMessage(from, { text: `📞 Anti‑call settings:\nMode: ${global.anticall.mode.toUpperCase()}\nMessage: ${global.anticall.msg}` });
+            let modeDisplay = global.anticall.mode.toUpperCase();
+            if (global.anticall.mode === "decline") modeDisplay = "ON (decline)";
+            else if (global.anticall.mode === "block") modeDisplay = "ON (block)";
+            else modeDisplay = "OFF";
+            await sock.sendMessage(from, { text: `📞 Anti‑call settings:\nMode: ${modeDisplay}\nMessage: ${global.anticall.msg}` });
         } else if (sub === "test") {
             await sock.sendMessage(from, { text: `🧪 Test message (would be sent to caller):\n${global.anticall.msg}` });
         } else {
-            await sock.sendMessage(from, { text: `Usage:\n.anticall mode <off|decline|block>\n.anticall msg <text>\n.anticall show\n.anticall test` });
+            await sock.sendMessage(from, { text: `Usage:\n.anticall on / off / block / decline\n.anticall mode <off|decline|block>\n.anticall msg <text>\n.anticall show\n.anticall test` });
         }
     }
 };

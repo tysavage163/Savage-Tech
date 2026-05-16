@@ -61,6 +61,8 @@ global.antiTagWarnings = {};
 global.antiTagAdminConfig = {};
 global.antiTagAdminWarnings = {};
 
+global.anticall = { mode: "off", msg: "❌ Calls are not accepted. Send a message instead." };
+
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
@@ -210,6 +212,29 @@ async function startSavage() {
     }, 30000);
 
     sock.ev.on("creds.update", saveCreds);
+
+    sock.ev.on("call", async (calls) => {
+        for (const call of calls) {
+            const from = call.from;
+            if (global.anticall.mode === "off") return;
+            if (global.anticall.mode === "decline") {
+                try {
+                    await sock.rejectCall(call.id, from);
+                } catch (e) {}
+            } else if (global.anticall.mode === "block") {
+                try {
+                    await sock.updateBlockStatus(from, "block");
+                    await sock.rejectCall(call.id, from);
+                } catch (e) {}
+            }
+            if (global.anticall.msg && global.anticall.msg.trim() !== "") {
+                try {
+                    await sock.sendMessage(from, { text: global.anticall.msg });
+                } catch (e) {}
+            }
+            console.log(`[ANTICALL] ${global.anticall.mode.toUpperCase()} call from ${from}`);
+        }
+    });
 
     sock.ev.on("connection.update", async (update) => {
         const { connection, qr, lastDisconnect } = update;

@@ -55,6 +55,9 @@ global.badWordConfig = {};
 global.antiLinkConfig = {};
 global.antiLinkWarnings = {};
 
+global.antiTagConfig = {};
+global.antiTagWarnings = {};
+
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
@@ -66,60 +69,6 @@ if (fs.existsSync(ownerFile)) {
         console.log(`[OWNER] Loaded owner JID: ${global.ownerJid}`);
     } catch (e) {}
 }
-
-const warnQuotes = [
-    "You just broke a rule Spencer wrote to protect this place.",
-    "Spencer didn't code this bot for chaos. Respect the rules.",
-    "Another violation. Spencer's patience is not infinite.",
-    "Rules are written in code. You just triggered an error.",
-    "Spencer's bot doesn't forgive. This is your warning.",
-    "Disobedience logged. Spencer's algorithms are watching.",
-    "You have been noted. Spencer's system never forgets.",
-    "Think before you type. Spencer designed this group for order.",
-    "Spencer coded perfection. You're testing it. Don't.",
-    "This is not a request. It's Spencer's rule. Follow or fade.",
-    "Spencer's silence is louder than your excuse.",
-    "Your violation has been filed under 'irrelevant'. Next time? Consequences.",
-    "Spencer's list of offenders is short. Don't add your name.",
-    "You're not above Spencer's logic.",
-    "Spencer's system allows one mistake. This is it."
-];
-const kickQuotes = [
-    "You ignored two warnings. Spencer's system doesn't offer third chances.",
-    "Two strikes and you're out. Spencer's rules are absolute.",
-    "The bot spoke twice. You chose to ignore. Goodbye.",
-    "Spencer's patience has a limit. You found it.",
-    "Violation count: 3. Action: termination. Spencer's code is final.",
-    "You have been removed. The group thanks you for leaving.",
-    "Third violation detected. Spencer's algorithm does not negotiate.",
-    "Your presence here was contingent on following rules. You failed.",
-    "Spencer gave you two warnings. You gave him nothing. Goodbye.",
-    "You are now an example of Spencer's zero‑tolerance policy.",
-    "Spencer doesn't argue. He executes. You're out.",
-    "Three strikes. Spencer's mercy expired. Remove yourself from memory.",
-    "Spencer's bot doesn't collect broken pieces. Leave.",
-    "The algorithm decided you were noise. Silence enforced.",
-    "Spencer's final decision: you are no longer part of this equation."
-];
-const warning1Quotes = [
-    "You just broke a rule Spencer wrote to protect this place.",
-    "Spencer didn't code this bot for chaos. Respect the rules.",
-    "Think before you type. Spencer designed this group for order.",
-    "Disobedience logged. Spencer's algorithms are watching.",
-    "You have been noted. Spencer's system never forgets."
-];
-const warning2Quotes = [
-    "Another violation. Spencer's patience is not infinite.",
-    "Rules are written in code. You triggered an error.",
-    "Spencer's bot doesn't forgive mistakes twice.",
-    "Stop now. Next step is removal."
-];
-const finalQuotes = [
-    "You have been removed. Spencer does not offer third chances.",
-    "Two strikes and you're out. Spencer's rules are absolute.",
-    "Your presence here was contingent on following rules. You failed.",
-    "Spencer gave you two warnings. You gave him nothing. Goodbye."
-];
 
 async function checkAdmin(sock, groupId, sender) {
     try {
@@ -164,9 +113,9 @@ async function handleStatusMention(sock, msg, from, sender, isAdmin) {
     } catch (err) {}
 
     let quote;
-    if (count === 1) quote = warning1Quotes[Math.floor(Math.random() * warning1Quotes.length)];
-    else if (count === 2) quote = warning2Quotes[Math.floor(Math.random() * warning2Quotes.length)];
-    else quote = finalQuotes[Math.floor(Math.random() * finalQuotes.length)];
+    if (count === 1) quote = "First warning: status mention.";
+    else if (count === 2) quote = "Second warning: status mention.";
+    else quote = "Final warning: status mention. Removed.";
 
     await sock.sendMessage(from, {
         text: `🚨 @${sender.split("@")[0]}\n\n${quote}`,
@@ -537,15 +486,11 @@ async function startSavage() {
                         global.groupMentionWarnings[from][sender] = newWarningCount;
 
                         if (newWarningCount < 3) {
-                            const randomQuote = warnQuotes[Math.floor(Math.random() * warnQuotes.length)];
-                            const warningText = `⚠️ *VIOLATION* @${sender.split('@')[0]}\n\nReason: group mention (@group)\n\n❄️ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                            await sock.sendMessage(from, { text: warningText, mentions: [sender] });
+                            await sock.sendMessage(from, { text: `⚠️ @${sender.split('@')[0]}, group mention detected. Warning ${newWarningCount}/3`, mentions: [sender] });
                         } else {
-                            const kickQuote = kickQuotes[Math.floor(Math.random() * kickQuotes.length)];
-                            const kickMessage = `⚠️ *AUTOMATIC KICK* @${sender.split('@')[0]}\n\nReason: group mention (@group)\n\n❄️ ${kickQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼`;
-                            await sock.sendMessage(from, { text: kickMessage, mentions: [sender] });
+                            await sock.sendMessage(from, { text: `🚫 @${sender.split('@')[0]} removed (group mention).`, mentions: [sender] });
                             try {
-                                await sock.groupParticipantsUpdate(from, [sender], 'remove');
+                                await sock.groupParticipantsUpdate(from, [sender], "remove");
                             } catch (err) {}
                             delete global.groupMentionWarnings[from][sender];
                         }
@@ -608,6 +553,56 @@ async function startSavage() {
                     }
                 }
                 return;
+            }
+        }
+
+        if (from && from.endsWith('@g.us') && !isMe) {
+            const cfg = global.antiTagConfig?.[from] || { enabled: false, action: "delete", warnLimit: 3 };
+            if (cfg.enabled) {
+                const mentionedJid = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+                const hasMention = mentionedJid.length > 0;
+                if (hasMention) {
+                    let isSenderAdmin = false;
+                    if (from.endsWith("@g.us")) {
+                        try {
+                            const meta = await sock.groupMetadata(from);
+                            const senderNumber = sender.split('@')[0].split(':')[0];
+                            const participant = meta.participants.find(p => {
+                                const pNumber = p.id.split('@')[0].split(':')[0];
+                                return pNumber === senderNumber;
+                            });
+                            isSenderAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
+                        } catch (e) {}
+                    }
+                    if (isSenderAdmin) return;
+
+                    const action = cfg.action;
+                    let shouldDelete = (action === "delete" || action === "warn" || action === "warn+kick" || action === "kick");
+                    let shouldWarn = (action === "warn" || action === "warn+kick");
+                    let shouldKick = (action === "kick" || action === "warn+kick");
+
+                    if (shouldDelete) {
+                        try {
+                            await sock.sendMessage(from, { delete: msg.key });
+                        } catch (err) {}
+                    }
+                    if (shouldWarn || shouldKick) {
+                        if (!global.antiTagWarnings[from]) global.antiTagWarnings[from] = {};
+                        const warns = (global.antiTagWarnings[from][sender] || 0) + 1;
+                        global.antiTagWarnings[from][sender] = warns;
+                        if (shouldWarn) {
+                            await sock.sendMessage(from, { text: `⚠️ @${sender.split('@')[0]}, Unauthorized mention detected. Warning ${warns}/${cfg.warnLimit}`, mentions: [sender] });
+                        }
+                        if (shouldKick && warns >= cfg.warnLimit) {
+                            try {
+                                await sock.groupParticipantsUpdate(from, [sender], "remove");
+                                delete global.antiTagWarnings[from][sender];
+                                await sock.sendMessage(from, { text: `🚫 @${sender.split('@')[0]} removed (exceeded warning limit).`, mentions: [sender] });
+                            } catch (err) {}
+                        }
+                    }
+                    return;
+                }
             }
         }
 

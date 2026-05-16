@@ -1,5 +1,11 @@
 const os = require('os');
 
+const DEFAULT_IMAGES = [
+    'https://files.catbox.moe/pmrdnz.jpg',
+    'https://files.catbox.moe/yxvfb6.jpg',
+    'https://files.catbox.moe/4bb86k.jpg'
+];
+
 module.exports = {
     name: 'menu',
     category: 'engine',
@@ -15,7 +21,7 @@ module.exports = {
             const totalMem = (os.totalmem() / 1024 / 1024).toFixed(0);
             const usedMem = ((os.totalmem() - os.freemem()) / 1024 / 1024).toFixed(0);
             const ramPercentage = Math.floor((usedMem / totalMem) * 100);
-            const ramBar = "█".repeat(Math.floor(ramPercentage / 10)) + "░".repeat(Math.floor(10 - (ramPercentage / 10)));
+            const ramBar = "█".repeat(Math.floor(ramPercentage / 10)) + "░".repeat(10 - Math.floor(ramPercentage / 10));
 
             const getCategorizedMenu = (catName, title) => {
                 const filtered = Array.from(global.commands.values())
@@ -25,8 +31,7 @@ module.exports = {
             };
 
             const senderName = msg.pushName || 'User';
-            const senderJid = msg.key.participant || msg.key.remoteJid;
-            const mention = [senderJid];
+            const mention = [msg.key.participant || msg.key.remoteJid];
 
             const header = `┌───¤  *SΛVΛGΞ-TECH*
 ┃
@@ -62,7 +67,6 @@ module.exports = {
                 .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !definedCats.includes(c.category)).category, 'OTHER MODULES') : "";
 
             const footer = `_master your tools or be mastered by them_`;
-
             const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + otherMenu + footer;
 
             let imageUrl = null;
@@ -73,8 +77,12 @@ module.exports = {
             } else if (global.menuImageUrl) {
                 imageUrl = global.menuImageUrl;
             } else {
-                const DEFAULT_MENU_IMAGE = 'https://files.catbox.moe/waffn1.png';
-                imageUrl = DEFAULT_MENU_IMAGE;
+                if (!global.menuImages && !global.menuImageUrl) {
+                    global.menuImages = [...DEFAULT_IMAGES];
+                    global.menuImageIndex = 0;
+                }
+                imageUrl = global.menuImages[global.menuImageIndex];
+                global.menuImageIndex = (global.menuImageIndex + 1) % global.menuImages.length;
             }
 
             if (imageUrl) {

@@ -39,13 +39,18 @@
 
 ### 🔑 SESSION PAIRING
 <p align="center">
-  <a href="https://spencers-quantam-core.onrender.com">
+  <a href="https://sunny-carin-savagetech-c5685b73.koyeb.app/">
     <img src="https://img.shields.io/badge/PAIR_CODE_1-FF8C00?style=for-the-badge&logo=connection&logoColor=white" alt="Pair 1">
   </a>
 </p>
 <p align="center">
-  <a href="https://savage-pair.vercel.app/">
+  <a href="https://spencers-quantam-core.onrender.com">
     <img src="https://img.shields.io/badge/PAIR_CODE_2-FF8C00?style=for-the-badge&logo=connection&logoColor=white" alt="Pair 2">
+  </a>
+</p>
+<p align="center">
+  <a href="https://savage-pair.vercel.app/">
+    <img src="https://img.shields.io/badge/BACKUP-FF8C00?style=for-the-badge&logo=connection&logoColor=white" alt="Backup">
   </a>
 </p>
 

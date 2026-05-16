@@ -63,6 +63,9 @@ global.antiTagAdminWarnings = {};
 
 global.anticall = { mode: "off", msg: "❌ Calls are not accepted. Send a message instead." };
 
+global.antiDeleteEnabled = false;
+global.antiEditEnabled = false;
+
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
@@ -331,30 +334,21 @@ async function startSavage() {
                     cachedMsg = global._statusCache.get(deletedMsgId);
                     isStatus = true;
                 }
-                if (cachedMsg && !cachedMsg.key?.fromMe && global.antideleteOwnerChat) {
+                if (cachedMsg && !cachedMsg.key?.fromMe && global.antideleteOwnerChat && global.antiDeleteEnabled) {
                     const sender = cachedMsg.key.participant || cachedMsg.key.remoteJid;
                     const isGroup = cachedMsg.key.remoteJid?.endsWith('@g.us');
                     let chatName = "Private chat";
                     if (isGroup) chatName = await getGroupName(sock, cachedMsg.key.remoteJid);
                     const senderName = sender.split('@')[0];
                     const mediaData = global._mediaCache.get(deletedMsgId);
-                    
+                    const timestamp = new Date().toLocaleString();
+                    let content = "";
+                    let typeLabel = "text";
                     if (mediaData && mediaData.buffer) {
-                        try {
-                            await sock.sendMessage(global.antideleteOwnerChat, {
-                                [mediaData.type]: mediaData.buffer,
-                                caption: `🚨 *Savage Tech anti‑delete system* 🚨\n\n👤 *Sender:* @${senderName}\n💬 *Chat:* ${chatName}\n📎 *Message:* ${mediaData.caption || "No caption"}`,
-                                mentions: [sender]
-                            });
-                        } catch (e) {
-                            await sock.sendMessage(global.antideleteOwnerChat, {
-                                text: `🚨 *Savage Tech anti‑delete system* 🚨\n\n👤 *Sender:* @${senderName}\n💬 *Chat:* ${chatName}\n💬 *Message:* [Media failed to restore: ${mediaData.type}]`,
-                                mentions: [sender]
-                            });
-                        }
+                        typeLabel = mediaData.type;
+                        content = mediaData.caption || "[Media without caption]";
                     } else {
                         const msgObj = cachedMsg.message;
-                        let content = "";
                         if (msgObj?.conversation) content = msgObj.conversation;
                         else if (msgObj?.extendedTextMessage?.text) content = msgObj.extendedTextMessage.text;
                         else if (msgObj?.imageMessage?.caption) content = msgObj.imageMessage.caption + " (image)";
@@ -362,9 +356,24 @@ async function startSavage() {
                         else if (msgObj?.audioMessage) content = "[audio]";
                         else if (msgObj?.stickerMessage) content = "[sticker]";
                         else content = "[unsupported media]";
-                        const typeLabel = isStatus ? " (status)" : "";
+                    }
+                    const reportText = `🚨 *ANTI-DELETE*\n👤 Sender: @${senderName}\n💬 Chat: ${chatName}\n🕒 Time: ${timestamp}\n📎 Type: ${typeLabel}\n📝 Content: ${content}`;
+                    if (mediaData && mediaData.buffer) {
+                        try {
+                            await sock.sendMessage(global.antideleteOwnerChat, {
+                                [mediaData.type]: mediaData.buffer,
+                                caption: reportText,
+                                mentions: [sender]
+                            });
+                        } catch (e) {
+                            await sock.sendMessage(global.antideleteOwnerChat, {
+                                text: `${reportText}\n[Media failed to restore]`,
+                                mentions: [sender]
+                            });
+                        }
+                    } else {
                         await sock.sendMessage(global.antideleteOwnerChat, {
-                            text: `🚨 *Savage Tech anti‑delete system* 🚨${typeLabel}\n\n👤 *Sender:* @${senderName}\n💬 *Chat:* ${chatName}\n💬 *Message:* ${content}`,
+                            text: reportText,
                             mentions: [sender]
                         });
                     }
@@ -374,6 +383,28 @@ async function startSavage() {
                 global._statusCache.delete(deletedMsgId);
             }
             return;
+        }
+
+        if (global.antiEditEnabled && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
+            const originalMsgId = msg.message.extendedTextMessage.contextInfo.stanzaId;
+            if (originalMsgId) {
+                const originalMsg = global._msgCache.get(originalMsgId);
+                if (originalMsg && !originalMsg.key.fromMe) {
+                    const from = msg.key.remoteJid;
+                    const sender = originalMsg.key.participant || originalMsg.key.remoteJid;
+                    const isGroup = from.endsWith('@g.us');
+                    let chatName = "Private chat";
+                    if (isGroup) chatName = await getGroupName(sock, from);
+                    const senderName = sender.split('@')[0];
+                    const timestamp = new Date().toLocaleString();
+                    const originalContent = originalMsg.message?.conversation || originalMsg.message?.extendedTextMessage?.text || "[unsupported]";
+                    const newContent = msg.message.extendedTextMessage.text;
+                    await sock.sendMessage(global.antideleteOwnerChat, {
+                        text: `✏️ *ANTI-EDIT*\n👤 Sender: @${senderName}\n💬 Chat: ${chatName}\n🕒 Time: ${timestamp}\n📝 Original: ${originalContent}\n✏️ New: ${newContent}`,
+                        mentions: [sender]
+                    });
+                }
+            }
         }
 
         const id = msg.key.id;

@@ -58,6 +58,9 @@ global.antiLinkWarnings = {};
 global.antiTagConfig = {};
 global.antiTagWarnings = {};
 
+global.antiTagAdminConfig = {};
+global.antiTagAdminWarnings = {};
+
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
@@ -597,6 +600,70 @@ async function startSavage() {
                             try {
                                 await sock.groupParticipantsUpdate(from, [sender], "remove");
                                 delete global.antiTagWarnings[from][sender];
+                                await sock.sendMessage(from, { text: `🚫 @${sender.split('@')[0]} removed (exceeded warning limit).`, mentions: [sender] });
+                            } catch (err) {}
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+
+        if (from && from.endsWith('@g.us') && !isMe) {
+            const cfg = global.antiTagAdminConfig?.[from] || { enabled: false, action: "delete", warnLimit: 3 };
+            if (cfg.enabled) {
+                const mentionedJid = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+                if (mentionedJid.length > 0) {
+                    let isSenderAdmin = false;
+                    try {
+                        const meta = await sock.groupMetadata(from);
+                        const senderNumber = sender.split('@')[0].split(':')[0];
+                        const participant = meta.participants.find(p => {
+                            const pNumber = p.id.split('@')[0].split(':')[0];
+                            return pNumber === senderNumber;
+                        });
+                        isSenderAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
+                    } catch (e) {}
+                    if (isSenderAdmin) return;
+
+                    let mentionedAnyAdmin = false;
+                    for (const mJid of mentionedJid) {
+                        try {
+                            const meta = await sock.groupMetadata(from);
+                            const mNumber = mJid.split('@')[0].split(':')[0];
+                            const mParticipant = meta.participants.find(p => {
+                                const pNumber = p.id.split('@')[0].split(':')[0];
+                                return pNumber === mNumber;
+                            });
+                            if (mParticipant?.admin === 'admin' || mParticipant?.admin === 'superadmin') {
+                                mentionedAnyAdmin = true;
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                    if (!mentionedAnyAdmin) return;
+
+                    const action = cfg.action;
+                    let shouldDelete = (action === "delete" || action === "warn" || action === "warn+kick" || action === "kick");
+                    let shouldWarn = (action === "warn" || action === "warn+kick");
+                    let shouldKick = (action === "kick" || action === "warn+kick");
+
+                    if (shouldDelete) {
+                        try {
+                            await sock.sendMessage(from, { delete: msg.key });
+                        } catch (err) {}
+                    }
+                    if (shouldWarn || shouldKick) {
+                        if (!global.antiTagAdminWarnings[from]) global.antiTagAdminWarnings[from] = {};
+                        const warns = (global.antiTagAdminWarnings[from][sender] || 0) + 1;
+                        global.antiTagAdminWarnings[from][sender] = warns;
+                        if (shouldWarn) {
+                            await sock.sendMessage(from, { text: `⚠️ @${sender.split('@')[0]}, mentioning an admin is not allowed. Warning ${warns}/${cfg.warnLimit}`, mentions: [sender] });
+                        }
+                        if (shouldKick && warns >= cfg.warnLimit) {
+                            try {
+                                await sock.groupParticipantsUpdate(from, [sender], "remove");
+                                delete global.antiTagAdminWarnings[from][sender];
                                 await sock.sendMessage(from, { text: `🚫 @${sender.split('@')[0]} removed (exceeded warning limit).`, mentions: [sender] });
                             } catch (err) {}
                         }

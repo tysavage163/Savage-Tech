@@ -1,4 +1,3 @@
-const http = require('http');
 const {
     default: makeWASocket,
     useMultiFileAuthState,
@@ -14,8 +13,13 @@ const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
 
-const PORT = process.env.PORT || 10000;
-http.createServer((req, res) => res.end('Bot running')).listen(PORT, () => console.log(`HTTP server on ${PORT}`));
+// ===== ERROR HANDLERS (keep process alive) =====
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('UNHANDLED REJECTION:', reason);
+});
 
 global.prefix = ".";
 global.commands = new Map();
@@ -301,7 +305,7 @@ async function startSavage() {
             } else {
                 console.error("Logged out. Session invalid. Delete session folder and restart.");
                 if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
-                // *** DO NOT EXIT – keep HTTP server alive ***
+                // DO NOT exit – keep HTTP server alive (handled by server.js)
             }
         }
     });
@@ -819,10 +823,6 @@ async function startSavage() {
         } catch (e) {}
     });
 }
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection:', reason);
-});
 
 loadCommands();
 startSavage();

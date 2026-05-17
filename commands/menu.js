@@ -1,6 +1,8 @@
 const os = require('os');
 
-const MENU_IMAGE_URL = 'https://files.catbox.moe/9ghsgb.jpg';
+const DEFAULT_IMAGES = [
+    'https://files.catbox.moe/osd79e.jpg'
+];
 
 module.exports = {
     name: 'menu',
@@ -67,11 +69,34 @@ module.exports = {
             const footer = `_master your tools or be mastered by them_`;
             const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + otherMenu + footer;
 
-            await sock.sendMessage(from, { 
-                image: { url: MENU_IMAGE_URL }, 
-                caption: fullMenu,
-                mentions: mention
-            }, { quoted: msg });
+            let imageUrl = null;
+            if (global.menuImages && global.menuImages.length > 0) {
+                if (typeof global.menuImageIndex !== 'number') global.menuImageIndex = 0;
+                imageUrl = global.menuImages[global.menuImageIndex];
+                global.menuImageIndex = (global.menuImageIndex + 1) % global.menuImages.length;
+            } else if (global.menuImageUrl) {
+                imageUrl = global.menuImageUrl;
+            } else {
+                if (!global.menuImages && !global.menuImageUrl) {
+                    global.menuImages = [...DEFAULT_IMAGES];
+                    global.menuImageIndex = 0;
+                }
+                imageUrl = global.menuImages[global.menuImageIndex];
+                global.menuImageIndex = (global.menuImageIndex + 1) % global.menuImages.length;
+            }
+
+            if (imageUrl) {
+                await sock.sendMessage(from, { 
+                    image: { url: imageUrl }, 
+                    caption: fullMenu,
+                    mentions: mention
+                }, { quoted: msg });
+            } else {
+                await sock.sendMessage(from, { 
+                    text: fullMenu,
+                    mentions: mention
+                }, { quoted: msg });
+            }
         } catch (error) {
             console.error("MENU ERROR:", error);
             await sock.sendMessage(from, { text: "❌ **SΛVΛGΞ:** DATA FETCH FAILED" });

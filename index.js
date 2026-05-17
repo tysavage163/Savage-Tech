@@ -14,6 +14,14 @@ const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
 
+// ===== CATCH ALL ERRORS TO PREVENT CRASH =====
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('UNHANDLED REJECTION:', reason);
+});
+
 const PORT = process.env.PORT || 10000;
 http.createServer((req, res) => res.end('Bot running')).listen(PORT, () => console.log(`HTTP server on ${PORT}`));
 
@@ -295,10 +303,14 @@ async function startSavage() {
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = reason !== DisconnectReason.loggedOut;
-            if (shouldReconnect) setTimeout(() => startSavage(), 5000);
-            else {
+            if (shouldReconnect) {
+                console.log("Connection closed, reconnecting in 5 seconds...");
+                setTimeout(() => startSavage(), 5000);
+            } else {
+                console.error("Logged out. Session invalid. Delete session folder and restart.");
                 if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
-                process.exit(0);
+                // DO NOT exit – keep HTTP server alive
+                console.log("HTTP server remains active. Update SESSION_ID and redeploy or restart the service.");
             }
         }
     });
@@ -816,10 +828,6 @@ async function startSavage() {
         } catch (e) {}
     });
 }
-
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection:', reason);
-});
 
 loadCommands();
 startSavage();

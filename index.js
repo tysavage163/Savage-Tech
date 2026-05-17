@@ -295,10 +295,13 @@ async function startSavage() {
         if (connection === "close") {
             const reason = lastDisconnect?.error?.output?.statusCode;
             const shouldReconnect = reason !== DisconnectReason.loggedOut;
-            if (shouldReconnect) setTimeout(() => startSavage(), 5000);
-            else {
+            if (shouldReconnect) {
+                console.log("Connection closed, reconnecting in 5 seconds...");
+                setTimeout(() => startSavage(), 5000);
+            } else {
+                console.error("Logged out. Session invalid. Delete session folder and restart.");
                 if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
-                process.exit(0);
+                // *** DO NOT EXIT – keep HTTP server alive ***
             }
         }
     });

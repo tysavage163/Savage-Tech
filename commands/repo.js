@@ -11,11 +11,15 @@ module.exports = {
         const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}`;
 
         try {
-            const { data } = await axios.get(apiUrl);
+            const { data } = await axios.get(apiUrl, {
+                headers: {
+                    'User-Agent': 'Savage-Tech-Bot'
+                }
+            });
             const stars = data.stargazers_count.toLocaleString();
             const forks = data.forks_count.toLocaleString();
             const watchers = data.watchers_count.toLocaleString();
-            const sizeKB = data.size; // already in KB
+            const sizeKB = data.size;
             const updated = new Date(data.updated_at).toLocaleString();
             const repoUrl = data.html_url;
             const description = data.description || 'WhatsApp bot based on Baileys';
@@ -26,6 +30,7 @@ module.exports = {
             const senderName = msg.pushName || 'User';
             const senderJid = msg.key.participant || msg.key.remoteJid;
             const mention = [senderJid];
+            const mentionText = `@${senderJid.split('@')[0]}`;
 
             const caption = `╭━━━━━━━━━━━━━━━╮
 ┃ *📦 SAVAGE REPO*
@@ -40,8 +45,9 @@ module.exports = {
 ┃ 🔗 *Repo:* ${repoUrl}
 ┃ 📝 *Description:* ${description}
 ┃
-┃ 👋 *Hey @${senderName}!* 😈
-┃ *Don't forget to fork and star the repo!* ⚡
+┃ 👋 *Hey ${mentionText}!* 😈
+┃ *Don't forget to ⭐ fork and star the repo!* ⚡
+┃ *Tap the link above to open*
 ╰━━━━━━━━━━━━━━━╯`;
 
             await sock.sendMessage(from, {
@@ -51,8 +57,14 @@ module.exports = {
             });
         } catch (error) {
             console.error('Repo command error:', error);
+            let errorMsg = '❌ Failed to fetch repository data.';
+            if (error.response && error.response.status === 403) {
+                errorMsg = '❌ GitHub API rate limit exceeded. Please try again later.';
+            } else if (error.response && error.response.status === 404) {
+                errorMsg = '❌ Repository not found.';
+            }
             await sock.sendMessage(from, {
-                text: '❌ Failed to fetch repository data. Please try again later.'
+                text: errorMsg
             });
         }
     }

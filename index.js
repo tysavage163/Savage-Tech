@@ -13,7 +13,6 @@ const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
 
-// ===== ERROR HANDLERS (keep process alive) =====
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err);
 });
@@ -29,6 +28,7 @@ global.autoViewStatus = "on";
 global.autoTyping = "off";
 global.worktype = "public";
 global.autoRead = false;
+global.alwaysOnline = true;
 
 global.messageCounts = {};
 global.lastMessageTime = {};
@@ -211,7 +211,7 @@ async function startSavage() {
     global.sock = sock;
 
     setInterval(async () => {
-        if (global.sock && global.sock.user) {
+        if (global.alwaysOnline !== false && global.sock && global.sock.user) {
             try {
                 await global.sock.sendPresenceUpdate('available', global.sock.user.id);
             } catch (e) {}
@@ -305,7 +305,6 @@ async function startSavage() {
             } else {
                 console.error("Logged out. Session invalid. Delete session folder and restart.");
                 if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
-                // DO NOT exit – keep HTTP server alive (handled by server.js)
             }
         }
     });
@@ -757,14 +756,11 @@ async function startSavage() {
 
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
         
-        // ========== NEW: NO-PREFIX MODE ==========
-        // When global.prefix is set to "none", allow commands without any prefix
         if (global.prefix === "none") {
             const firstWord = text.split(/\s+/)[0];
             const restArgs = text.slice(firstWord.length).trim().split(/\s+/).filter(a => a);
             const potentialCmd = global.commands.get(firstWord.toLowerCase());
             if (potentialCmd) {
-                // Respect worktype (private/public) and ownership
                 if (global.worktype === 'private' && !isMe) return;
                 try {
                     await sock.sendPresenceUpdate('composing', from);
@@ -772,12 +768,10 @@ async function startSavage() {
                 } catch (e) {
                     console.error(`❌ Command Error [${firstWord}]:`, e);
                 }
-                return; // Stop further processing
+                return;
             }
         }
-        // ========== END OF NO-PREFIX MODE ==========
 
-        // Original prefix-based command handling (unchanged)
         if (!text.startsWith(global.prefix)) return;
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);

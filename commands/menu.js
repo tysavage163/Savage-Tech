@@ -1,10 +1,6 @@
 const os = require('os');
 
-const DEFAULT_IMAGES = [
-    'https://files.catbox.moe/pmrdnz.jpg',
-    'https://files.catbox.moe/yxvfb6.jpg',
-    'https://files.catbox.moe/4bb86k.jpg'
-];
+const MENU_IMAGE_URL = 'https://files.catbox.moe/9ghsgb.jpg';
 
 module.exports = {
     name: 'menu',
@@ -27,11 +23,12 @@ module.exports = {
                 const filtered = Array.from(global.commands.values())
                     .filter(cmd => cmd.category === catName);
                 if (filtered.length === 0) return ""; 
-                return `┌───¤  * ${title} *\n${filtered.map(cmd => `┃  ♤ .${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
+                return `┌───¤  * ${title} *\n${filtered.map(cmd => `┃  ♤ ${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
             };
 
             const senderName = msg.pushName || 'User';
             const mention = [msg.key.participant || msg.key.remoteJid];
+            const mode = global.worktype === 'public' ? '🌍 PUBLIC' : '🔒 PRIVATE';
 
             const header = `┌───¤  *SΛVΛGΞ-TECH*
 ┃
@@ -41,6 +38,7 @@ module.exports = {
 ┃ **UPTIME** : ${hours}h ${minutes}m
 ┃ **SPEED** : ${speed} ms
 ┃ **RAM** : [${ramBar}] ${ramPercentage}%
+┃ **MODE** : ${mode}
 ┃
 ┕━━━━━━━━━━━━━━━╼\n\n`;
 
@@ -69,34 +67,11 @@ module.exports = {
             const footer = `_master your tools or be mastered by them_`;
             const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + otherMenu + footer;
 
-            let imageUrl = null;
-            if (global.menuImages && global.menuImages.length > 0) {
-                if (typeof global.menuImageIndex !== 'number') global.menuImageIndex = 0;
-                imageUrl = global.menuImages[global.menuImageIndex];
-                global.menuImageIndex = (global.menuImageIndex + 1) % global.menuImages.length;
-            } else if (global.menuImageUrl) {
-                imageUrl = global.menuImageUrl;
-            } else {
-                if (!global.menuImages && !global.menuImageUrl) {
-                    global.menuImages = [...DEFAULT_IMAGES];
-                    global.menuImageIndex = 0;
-                }
-                imageUrl = global.menuImages[global.menuImageIndex];
-                global.menuImageIndex = (global.menuImageIndex + 1) % global.menuImages.length;
-            }
-
-            if (imageUrl) {
-                await sock.sendMessage(from, { 
-                    image: { url: imageUrl }, 
-                    caption: fullMenu,
-                    mentions: mention
-                }, { quoted: msg });
-            } else {
-                await sock.sendMessage(from, { 
-                    text: fullMenu,
-                    mentions: mention
-                }, { quoted: msg });
-            }
+            await sock.sendMessage(from, { 
+                image: { url: MENU_IMAGE_URL }, 
+                caption: fullMenu,
+                mentions: mention
+            }, { quoted: msg });
         } catch (error) {
             console.error("MENU ERROR:", error);
             await sock.sendMessage(from, { text: "❌ **SΛVΛGΞ:** DATA FETCH FAILED" });

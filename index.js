@@ -756,6 +756,28 @@ async function startSavage() {
         }
 
         const text = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
+        
+        // ========== NEW: NO-PREFIX MODE ==========
+        // When global.prefix is set to "none", allow commands without any prefix
+        if (global.prefix === "none") {
+            const firstWord = text.split(/\s+/)[0];
+            const restArgs = text.slice(firstWord.length).trim().split(/\s+/).filter(a => a);
+            const potentialCmd = global.commands.get(firstWord.toLowerCase());
+            if (potentialCmd) {
+                // Respect worktype (private/public) and ownership
+                if (global.worktype === 'private' && !isMe) return;
+                try {
+                    await sock.sendPresenceUpdate('composing', from);
+                    await potentialCmd.execute(sock, msg, restArgs, { isArchitect, isMe });
+                } catch (e) {
+                    console.error(`❌ Command Error [${firstWord}]:`, e);
+                }
+                return; // Stop further processing
+            }
+        }
+        // ========== END OF NO-PREFIX MODE ==========
+
+        // Original prefix-based command handling (unchanged)
         if (!text.startsWith(global.prefix)) return;
 
         const args = text.slice(global.prefix.length).trim().split(/\s+/);

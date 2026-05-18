@@ -24,19 +24,45 @@ module.exports = {
                 videoUrl = searchResults.videos[0].url;
             }
 
-            const endpoint = `https://apis.xwolf.space/download/ytmp5?url=${encodeURIComponent(videoUrl)}`;
-            const response = await axios({
-                method: 'get',
-                url: endpoint,
-                timeout: 20000,
-                headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
-            });
+            const endpoints = [
+                `https://apis.xwolf.space/download/ytmp5?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/mp4?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/video?url=${encodeURIComponent(videoUrl)}`
+            ];
 
-            const mp3Url = response.data.mp3 || response.data.audioUrl || response.data.downloadUrl_mp3;
-            const mp4Url = response.data.mp4 || response.data.videoUrl || response.data.downloadUrl_mp4;
+            let mp3Url = null;
+            let mp4Url = null;
+            let success = false;
 
-            if (!mp3Url && !mp4Url) {
-                return sock.sendMessage(from, { text: '❌ No download URLs found.' }, { quoted: msg });
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await axios({
+                        method: 'get',
+                        url: endpoint,
+                        timeout: 60000,
+                        headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
+                    });
+
+                    if (endpoint.includes('ytmp5')) {
+                        mp3Url = response.data.mp3 || response.data.audioUrl;
+                        mp4Url = response.data.mp4 || response.data.videoUrl;
+                    } else {
+                        // For /mp4 or /video endpoints
+                        const url = response.data.downloadUrl || response.data.url;
+                        if (url) mp4Url = url;
+                    }
+
+                    if (mp3Url || mp4Url) {
+                        success = true;
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+
+            if (!success || (!mp3Url && !mp4Url)) {
+                return sock.sendMessage(from, { text: '❌ No download URLs found. Try another song or use .play' }, { quoted: msg });
             }
 
             let caption = `🎵 *YTMP5 - LINKS*\n\n`;

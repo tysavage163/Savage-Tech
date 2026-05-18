@@ -44,8 +44,6 @@ module.exports = {
             }, { quoted: msg });
 
             const endpoint = `https://apis.xwolf.space/download/yta2?url=${encodeURIComponent(videoUrl)}`;
-            console.log(`[PLAY] Requesting: ${endpoint}`);
-
             const response = await axios({
                 method: 'get',
                 url: endpoint,
@@ -53,16 +51,11 @@ module.exports = {
                 headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
             });
 
-            console.log(`[PLAY] Response status: ${response.status}`);
-            console.log(`[PLAY] Response data:`, JSON.stringify(response.data, null, 2).slice(0, 500));
-
-            let audioUrl = response.data.downloaded_at || response.data.url || response.data.result?.url;
+            let audioUrl = response.data.downloadUrl || response.data.downloaded_at || response.data.url || response.data.result?.url || response.data.link;
             if (!audioUrl) {
-                console.error('[PLAY] No audio URL found');
                 return sock.sendMessage(from, { text: '❌ No audio URL in API response.' }, { quoted: msg });
             }
 
-            console.log(`[PLAY] Downloading from: ${audioUrl}`);
             const audioRes = await axios({
                 method: 'get',
                 url: audioUrl,
@@ -95,9 +88,8 @@ module.exports = {
 
             fs.unlinkSync(tempFile);
         } catch (error) {
-            console.error('[PLAY] Error:', error.message);
-            if (error.response) console.error('[PLAY] Response status:', error.response.status);
-            await sock.sendMessage(from, { text: `❌ Failed: ${error.message.slice(0, 100)}` }, { quoted: msg });
+            console.error('Play error:', error);
+            await sock.sendMessage(from, { text: '❌ Failed to download. Try again later.' }, { quoted: msg });
         }
     }
 };

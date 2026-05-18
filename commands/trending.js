@@ -27,10 +27,18 @@ module.exports = {
             let caption = '🔥 *TRENDING MUSIC ON YOUTUBE*\n\n';
             for (let i = 0; i < Math.min(trendingList.length, 10); i++) {
                 const item = trendingList[i];
-                const title = item.title || item.name || item.videoTitle || 'Unknown Title';
-                const uploader = item.uploader || item.channel || item.author || item.artist || item.owner || 'Unknown Artist';
+                let title = item.title || item.name || item.videoTitle || 'Unknown Title';
+                let artist = item.uploader || item.channel || item.author || item.artist || item.owner || '';
+                
+                if (!artist && title.includes(' - ')) {
+                    const parts = title.split(' - ');
+                    artist = parts[0];
+                    title = parts.slice(1).join(' - ');
+                }
+                
+                if (!artist) artist = 'Unknown Artist';
                 const url = item.url || item.link || item.videoUrl || '';
-                caption += `${i+1}. *${title}*\n   👤 ${uploader}\n   🔗 ${url}\n\n`;
+                caption += `${i+1}. *${title}*\n   👤 ${artist}\n   🔗 ${url}\n\n`;
             }
             caption += `_⚡ Powered by Savage-Tech_`;
 

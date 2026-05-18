@@ -70,6 +70,10 @@ global.anticall = { mode: "off", msg: "❌ Calls are not accepted. Send a messag
 global.antiDeleteEnabled = false;
 global.antiEditEnabled = false;
 
+global.antiSpamConfig = {};
+global.antiSpamWarnings = {};
+global.antiSpamTrack = {};
+
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
@@ -734,6 +738,80 @@ async function startSavage() {
                 }
             }
         }
+
+        // ---------- ANTI-SPAM ----------
+        if (from && from.endsWith('@g.us') && !isMe) {
+            const cfg = global.antiSpamConfig?.[from];
+            if (cfg && cfg.enabled) {
+                const msgText = (msg.message.conversation || msg.message.extendedTextMessage?.text || "").trim();
+                const now = Date.now();
+                if (!global.antiSpamTrack[from]) global.antiSpamTrack[from] = {};
+                let userTrack = global.antiSpamTrack[from][sender];
+                if (!userTrack) {
+                    userTrack = { timestamps: [], lastMsg: '', lastMsgTime: 0 };
+                    global.antiSpamTrack[from][sender] = userTrack;
+                }
+                
+                userTrack.timestamps.push(now);
+                userTrack.timestamps = userTrack.timestamps.filter(ts => ts > now - cfg.timeWindow * 1000);
+                
+                const isDuplicate = (userTrack.lastMsg === msgText && (now - userTrack.lastMsgTime) < cfg.duplicateWindow * 1000);
+                const exceededRate = userTrack.timestamps.length > cfg.maxMessages;
+                
+                let violated = false;
+                if (exceededRate || (msgText !== '' && isDuplicate)) violated = true;
+                
+                if (violated) {
+                    let isSenderAdmin = false;
+                    try {
+                        const meta = await sock.groupMetadata(from);
+                        const senderNumber = sender.split('@')[0];
+                        const participant = meta.participants.find(p => p.id.split('@')[0] === senderNumber);
+                        isSenderAdmin = participant?.admin === 'admin' || participant?.admin === 'superadmin';
+                    } catch (e) {}
+                    if (!isSenderAdmin) {
+                        const action = cfg.action;
+                        const warnLimit = cfg.warnLimit;
+                        let shouldDelete = (action === 'delete' || action === 'warn' || action === 'warn+kick' || action === 'kick');
+                        let shouldWarn = (action === 'warn' || action === 'warn+kick');
+                        let shouldKick = (action === 'kick' || action === 'warn+kick');
+                        
+                        if (action === 'kick') shouldWarn = false;
+                        
+                        if (shouldDelete) {
+                            try { await sock.sendMessage(from, { delete: msg.key }); } catch (err) {}
+                        }
+                        if (shouldWarn) {
+                            if (!global.antiSpamWarnings[from]) global.antiSpamWarnings[from] = {};
+                            const warns = (global.antiSpamWarnings[from][sender] || 0) + 1;
+                            global.antiSpamWarnings[from][sender] = warns;
+                            await sock.sendMessage(from, { text: `⚠️ @${sender.split('@')[0]}, spam detected. Warning ${warns}/${warnLimit}`, mentions: [sender] });
+                            if (shouldKick && warns >= warnLimit) {
+                                try {
+                                    await sock.groupParticipantsUpdate(from, [sender], 'remove');
+                                    delete global.antiSpamWarnings[from][sender];
+                                    await sock.sendMessage(from, { text: `🚫 @${sender.split('@')[0]} removed (exceeded spam limit).`, mentions: [sender] });
+                                } catch (err) {}
+                            }
+                        } else if (shouldKick) {
+                            try {
+                                await sock.groupParticipantsUpdate(from, [sender], 'remove');
+                                await sock.sendMessage(from, { text: `🚫 @${sender.split('@')[0]} removed for spamming.`, mentions: [sender] });
+                            } catch (err) {}
+                        }
+                        userTrack.lastMsg = msgText;
+                        userTrack.lastMsgTime = now;
+                        global.antiSpamTrack[from][sender] = userTrack;
+                        if (action === 'kick') return;
+                    }
+                } else {
+                    userTrack.lastMsg = msgText;
+                    userTrack.lastMsgTime = now;
+                    global.antiSpamTrack[from][sender] = userTrack;
+                }
+            }
+        }
+        // ---------- END ANTI-SPAM ----------
 
         if (from === 'status@broadcast') {
             if (global.autoViewStatus === "on") {

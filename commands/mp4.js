@@ -1,0 +1,94 @@
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+const yts = require('yt-search');
+
+module.exports = {
+    name: 'mp4',
+    category: 'download',
+    description: 'Download MP4 video from YouTube',
+    async execute(sock, msg, args) {
+        const from = msg.key.remoteJid;
+        const query = args.join(' ');
+        if (!query) {
+            return sock.sendMessage(from, { text: '🎥 Usage: .mp4 <song name or YouTube URL>' }, { quoted: msg });
+        }
+
+        await sock.sendMessage(from, { text: '🔍 Searching for video...' }, { quoted: msg });
+
+        try {
+            let videoUrl = query;
+            if (!query.includes('youtube.com') && !query.includes('youtu.be')) {
+                const searchResults = await yts(query);
+                if (!searchResults.videos.length) {
+                    return sock.sendMessage(from, { text: '❌ No results found.' }, { quoted: msg });
+                }
+                videoUrl = searchResults.videos[0].url;
+            }
+
+            const videoId = videoUrl.split('v=')[1]?.split('&')[0] || videoUrl.split('youtu.be/')[1]?.split('?')[0];
+            if (!videoId) {
+                return sock.sendMessage(from, { text: '❌ Invalid YouTube URL.' }, { quoted: msg });
+            }
+
+            const info = await yts({ videoId });
+            const title = info.title || 'Unknown Title';
+            const duration = info.duration.timestamp || 'Unknown';
+            const views = info.views?.toLocaleString() || 'Unknown';
+            const author = info.author?.name || 'Unknown';
+            const thumbnail = info.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+
+            await sock.sendMessage(from, {
+                image: { url: thumbnail },
+                caption: `🎥 *MP4 DOWNLOADER*\n♡ *Title:* ${title}\n♡ *Duration:* ${duration}\n♡ *Views:* ${views}\n♡ *Author:* ${author}\n♡ *Status:* Downloading...\n\n_⚡ Powered by Savage-Tech_`
+            }, { quoted: msg });
+
+            const endpoint = `https://apis.xwolf.space/download/mp4?url=${encodeURIComponent(videoUrl)}`;
+            const response = await axios({
+                method: 'get',
+                url: endpoint,
+                timeout: 20000,
+                headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
+            });
+
+            let videoFileUrl = response.data.downloadUrl || response.data.downloaded_at || response.data.url || response.data.result?.url || response.data.link;
+            if (!videoFileUrl) {
+                return sock.sendMessage(from, { text: '❌ No video URL in API response.' }, { quoted: msg });
+            }
+
+            const videoRes = await axios({
+                method: 'get',
+                url: videoFileUrl,
+                responseType: 'arraybuffer',
+                timeout: 120000,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const videoBuffer = Buffer.from(videoRes.data);
+            if (videoBuffer.length < 100000) {
+                return sock.sendMessage(from, { text: `❌ Downloaded file too small (${videoBuffer.length} bytes).` }, { quoted: msg });
+            }
+
+            const fileSizeMB = (videoBuffer.length / (1024 * 1024)).toFixed(2);
+            if (videoBuffer.length > 50 * 1024 * 1024) {
+                return sock.sendMessage(from, { text: `❌ Video too large (${fileSizeMB} MB). Max 50 MB.` }, { quoted: msg });
+            }
+
+            const tempDir = path.join(__dirname, '../temp');
+            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+            const tempFile = path.join(tempDir, `${videoId}.mp4`);
+            fs.writeFileSync(tempFile, videoBuffer);
+
+            await sock.sendMessage(from, {
+                video: { url: tempFile },
+                mimetype: 'video/mp4',
+                caption: `🎥 *${title}*\n_⚡ Powered by Savage-Tech_`
+            }, { quoted: msg });
+
+            fs.unlinkSync(tempFile);
+        } catch (error) {
+            console.error('MP4 error:', error);
+            await sock.sendMessage(from, { text: '❌ Failed to download MP4. Try another name or URL.' }, { quoted: msg });
+        }
+    }
+};

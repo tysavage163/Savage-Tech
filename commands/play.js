@@ -43,63 +43,37 @@ module.exports = {
                 caption: `🎵 *AUDIO DOWNLOADER*\n- *Title:* ${title}\n- *Duration:* ${duration}\n- *Views:* ${views}\n- *Author:* ${author}\n- *Status:* Downloading...\n- *Powered by Savage-Tech*`
             }, { quoted: msg });
 
-            const endpoints = [
-                `https://apis.xwolf.space/download/yta2?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/yta?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/audio?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/dlmp3?url=${encodeURIComponent(videoUrl)}`
-            ];
+            const endpoint = `https://apis.xwolf.space/download/yta2?url=${encodeURIComponent(videoUrl)}`;
+            console.log(`[PLAY] Requesting: ${endpoint}`);
 
-            let audioBuffer = null;
+            const response = await axios({
+                method: 'get',
+                url: endpoint,
+                timeout: 20000,
+                headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
+            });
 
-            for (const endpoint of endpoints) {
-                try {
-                    const response = await axios({
-                        method: 'get',
-                        url: endpoint,
-                        timeout: 15000,
-                        headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' },
-                        responseType: 'json'
-                    });
+            console.log(`[PLAY] Response status: ${response.status}`);
+            console.log(`[PLAY] Response data:`, JSON.stringify(response.data, null, 2).slice(0, 500));
 
-                    let audioUrl = null;
-                    if (response.data.downloaded_at) {
-                        audioUrl = response.data.downloaded_at;
-                    } else if (response.data.result?.url) {
-                        audioUrl = response.data.result.url;
-                    } else if (response.data.url) {
-                        audioUrl = response.data.url;
-                    } else if (response.data.download_url) {
-                        audioUrl = response.data.download_url;
-                    } else if (response.data.link) {
-                        audioUrl = response.data.link;
-                    }
-
-                    if (audioUrl && typeof audioUrl === 'string') {
-                        const audioRes = await axios({
-                            method: 'get',
-                            url: audioUrl,
-                            responseType: 'arraybuffer',
-                            timeout: 30000,
-                            headers: { 'User-Agent': 'Mozilla/5.0' }
-                        });
-                        const buffer = Buffer.from(audioRes.data);
-                        if (buffer.length > 50000) {
-                            audioBuffer = buffer;
-                            break;
-                        }
-                    } else if (response.data && Buffer.isBuffer(response.data) && response.data.length > 50000) {
-                        audioBuffer = response.data;
-                        break;
-                    }
-                } catch (e) {
-                    continue;
-                }
+            let audioUrl = response.data.downloaded_at || response.data.url || response.data.result?.url;
+            if (!audioUrl) {
+                console.error('[PLAY] No audio URL found');
+                return sock.sendMessage(from, { text: '❌ No audio URL in API response.' }, { quoted: msg });
             }
 
-            if (!audioBuffer) {
-                return sock.sendMessage(from, { text: '❌ Could not download audio. Try another song or use a YouTube URL directly.' }, { quoted: msg });
+            console.log(`[PLAY] Downloading from: ${audioUrl}`);
+            const audioRes = await axios({
+                method: 'get',
+                url: audioUrl,
+                responseType: 'arraybuffer',
+                timeout: 60000,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const audioBuffer = Buffer.from(audioRes.data);
+            if (audioBuffer.length < 50000) {
+                return sock.sendMessage(from, { text: `❌ Downloaded file too small (${audioBuffer.length} bytes).` }, { quoted: msg });
             }
 
             const fileSizeMB = (audioBuffer.length / (1024 * 1024)).toFixed(2);
@@ -121,8 +95,9 @@ module.exports = {
 
             fs.unlinkSync(tempFile);
         } catch (error) {
-            console.error('Play error:', error);
-            await sock.sendMessage(from, { text: '❌ Failed to download. Try again later.' }, { quoted: msg });
+            console.error('[PLAY] Error:', error.message);
+            if (error.response) console.error('[PLAY] Response status:', error.response.status);
+            await sock.sendMessage(from, { text: `❌ Failed: ${error.message.slice(0, 100)}` }, { quoted: msg });
         }
     }
 };

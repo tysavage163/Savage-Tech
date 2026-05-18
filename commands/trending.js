@@ -28,15 +28,22 @@ module.exports = {
             for (let i = 0; i < Math.min(trendingList.length, 10); i++) {
                 const item = trendingList[i];
                 let title = item.title || item.name || item.videoTitle || 'Unknown Title';
-                let artist = item.uploader || item.channel || item.author || item.artist || item.owner || '';
+                let artist = item.uploader || item.channel || item.author || item.artist || item.owner || item.uploaderName || '';
                 
                 if (!artist && title.includes(' - ')) {
                     const parts = title.split(' - ');
-                    artist = parts[0];
-                    title = parts.slice(1).join(' - ');
+                    artist = parts[0].trim();
+                    title = parts.slice(1).join(' - ').trim();
+                }
+                
+                if (!artist && title.includes(' | ')) {
+                    const parts = title.split(' | ');
+                    artist = parts[0].trim();
+                    title = parts.slice(1).join(' | ').trim();
                 }
                 
                 if (!artist) artist = 'Unknown Artist';
+                
                 const url = item.url || item.link || item.videoUrl || '';
                 caption += `${i+1}. *${title}*\n   👤 ${artist}\n   🔗 ${url}\n\n`;
             }

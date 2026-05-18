@@ -1,9 +1,14 @@
 module.exports = {
     name: 'currentsettings',
-    category: 'engine',
-    description: 'Show current bot settings',
-    async execute(sock, msg, args) {
+    category: 'owner',
+    description: 'Show current bot settings (owner & sudo only)',
+    async execute(sock, msg, args, { isArchitect }) {
         const from = msg.key.remoteJid;
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const isSudo = global.sudo && (global.sudo.has ? global.sudo.has(sender) : global.sudo.includes(sender));
+        if (!isArchitect && !isSudo) {
+            return sock.sendMessage(from, { text: '❌ Owner or sudo only command.' }, { quoted: msg });
+        }
 
         const prefix = global.prefix || '.';
         const mode = global.worktype === 'public' ? '🌍 Public' : '🔒 Private';

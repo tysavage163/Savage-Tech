@@ -24,44 +24,27 @@ module.exports = {
                 videoUrl = searchResults.videos[0].url;
             }
 
-            const endpoints = [
-                `https://apis.xwolf.space/download/ytmp5?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/mp4?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/video?url=${encodeURIComponent(videoUrl)}`
-            ];
+            const endpoint = `https://apis.xwolf.space/download/ytmp5?url=${encodeURIComponent(videoUrl)}`;
+            const response = await axios({
+                method: 'get',
+                url: endpoint,
+                timeout: 60000,
+                headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
+            });
 
             let mp3Url = null;
             let mp4Url = null;
-            let success = false;
 
-            for (const endpoint of endpoints) {
-                try {
-                    const response = await axios({
-                        method: 'get',
-                        url: endpoint,
-                        timeout: 60000,
-                        headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
-                    });
-
-                    if (endpoint.includes('ytmp5')) {
-                        mp3Url = response.data.mp3 || response.data.audioUrl;
-                        mp4Url = response.data.mp4 || response.data.videoUrl;
-                    } else {
-                        // For /mp4 or /video endpoints
-                        const url = response.data.downloadUrl || response.data.url;
-                        if (url) mp4Url = url;
-                    }
-
-                    if (mp3Url || mp4Url) {
-                        success = true;
-                        break;
-                    }
-                } catch (e) {
-                    continue;
-                }
+            if (response.data.mp3) {
+                mp3Url = typeof response.data.mp3 === 'string' ? response.data.mp3 : (response.data.mp3.url || response.data.mp3.downloadUrl || response.data.mp3.link);
             }
+            if (response.data.mp4) {
+                mp4Url = typeof response.data.mp4 === 'string' ? response.data.mp4 : (response.data.mp4.url || response.data.mp4.downloadUrl || response.data.mp4.link);
+            }
+            if (!mp3Url && response.data.audioUrl) mp3Url = typeof response.data.audioUrl === 'string' ? response.data.audioUrl : response.data.audioUrl.url;
+            if (!mp4Url && response.data.videoUrl) mp4Url = typeof response.data.videoUrl === 'string' ? response.data.videoUrl : response.data.videoUrl.url;
 
-            if (!success || (!mp3Url && !mp4Url)) {
+            if (!mp3Url && !mp4Url) {
                 return sock.sendMessage(from, { text: '❌ No download URLs found. Try another song or use .play' }, { quoted: msg });
             }
 

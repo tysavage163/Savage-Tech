@@ -1,31 +1,41 @@
 const axios = require('axios');
 
 module.exports = {
-  name: 'play12',
-  category: 'audio',
-  description: 'Get trending music from YouTube',
-  async execute(sock, msg, args) {
-    const senderName = msg.pushName || 'User';
-    try {
-      const url = 'https://apis.xwolf.space/api/trending';
-      const res = await axios.get(url);
-      if (res.data.success) {
-        let trending = res.data.result || res.data.data || [];
-        if (Array.isArray(trending) && trending.length) {
-          let text = `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n🔥 *Trending songs for @${senderName}*\n\n`;
-          trending.slice(0, 10).forEach((item, i) => {
-            text += `${i+1}. ${item.title || item.name} - ${item.artist || ''}\n`;
-          });
-          text += `\nInspired by Meryl`;
-          await sock.sendMessage(msg.key.remoteJid, { text: text.slice(0, 2000) });
-        } else {
-          await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\nNo trending data found.\n\nInspired by Meryl` });
+    name: 'trending',
+    category: 'download',
+    description: 'Get trending music from YouTube',
+    async execute(sock, msg, args) {
+        const from = msg.key.remoteJid;
+        
+        await sock.sendMessage(from, { text: '🔥 Fetching trending music...' }, { quoted: msg });
+
+        try {
+            const response = await axios({
+                method: 'get',
+                url: 'https://apis.xwolf.space/api/trending',
+                timeout: 15000,
+                headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
+            });
+
+            let trendingList = response.data.trending || response.data.result || response.data;
+            if (!trendingList || !trendingList.length) {
+                return sock.sendMessage(from, { text: '❌ No trending data found.' }, { quoted: msg });
+            }
+
+            let caption = '🔥 *TRENDING MUSIC ON YOUTUBE*\n\n';
+            for (let i = 0; i < Math.min(trendingList.length, 10); i++) {
+                const item = trendingList[i];
+                const title = item.title || item.name || 'Unknown';
+                const uploader = item.uploader || item.channel || item.author || 'Unknown';
+                const url = item.url || item.link || '';
+                caption += `${i+1}. *${title}*\n   👤 ${uploader}\n   🔗 ${url}\n\n`;
+            }
+            caption += `_⚡ Powered by Savage-Tech_`;
+
+            await sock.sendMessage(from, { text: caption }, { quoted: msg });
+        } catch (error) {
+            console.error('Trending error:', error);
+            await sock.sendMessage(from, { text: '❌ Failed to fetch trending music. Try again later.' }, { quoted: msg });
         }
-      } else {
-        await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n⚠️ ${res.data.error || 'Failed to fetch trending songs'}\n\nInspired by Meryl` });
-      }
-    } catch (error) {
-      await sock.sendMessage(msg.key.remoteJid, { text: `🜏 SAVAGETECH // SIGNALS UNDER CONTROL\n\n❌ Trending API error.\n\nInspired by Meryl` });
     }
-  }
 };

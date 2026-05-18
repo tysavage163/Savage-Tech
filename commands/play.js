@@ -6,7 +6,7 @@ const yts = require('yt-search');
 module.exports = {
     name: 'play',
     category: 'download',
-    description: 'Download audio from YouTube (song name or URL)',
+    description: 'Download audio from YouTube',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         const query = args.join(' ');
@@ -38,16 +38,62 @@ module.exports = {
             const author = info.author?.name || 'Unknown';
             const thumbnail = info.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
-            let fileSizeMB = null;
+            // Try multiple endpoints if one fails
+            const endpoints = [
+                `https://apis.xwolf.space/download/yta2?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/ytmp3?url=${encodeURIComponent(videoUrl)}`
+            ];
 
-            const apiUrl = `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`;
-            const headResponse = await axios.head(apiUrl).catch(() => null);
-            if (headResponse && headResponse.headers['content-length']) {
-                fileSizeMB = (parseInt(headResponse.headers['content-length']) / (1024 * 1024)).toFixed(2);
+            let audioStream = null;
+            let usedEndpoint = null;
+
+            for (const endpoint of endpoints) {
+                try {
+                    const testRes = await axios({
+                        method: 'get',
+                        url: endpoint,
+                        responseType: 'stream',
+                        timeout: 15000,
+                        headers: { 'User-Agent': 'Savage-Tech-Bot' }
+                    });
+                    if (testRes.headers['content-type']?.includes('audio') || testRes.headers['content-length'] > 1000) {
+                        audioStream = testRes;
+                        usedEndpoint = endpoint;
+                        break;
+                    }
+                } catch (e) {
+                    continue;
+                }
             }
 
-            if (fileSizeMB && parseFloat(fileSizeMB) > 16) {
-                return sock.sendMessage(from, { text: `❌ Audio too large (${fileSizeMB} MB). Max 16 MB allowed.` }, { quoted: msg });
+            if (!audioStream) {
+                return sock.sendMessage(from, { text: '❌ No working audio source found. Try another song.' }, { quoted: msg });
+            }
+
+            const tempDir = path.join(__dirname, '../temp');
+            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+            const tempFile = path.join(tempDir, `${videoId}.mp3`);
+
+            const writer = fs.createWriteStream(tempFile);
+            audioStream.data.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+            });
+
+            const stats = fs.statSync(tempFile);
+            const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+
+            if (stats.size === 0) {
+                fs.unlinkSync(tempFile);
+                return sock.sendMessage(from, { text: '❌ Downloaded file is empty.' }, { quoted: msg });
+            }
+
+            if (stats.size > 16 * 1024 * 1024) {
+                fs.unlinkSync(tempFile);
+                return sock.sendMessage(from, { text: `❌ Audio too large (${fileSizeMB} MB). Max 16 MB.` }, { quoted: msg });
             }
 
             const caption = `🎵 *AUDIO DOWNLOADER*
@@ -55,52 +101,31 @@ module.exports = {
 - *Duration:* ${duration}
 - *Views:* ${views}
 - *Author:* ${author}
-- *Size:* ${fileSizeMB ? `${fileSizeMB} MB` : 'Unknown'}
-- *Status:* Downloading...
+- *Size:* ${fileSizeMB} MB
+- *Status:* ✅ Ready
 - *Powered by Savage-Tech*`;
 
-            await sock.sendMessage(from, { 
+            await sock.sendMessage(from, {
                 image: { url: thumbnail },
                 caption: caption
             }, { quoted: msg });
 
-            const response = await axios({
-                method: 'get',
-                url: apiUrl,
-                responseType: 'stream',
-                headers: { 'User-Agent': 'Savage-Tech-Bot' }
-            });
+            await sock.sendMessage(from, {
+                audio: { url: tempFile },
+                mimetype: 'audio/mpeg',
+                fileName: `${title.replace(/[^a-z0-9]/gi, '_')}.mp3`,
+                ptt: false
+            }, { quoted: msg });
 
-            const tempDir = path.join(__dirname, '../temp');
-            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-            const tempFile = path.join(tempDir, `${videoId}.mp3`);
+            fs.unlinkSync(tempFile);
 
-            const writer = fs.createWriteStream(tempFile);
-            response.data.pipe(writer);
-
-            writer.on('finish', async () => {
-                const stats = fs.statSync(tempFile);
-                const actualSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-                if (stats.size > 16 * 1024 * 1024) {
-                    fs.unlinkSync(tempFile);
-                    return sock.sendMessage(from, { text: `❌ Audio too large (${actualSizeMB} MB). Max 16 MB.` }, { quoted: msg });
-                }
-                await sock.sendMessage(from, {
-                    audio: { url: tempFile },
-                    mimetype: 'audio/mpeg',
-                    fileName: `${title.replace(/[^a-z0-9]/gi, '_')}.mp3`,
-                    ptt: false
-                }, { quoted: msg });
-                fs.unlinkSync(tempFile);
-            });
-
-            writer.on('error', async (err) => {
-                console.error('Write error:', err);
-                await sock.sendMessage(from, { text: '❌ Failed to save audio.' }, { quoted: msg });
-            });
         } catch (error) {
             console.error('Play error:', error);
-            await sock.sendMessage(from, { text: '❌ Failed to process request. Try again later.' }, { quoted: msg });
+            let errorMsg = '❌ Failed to process request.';
+            if (error.response) {
+                errorMsg = `❌ API error: ${error.response.status}`;
+            }
+            await sock.sendMessage(from, { text: errorMsg }, { quoted: msg });
         }
     }
 };

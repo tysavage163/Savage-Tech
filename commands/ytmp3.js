@@ -1,88 +1,95 @@
 const axios = require('axios');
-const https = require('https');
-const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-
-async function downloadFile(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, { agent: httpsAgent }, (res) => {
-      if (res.statusCode === 302 || res.statusCode === 301) {
-        downloadFile(res.headers.location).then(resolve).catch(reject);
-        return;
-      }
-      const chunks = [];
-      res.on('data', chunk => chunks.push(chunk));
-      res.on('end', () => resolve(Buffer.concat(chunks)));
-      res.on('error', reject);
-    }).on('error', reject);
-  });
-}
+const fs = require('fs');
+const path = require('path');
+const yts = require('yt-search');
 
 module.exports = {
-  name: 'ytmp3',
-  category: 'download',
-  description: 'Download from ytmp3',
-  async execute(sock, msg, args) {
-    const url = args[0];
-    if (!url) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .ytmp3 <URL>' });
-    if (!url.startsWith('http')) return sock.sendMessage(msg.key.remoteJid, { text: '❌ Provide a valid URL starting with http:// or https://' });
+    name: 'ytmp3',
+    category: 'audio',
+    description: 'Convert YouTube video to MP3',
+    async execute(sock, msg, args) {
+        const from = msg.key.remoteJid;
+        const query = args.join(' ');
+        if (!query) {
+            return sock.sendMessage(from, { text: '🎵 Usage: .ytmp3 <song name or YouTube URL>' }, { quoted: msg });
+        }
 
-    const senderName = msg.pushName || 'User';
-    const senderJid = msg.key.participant || msg.key.remoteJid;
-    const mention = [senderJid];
+        await sock.sendMessage(from, { text: '🔍 Searching for audio...' }, { quoted: msg });
 
-    try {
-      const apiUrl = `https://apis.xwolf.space/download/youtube/mp3?url=${encodeURIComponent(url)}`;
-      const response = await axios.get(apiUrl, { httpsAgent });
-      const data = response.data;
+        try {
+            let videoUrl = query;
+            if (!query.includes('youtube.com') && !query.includes('youtu.be')) {
+                const searchResults = await yts(query);
+                if (!searchResults.videos.length) {
+                    return sock.sendMessage(from, { text: '❌ No results found.' }, { quoted: msg });
+                }
+                videoUrl = searchResults.videos[0].url;
+            }
 
-      if (!data.success) throw new Error(data.error || 'Download failed');
+            const videoId = videoUrl.split('v=')[1]?.split('&')[0] || videoUrl.split('youtu.be/')[1]?.split('?')[0];
+            if (!videoId) {
+                return sock.sendMessage(from, { text: '❌ Invalid YouTube URL.' }, { quoted: msg });
+            }
 
-      // Determine content type based on command name
-      const isVideo = 'ytmp3'.includes('video') || 'ytmp3'.includes('mp4') || 'ytmp3' === 'tiktok' || 'ytmp3' === 'instagram' || 'ytmp3' === 'facebook' || 'ytmp3' === 'twitter' || 'ytmp3' === 'snapchat';
-      const isAudio = 'ytmp3'.includes('mp3') || 'ytmp3'.includes('audio');
-      const isText = 'media' === 'text';
+            const info = await yts({ videoId });
+            const title = info.title || 'Unknown Title';
+            const duration = info.duration.timestamp || 'Unknown';
+            const views = info.views?.toLocaleString() || 'Unknown';
+            const author = info.author?.name || 'Unknown';
+            const thumbnail = info.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
-      if (isText) {
-        // Send as text (info or search results)
-        let text = `📁 *Download Info (ytmp3)*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE\n\n`;
-        if (data.result) text += data.result;
-        else if (data.info) text += JSON.stringify(data.info, null, 2);
-        else text += JSON.stringify(data, null, 2);
-        await sock.sendMessage(msg.key.remoteJid, { text: text.slice(0, 2000), mentions: mention });
-        return;
-      }
+            await sock.sendMessage(from, {
+                image: { url: thumbnail },
+                caption: `🎵 *YTMP3 CONVERTER*\n♡ *Title:* ${title}\n♡ *Duration:* ${duration}\n♡ *Views:* ${views}\n♡ *Author:* ${author}\n♡ *Status:* Converting...\n\n_⚡ Powered by Savage-Tech_`
+            }, { quoted: msg });
 
-      // For media: find download URL
-      let downloadUrl = null;
-      if (data.downloadUrl) downloadUrl = data.downloadUrl;
-      else if (data.result && typeof data.result === 'string') downloadUrl = data.result;
-      else if (data.url) downloadUrl = data.url;
-      else if (data.media && data.media.url) downloadUrl = data.media.url;
-      else if (data.video && data.video.url) downloadUrl = data.video.url;
-      else if (data.audio && data.audio.url) downloadUrl = data.audio.url;
-      else if (Array.isArray(data.result) && data.result.length > 0) {
-        // Pick highest quality or first
-        const best = data.result.find(r => r.quality === 'HD') || data.result[0];
-        downloadUrl = best.url || best.downloadUrl;
-      }
-      if (!downloadUrl) throw new Error('No download link found in API response');
+            const endpoint = `https://apis.xwolf.space/download/ytmp3?url=${encodeURIComponent(videoUrl)}`;
+            const response = await axios({
+                method: 'get',
+                url: endpoint,
+                timeout: 20000,
+                headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
+            });
 
-      const fileBuffer = await downloadFile(downloadUrl);
-      const maxSize = isVideo ? 64 * 1024 * 1024 : 16 * 1024 * 1024; // video 64MB, audio 16MB
-      if (fileBuffer.length > maxSize) {
-        await sock.sendMessage(msg.key.remoteJid, { text: `⚠️ File too large (${(fileBuffer.length/1024/1024).toFixed(1)}MB). Direct link: ${downloadUrl}` });
-        return;
-      }
+            let audioUrl = response.data.downloadUrl || response.data.downloaded_at || response.data.url || response.data.result?.url || response.data.link;
+            if (!audioUrl) {
+                return sock.sendMessage(from, { text: '❌ No audio URL in API response.' }, { quoted: msg });
+            }
 
-      const caption = `📥 *Download: ytmp3*\n👤 REQUESTED BY: @${senderName}\n🚀 POWERED BY SAVAGE-CORE`;
-      if (isVideo) {
-        await sock.sendMessage(msg.key.remoteJid, { video: fileBuffer, caption: caption, mentions: mention });
-      } else {
-        await sock.sendMessage(msg.key.remoteJid, { audio: fileBuffer, mimetype: 'audio/mpeg', fileName: 'download.mp3', caption: caption, mentions: mention });
-      }
-    } catch (err) {
-      console.error('ytmp3 error:', err);
-      await sock.sendMessage(msg.key.remoteJid, { text: `❌ Download failed.\n${err.message}` });
+            const audioRes = await axios({
+                method: 'get',
+                url: audioUrl,
+                responseType: 'arraybuffer',
+                timeout: 60000,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const audioBuffer = Buffer.from(audioRes.data);
+            if (audioBuffer.length < 50000) {
+                return sock.sendMessage(from, { text: `❌ Downloaded file too small (${audioBuffer.length} bytes).` }, { quoted: msg });
+            }
+
+            const fileSizeMB = (audioBuffer.length / (1024 * 1024)).toFixed(2);
+            if (audioBuffer.length > 16 * 1024 * 1024) {
+                return sock.sendMessage(from, { text: `❌ Audio too large (${fileSizeMB} MB). Max 16 MB.` }, { quoted: msg });
+            }
+
+            const tempDir = path.join(__dirname, '../temp');
+            if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+            const tempFile = path.join(tempDir, `${videoId}.mp3`);
+            fs.writeFileSync(tempFile, audioBuffer);
+
+            await sock.sendMessage(from, {
+                audio: { url: tempFile },
+                mimetype: 'audio/mpeg',
+                fileName: `${title.replace(/[^a-z0-9]/gi, '_')}.mp3`,
+                ptt: false
+            }, { quoted: msg });
+
+            fs.unlinkSync(tempFile);
+        } catch (error) {
+            console.error('YTMP3 error:', error);
+            await sock.sendMessage(from, { text: '❌ Failed to convert. Try another song or URL.' }, { quoted: msg });
+        }
     }
-  }
 };

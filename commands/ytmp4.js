@@ -43,50 +43,49 @@ module.exports = {
                 caption: `🎥 *YTMP4 CONVERTER*\n♡ *Title:* ${title}\n♡ *Duration:* ${duration}\n♡ *Views:* ${views}\n♡ *Author:* ${author}\n♡ *Status:* Converting...\n\n_⚡ Powered by Savage-Tech_`
             }, { quoted: msg });
 
-            const endpoints = [
-                `https://apis.xwolf.space/download/ytmp4?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/mp4?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/video?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/hd?url=${encodeURIComponent(videoUrl)}`
-            ];
+            const endpoint = `https://apis.xwolf.space/download/ytmp4?url=${encodeURIComponent(videoUrl)}`;
+            console.log('[YTMP4] Requesting:', endpoint);
+            
+            const response = await axios({
+                method: 'get',
+                url: endpoint,
+                timeout: 30000,
+                headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
+            });
 
-            let videoBuffer = null;
-            for (const endpoint of endpoints) {
-                try {
-                    const response = await axios({
-                        method: 'get',
-                        url: endpoint,
-                        timeout: 30000,
-                        headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
-                    });
+            console.log('[YTMP4] Response status:', response.status);
+            console.log('[YTMP4] Response headers:', response.headers);
+            console.log('[YTMP4] Response data (first 1000 chars):', JSON.stringify(response.data, null, 2).slice(0, 1000));
 
-                    let videoFileUrl = null;
-                    if (response.data.downloadUrl) videoFileUrl = response.data.downloadUrl;
-                    else if (response.data.downloaded_at) videoFileUrl = response.data.downloaded_at;
-                    else if (response.data.url) videoFileUrl = response.data.url;
-                    else if (response.data.result?.url) videoFileUrl = response.data.result.url;
-                    else if (response.data.link) videoFileUrl = response.data.link;
-                    else if (response.data.mp4 && typeof response.data.mp4 === 'object') videoFileUrl = response.data.mp4.url || response.data.mp4.downloadUrl;
-                    else if (typeof response.data.mp4 === 'string') videoFileUrl = response.data.mp4;
+            let videoFileUrl = null;
+            if (response.data.downloadUrl) videoFileUrl = response.data.downloadUrl;
+            else if (response.data.downloaded_at) videoFileUrl = response.data.downloaded_at;
+            else if (response.data.url) videoFileUrl = response.data.url;
+            else if (response.data.result?.url) videoFileUrl = response.data.result.url;
+            else if (response.data.link) videoFileUrl = response.data.link;
+            else if (response.data.mp4 && typeof response.data.mp4 === 'object') videoFileUrl = response.data.mp4.url || response.data.mp4.downloadUrl;
+            else if (typeof response.data.mp4 === 'string') videoFileUrl = response.data.mp4;
 
-                    if (videoFileUrl) {
-                        const videoRes = await axios({
-                            method: 'get',
-                            url: videoFileUrl,
-                            responseType: 'arraybuffer',
-                            timeout: 120000,
-                            headers: { 'User-Agent': 'Mozilla/5.0' }
-                        });
-                        videoBuffer = Buffer.from(videoRes.data);
-                        if (videoBuffer.length > 50000) break;
-                    }
-                } catch (e) {
-                    continue;
-                }
+            console.log('[YTMP4] Extracted videoFileUrl:', videoFileUrl);
+
+            if (!videoFileUrl) {
+                return sock.sendMessage(from, { text: '❌ No video URL found in API response.' }, { quoted: msg });
             }
 
-            if (!videoBuffer || videoBuffer.length < 50000) {
-                return sock.sendMessage(from, { text: '❌ No video data received. Try another song or use .mp4' }, { quoted: msg });
+            console.log('[YTMP4] Downloading from:', videoFileUrl);
+            const videoRes = await axios({
+                method: 'get',
+                url: videoFileUrl,
+                responseType: 'arraybuffer',
+                timeout: 120000,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const videoBuffer = Buffer.from(videoRes.data);
+            console.log('[YTMP4] Downloaded video size:', videoBuffer.length);
+
+            if (videoBuffer.length < 50000) {
+                return sock.sendMessage(from, { text: `❌ Video too small (${videoBuffer.length} bytes).` }, { quoted: msg });
             }
 
             const fileSizeMB = (videoBuffer.length / (1024 * 1024)).toFixed(2);
@@ -107,7 +106,8 @@ module.exports = {
 
             fs.unlinkSync(tempFile);
         } catch (error) {
-            console.error('YTMP4 error:', error);
+            console.error('[YTMP4] ERROR:', error.message);
+            if (error.response) console.error('[YTMP4] Response status:', error.response.status);
             await sock.sendMessage(from, { text: '❌ Failed to convert video. Try another song or URL.' }, { quoted: msg });
         }
     }

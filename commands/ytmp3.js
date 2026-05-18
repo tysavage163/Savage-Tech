@@ -1,12 +1,12 @@
-const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const yts = require('yt-search');
+const ytdl = require('@distube/ytdl-core'); // Use the actively maintained fork
 
 module.exports = {
     name: 'ytmp3',
     category: 'audio',
-    description: 'Convert YouTube video to MP3',
+    description: 'Download audio directly from YouTube (No API)',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         const query = args.join(' ');
@@ -14,7 +14,7 @@ module.exports = {
             return sock.sendMessage(from, { text: '🎵 Usage: .ytmp3 <song name or YouTube URL>' }, { quoted: msg });
         }
 
-        await sock.sendMessage(from, { text: '🔍 Searching for audio...' }, { quoted: msg });
+        await sock.sendMessage(from, { text: '🔍 Finding your audio...' }, { quoted: msg });
 
         try {
             let videoUrl = query;
@@ -33,51 +33,36 @@ module.exports = {
 
             const info = await yts({ videoId });
             const title = info.title || 'Unknown Title';
-            const duration = info.duration.timestamp || 'Unknown';
-            const views = info.views?.toLocaleString() || 'Unknown';
-            const author = info.author?.name || 'Unknown';
             const thumbnail = info.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
             await sock.sendMessage(from, {
                 image: { url: thumbnail },
-                caption: `🎵 *YTMP3 CONVERTER*\n♡ *Title:* ${title}\n♡ *Duration:* ${duration}\n♡ *Views:* ${views}\n♡ *Author:* ${author}\n♡ *Status:* Converting...\n\n_⚡ Powered by Savage-Tech_`
+                caption: `🎵 *DOWNLOADING DIRECTLY*\n♡ *Title:* ${title}\n♡ *Status:* Downloading...\n\n_⚡ Powered by Savage-Tech_`
             }, { quoted: msg });
 
-            const endpoint = `https://apis.xwolf.space/download/ytmp3?url=${encodeURIComponent(videoUrl)}`;
-            const response = await axios({
-                method: 'get',
-                url: endpoint,
-                timeout: 20000,
-                headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' }
+            // --- Download audio directly from YouTube ---
+            const audioStream = ytdl(videoUrl, {
+                filter: 'audioonly',
+                quality: 'lowestaudio', // 'lowestaudio' is fastest, change to 'highestaudio' for better quality
             });
-
-            let audioUrl = response.data.downloadUrl || response.data.downloaded_at || response.data.url || response.data.result?.url || response.data.link;
-            if (!audioUrl) {
-                return sock.sendMessage(from, { text: '❌ No audio URL in API response.' }, { quoted: msg });
-            }
-
-            const audioRes = await axios({
-                method: 'get',
-                url: audioUrl,
-                responseType: 'arraybuffer',
-                timeout: 60000,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-            });
-
-            const audioBuffer = Buffer.from(audioRes.data);
-            if (audioBuffer.length < 50000) {
-                return sock.sendMessage(from, { text: `❌ Downloaded file too small (${audioBuffer.length} bytes).` }, { quoted: msg });
-            }
-
-            const fileSizeMB = (audioBuffer.length / (1024 * 1024)).toFixed(2);
-            if (audioBuffer.length > 16 * 1024 * 1024) {
-                return sock.sendMessage(from, { text: `❌ Audio too large (${fileSizeMB} MB). Max 16 MB.` }, { quoted: msg });
-            }
 
             const tempDir = path.join(__dirname, '../temp');
             if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
             const tempFile = path.join(tempDir, `${videoId}.mp3`);
-            fs.writeFileSync(tempFile, audioBuffer);
+            const writer = fs.createWriteStream(tempFile);
+
+            audioStream.pipe(writer);
+
+            await new Promise((resolve, reject) => {
+                writer.on('finish', resolve);
+                writer.on('error', reject);
+                audioStream.on('error', reject);
+            });
+
+            const stats = fs.statSync(tempFile);
+            if (stats.size === 0) {
+                throw new Error('Downloaded file is empty.');
+            }
 
             await sock.sendMessage(from, {
                 audio: { url: tempFile },
@@ -87,9 +72,11 @@ module.exports = {
             }, { quoted: msg });
 
             fs.unlinkSync(tempFile);
+            // --- End of direct download ---
+
         } catch (error) {
             console.error('YTMP3 error:', error);
-            await sock.sendMessage(from, { text: '❌ Failed to convert. Try another song or URL.' }, { quoted: msg });
+            await sock.sendMessage(from, { text: '❌ Failed to download. Please try another song.' }, { quoted: msg });
         }
     }
 };

@@ -43,31 +43,52 @@ module.exports = {
                 caption: `🎵 *AUDIO DOWNLOADER*\n- *Title:* ${title}\n- *Duration:* ${duration}\n- *Views:* ${views}\n- *Author:* ${author}\n- *Status:* Downloading...\n- *Powered by Savage-Tech*`
             }, { quoted: msg });
 
-            const apis = [
-                `https://p.oceandl.com/api/download?url=${encodeURIComponent(videoUrl)}&type=mp3`,
-                `https://api.ryzendesu.vip/api/downloader/ytmp3?url=${encodeURIComponent(videoUrl)}`,
-                `https://api.vihangayt.com/download/ytmp3?url=${encodeURIComponent(videoUrl)}`
+            const endpoints = [
+                { url: `https://apis.xwolf.space/download/yta2?url=${encodeURIComponent(videoUrl)}`, type: 'json' },
+                { url: `https://apis.xwolf.space/download/yta?url=${encodeURIComponent(videoUrl)}`, type: 'json' },
+                { url: `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`, type: 'direct' },
+                { url: `https://apis.xwolf.space/download/audio?url=${encodeURIComponent(videoUrl)}`, type: 'direct' },
+                { url: `https://apis.xwolf.space/download/dlmp3?url=${encodeURIComponent(videoUrl)}`, type: 'direct' }
             ];
 
             let audioBuffer = null;
 
-            for (const api of apis) {
+            for (const endpoint of endpoints) {
                 try {
+                    const response = await axios({
+                        method: 'get',
+                        url: endpoint.url,
+                        timeout: 15000,
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+                            'Accept': 'application/json, audio/mpeg, */*'
+                        },
+                        responseType: endpoint.type === 'direct' ? 'arraybuffer' : 'json'
+                    });
+
                     let buffer = null;
-                    if (api.includes('oceandl')) {
-                        const res = await axios({ method: 'get', url: api, responseType: 'arraybuffer', timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0' } });
-                        if (res.data && res.data.length > 50000) buffer = Buffer.from(res.data);
-                    } else {
-                        const res = await axios({ method: 'get', url: api, timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0' } });
-                        let audioUrl = res.data?.result?.url || res.data?.url || res.data?.download_url;
-                        if (audioUrl) {
-                            const audioRes = await axios({ method: 'get', url: audioUrl, responseType: 'arraybuffer', timeout: 30000 });
-                            if (audioRes.data && audioRes.data.length > 50000) buffer = Buffer.from(audioRes.data);
+                    if (endpoint.type === 'direct') {
+                        buffer = Buffer.from(response.data);
+                        if (buffer.length > 50000 && (response.headers['content-type']?.includes('audio') || buffer.slice(0, 3).toString() === 'ID3')) {
+                            audioBuffer = buffer;
+                            break;
                         }
-                    }
-                    if (buffer) {
-                        audioBuffer = buffer;
-                        break;
+                    } else {
+                        const audioUrl = response.data?.result?.url || response.data?.url || response.data?.download_url || response.data?.link;
+                        if (audioUrl && typeof audioUrl === 'string') {
+                            const audioRes = await axios({
+                                method: 'get',
+                                url: audioUrl,
+                                responseType: 'arraybuffer',
+                                timeout: 30000,
+                                headers: { 'User-Agent': 'Mozilla/5.0' }
+                            });
+                            buffer = Buffer.from(audioRes.data);
+                            if (buffer.length > 50000) {
+                                audioBuffer = buffer;
+                                break;
+                            }
+                        }
                     }
                 } catch (e) {
                     continue;

@@ -43,36 +43,39 @@ module.exports = {
                 caption: `🎵 *AUDIO DOWNLOADER*\n- *Title:* ${title}\n- *Duration:* ${duration}\n- *Views:* ${views}\n- *Author:* ${author}\n- *Status:* Downloading...\n- *Powered by Savage-Tech*`
             }, { quoted: msg });
 
-            const apiEndpoints = [
-                `https://apis.xwolf.space/download/audio?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`,
-                `https://apis.xwolf.space/download/yta?url=${encodeURIComponent(videoUrl)}`
+            const apis = [
+                `https://p.oceandl.com/api/download?url=${encodeURIComponent(videoUrl)}&type=mp3`,
+                `https://api.ryzendesu.vip/api/downloader/ytmp3?url=${encodeURIComponent(videoUrl)}`,
+                `https://api.vihangayt.com/download/ytmp3?url=${encodeURIComponent(videoUrl)}`
             ];
 
             let audioBuffer = null;
 
-            for (const endpoint of apiEndpoints) {
+            for (const api of apis) {
                 try {
-                    const response = await axios({
-                        method: 'get',
-                        url: endpoint,
-                        responseType: 'arraybuffer',
-                        timeout: 30000,
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-                            'Accept': 'audio/*, */*'
+                    let buffer = null;
+                    if (api.includes('oceandl')) {
+                        const res = await axios({ method: 'get', url: api, responseType: 'arraybuffer', timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+                        if (res.data && res.data.length > 50000) buffer = Buffer.from(res.data);
+                    } else {
+                        const res = await axios({ method: 'get', url: api, timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+                        let audioUrl = res.data?.result?.url || res.data?.url || res.data?.download_url;
+                        if (audioUrl) {
+                            const audioRes = await axios({ method: 'get', url: audioUrl, responseType: 'arraybuffer', timeout: 30000 });
+                            if (audioRes.data && audioRes.data.length > 50000) buffer = Buffer.from(audioRes.data);
                         }
-                    });
-                    const buffer = Buffer.from(response.data);
-                    if (buffer.length > 50000 && (response.headers['content-type']?.includes('audio') || buffer.slice(0, 3).toString() === 'ID3')) {
+                    }
+                    if (buffer) {
                         audioBuffer = buffer;
                         break;
                     }
-                } catch (e) {}
+                } catch (e) {
+                    continue;
+                }
             }
 
             if (!audioBuffer) {
-                return sock.sendMessage(from, { text: '❌ No working audio source. Try another song or check API status.' }, { quoted: msg });
+                return sock.sendMessage(from, { text: '❌ Could not download audio. Try another song or use a YouTube URL directly.' }, { quoted: msg });
             }
 
             const fileSizeMB = (audioBuffer.length / (1024 * 1024)).toFixed(2);

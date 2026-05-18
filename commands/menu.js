@@ -7,6 +7,21 @@ const DEFAULT_IMAGES = [
     'https://files.catbox.moe/osd79e.jpg'
 ];
 
+function getHostPlatform() {
+    if (process.env.DYNO) return 'Heroku (Dyno)';
+    if (process.env.RENDER) return 'Render';
+    if (process.env.VERCEL) return 'Vercel';
+    if (process.env.KOYEB) return 'Koyeb';
+    if (process.env.RAILWAY_ENVIRONMENT) return 'Railway';
+    if (process.env.REPLIT_DB_URL) return 'Replit';
+    if (process.env.COOLIFY) return 'Coolify';
+    if (os.platform() === 'android' && process.env.PREFIX === '/data/data/com.termux/usr') return 'Termux (Android)';
+    if (os.platform() === 'linux') return 'Linux VPS';
+    if (os.platform() === 'win32') return 'Windows';
+    if (os.platform() === 'darwin') return 'macOS';
+    return 'Unknown / Local';
+}
+
 module.exports = {
     name: 'menu',
     category: 'engine',
@@ -51,6 +66,7 @@ module.exports = {
             }
             
             const mode = global.worktype === 'public' ? '🌍 PUBLIC' : '🔒 PRIVATE';
+            const host = getHostPlatform();
 
             const header = `┌───¤  *SΛVΛGΞ-TECH*
 ┃
@@ -62,6 +78,7 @@ module.exports = {
 ┃ RAM : [${ramBar}] ${ramPercentage}%
 ┃ MODE : ${mode}
 ┃ VERSION : ${version}
+┃ HOST : ${host}
 ┃
 ┕━━━━━━━━━━━━━━━╼\n\n`;
 
@@ -87,7 +104,7 @@ module.exports = {
                 .filter(cmd => !definedCats.includes(cmd.category))
                 .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !definedCats.includes(c.category)).category, 'OTHER MODULES') : "";
 
-            const footer = `_master your tools or be mastered by them_`;
+            const footer = `> The future belongs to the ones crazy enough to build it.`;
             const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + otherMenu + footer;
 
             let imageUrl = null;

@@ -1,7 +1,7 @@
 module.exports = {
     name: 'antispam',
     category: 'group',
-    description: 'Manage anti-spam settings (rate limit & duplicates)',
+    description: 'Manage anti‑spam settings (rate limit & duplicates)',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only command.' });
@@ -86,5 +86,10 @@ module.exports = {
                 text: `📖 *Anti‑spam commands:*\n.antispam on/off\n.antispam set (delete|warn|kick|warn+kick)\n.antispam limit <1-10>\n.antispam window <1-60>\n.antispam max <1-20>\n.antispam dup <1-10>\n.antispam list`
             });
         }
+
+        if (!global.groupSettings) global.groupSettings = {};
+        if (!global.groupSettings[from]) global.groupSettings[from] = {};
+        const cfg = global.antiSpamConfig[from];
+        global.groupSettings[from].antiSpam = `${cfg.enabled ? 'ON' : 'OFF'} | action:${cfg.action} | limit:${cfg.warnLimit}`;
     }
 };

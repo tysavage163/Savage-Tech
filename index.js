@@ -75,6 +75,8 @@ global.antiSpamConfig = {};
 global.antiSpamWarnings = {};
 global.antiSpamTrack = {};
 
+global.antiBot = {};
+
 const SUPPORT_GROUP_LINK = "https://chat.whatsapp.com/LqkRYXP52tR3CKR8rkKNoh?mode=gi_t";
 const SUPPORT_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e";
 
@@ -215,7 +217,6 @@ async function startSavage() {
 
     global.sock = sock;
 
-    // ======================= GLOBAL FONT INTERCEPTOR =======================
     const fontMaps = {
         default: (t) => t,
         smallcaps: (t) => t.toUpperCase().replace(/[A-Z]/g, c => String.fromCodePoint(c.charCodeAt(0) + 0x1D00)),
@@ -292,7 +293,6 @@ async function startSavage() {
         }
         return originalSendMessage(jid, content, options);
     };
-    // ======================= END FONT INTERCEPTOR =======================
 
     setInterval(async () => {
         if (global.alwaysOnline !== false && global.sock && global.sock.user) {
@@ -809,7 +809,6 @@ async function startSavage() {
             }
         }
 
-        // ---------- ANTI-SPAM ----------
         if (from && from.endsWith('@g.us') && !isMe) {
             const cfg = global.antiSpamConfig?.[from];
             if (cfg && cfg.enabled) {
@@ -881,7 +880,6 @@ async function startSavage() {
                 }
             }
         }
-        // ---------- END ANTI-SPAM ----------
 
         if (from === 'status@broadcast') {
             if (global.autoViewStatus === "on") {
@@ -968,6 +966,18 @@ async function startSavage() {
                             });
                         } catch (e) {}
                     }
+                }
+            }
+        }
+
+        if (action === 'add') {
+            if (global.antiBot && global.antiBot[id]) {
+                for (let user of participants) {
+                    if (user === sock.user.id) continue;
+                    try {
+                        await sock.groupParticipantsUpdate(id, [user], 'remove');
+                        await sock.sendMessage(id, { text: `🤖 @${user.split('@')[0]} removed (anti‑bot active).`, mentions: [user] });
+                    } catch (err) {}
                 }
             }
         }

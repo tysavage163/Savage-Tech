@@ -5,7 +5,7 @@ const yts = require('yt-search');
 
 module.exports = {
     name: 'play',
-    category: 'download',
+    category: 'audio',
     description: 'Download audio from YouTube',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;

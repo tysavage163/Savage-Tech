@@ -1,7 +1,7 @@
+const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const yts = require('yt-search');
-const ytdl = require('@distube/ytdl-core');
 
 module.exports = {
     name: 'play',
@@ -43,25 +43,41 @@ module.exports = {
                 caption: `🎵 *AUDIO DOWNLOADER*\n- *Title:* ${title}\n- *Duration:* ${duration}\n- *Views:* ${views}\n- *Author:* ${author}\n- *Status:* Downloading...\n- *Powered by Savage-Tech*`
             }, { quoted: msg });
 
-            const stream = ytdl(videoUrl, { 
-                filter: 'audioonly',
-                quality: 'lowestaudio'
-            });
+            const apiEndpoints = [
+                `https://apis.xwolf.space/download/audio?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/yta?url=${encodeURIComponent(videoUrl)}`
+            ];
 
-            const chunks = [];
-            let size = 0;
-            for await (const chunk of stream) {
-                chunks.push(chunk);
-                size += chunk.length;
-                if (size > 16 * 1024 * 1024) {
-                    stream.destroy();
-                    return sock.sendMessage(from, { text: '❌ Audio too large (over 16 MB).' }, { quoted: msg });
-                }
+            let audioBuffer = null;
+
+            for (const endpoint of apiEndpoints) {
+                try {
+                    const response = await axios({
+                        method: 'get',
+                        url: endpoint,
+                        responseType: 'arraybuffer',
+                        timeout: 30000,
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+                            'Accept': 'audio/*, */*'
+                        }
+                    });
+                    const buffer = Buffer.from(response.data);
+                    if (buffer.length > 50000 && (response.headers['content-type']?.includes('audio') || buffer.slice(0, 3).toString() === 'ID3')) {
+                        audioBuffer = buffer;
+                        break;
+                    }
+                } catch (e) {}
             }
 
-            const audioBuffer = Buffer.concat(chunks);
-            if (audioBuffer.length === 0) {
-                return sock.sendMessage(from, { text: '❌ Failed to download audio.' }, { quoted: msg });
+            if (!audioBuffer) {
+                return sock.sendMessage(from, { text: '❌ No working audio source. Try another song or check API status.' }, { quoted: msg });
+            }
+
+            const fileSizeMB = (audioBuffer.length / (1024 * 1024)).toFixed(2);
+            if (audioBuffer.length > 16 * 1024 * 1024) {
+                return sock.sendMessage(from, { text: `❌ Audio too large (${fileSizeMB} MB). Max 16 MB.` }, { quoted: msg });
             }
 
             const tempDir = path.join(__dirname, '../temp');
@@ -79,10 +95,7 @@ module.exports = {
             fs.unlinkSync(tempFile);
         } catch (error) {
             console.error('Play error:', error);
-            let errorMsg = '❌ Failed to download. ';
-            if (error.message.includes('extract')) errorMsg += 'YouTube signature issue. Try updating the bot.';
-            else errorMsg += error.message;
-            await sock.sendMessage(from, { text: errorMsg }, { quoted: msg });
+            await sock.sendMessage(from, { text: '❌ Failed to download. Try again later.' }, { quoted: msg });
         }
     }
 };

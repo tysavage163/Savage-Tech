@@ -40,7 +40,7 @@ module.exports = {
 
             await sock.sendMessage(from, {
                 image: { url: thumbnail },
-                caption: `🎵 *AUDIO DOWNLOADER*\n- *Title:* ${title}\n- *Duration:* ${duration}\n- *Views:* ${views}\n- *Author:* ${author}\n- *Status:* Downloading...\n- *Powered by Savage-Tech*`
+                caption: `🎵 *AUDIO DOWNLOADER*\n♡ *Title:* ${title}\n♡ *Duration:* ${duration}\n♡ *Views:* ${views}\n♡ *Author:* ${author}\n♡ *Status:* Downloading...\n\n_⚡ Powered by Savage-Tech_`
             }, { quoted: msg });
 
             const endpoint = `https://apis.xwolf.space/download/yta2?url=${encodeURIComponent(videoUrl)}`;

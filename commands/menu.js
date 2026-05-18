@@ -54,14 +54,14 @@ module.exports = {
 
             const header = `┌───¤  *SΛVΛGΞ-TECH*
 ┃
-┃ **DEVELOPER** : Spencer
-┃ **USER** : @${senderJid.split('@')[0]}
-┃ **PREFIX** : [ ${global.prefix} ]
-┃ **UPTIME** : ${hours}h ${minutes}m
-┃ **SPEED** : ${speed} ms
-┃ **RAM** : [${ramBar}] ${ramPercentage}%
-┃ **MODE** : ${mode}
-┃ **VERSION** : ${version}
+┃ DEVELOPER : Spencer
+┃ USER : @${senderJid.split('@')[0]}
+┃ PREFIX : [ ${global.prefix} ]
+┃ UPTIME : ${hours}h ${minutes}m
+┃ SPEED : ${speed} ms
+┃ RAM : [${ramBar}] ${ramPercentage}%
+┃ MODE : ${mode}
+┃ VERSION : ${version}
 ┃
 ┕━━━━━━━━━━━━━━━╼\n\n`;
 

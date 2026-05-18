@@ -287,14 +287,6 @@ async function startSavage() {
 │                         │
 │ Host: ${platform.padEnd(20)}│
 │ Commands: ${cmdCount.toString().padEnd(18)}│
-├─────────────────────────┤
-│ 📌 CHANNEL BENEFITS:    │
-│ 🔹 Updates & features   │
-│ 🔹 Security patches     │
-│ 🔹 Command changes      │
-│ 🔹 Sneak peeks          │
-├─────────────────────────┤
-│ 🔗 ${SUPPORT_CHANNEL_LINK} │
 └─────────────────────────┘`;
 
             await sock.sendMessage(myNumber, { text: startupText });
@@ -395,25 +387,24 @@ async function startSavage() {
             return;
         }
 
-        if (global.antiEditEnabled && msg.message?.extendedTextMessage?.contextInfo?.quotedMessage) {
-            const originalMsgId = msg.message.extendedTextMessage.contextInfo.stanzaId;
-            if (originalMsgId) {
-                const originalMsg = global._msgCache.get(originalMsgId);
-                if (originalMsg && !originalMsg.key.fromMe) {
-                    const from = msg.key.remoteJid;
-                    const sender = originalMsg.key.participant || originalMsg.key.remoteJid;
-                    const isGroup = from.endsWith('@g.us');
-                    let chatName = "Private chat";
-                    if (isGroup) chatName = await getGroupName(sock, from);
-                    const senderName = sender.split('@')[0];
-                    const timestamp = new Date().toLocaleString();
-                    const originalContent = originalMsg.message?.conversation || originalMsg.message?.extendedTextMessage?.text || "[unsupported]";
-                    const newContent = msg.message.extendedTextMessage.text;
-                    await sock.sendMessage(global.antideleteOwnerChat, {
-                        text: `✏️ *ANTI-EDIT*\n👤 Sender: @${senderName}\n💬 Chat: ${chatName}\n🕒 Time: ${timestamp}\n📝 Original: ${originalContent}\n✏️ New: ${newContent}`,
-                        mentions: [sender]
-                    });
-                }
+        // FIXED ANTI-EDIT: detect real edits via protocolMessage type 1
+        if (global.antiEditEnabled && protocolMsg?.type === 1) {
+            const editedMsgId = protocolMsg.key.id;
+            const originalMsg = global._msgCache.get(editedMsgId);
+            if (originalMsg && !originalMsg.key.fromMe) {
+                const from = msg.key.remoteJid;
+                const sender = originalMsg.key.participant || originalMsg.key.remoteJid;
+                const isGroup = from.endsWith('@g.us');
+                let chatName = "Private chat";
+                if (isGroup) chatName = await getGroupName(sock, from);
+                const senderName = sender.split('@')[0];
+                const timestamp = new Date().toLocaleString();
+                const originalContent = originalMsg.message?.conversation || originalMsg.message?.extendedTextMessage?.text || "[unsupported]";
+                const newContent = protocolMsg.editedMessage?.conversation || protocolMsg.editedMessage?.extendedTextMessage?.text || "[unsupported]";
+                await sock.sendMessage(global.antideleteOwnerChat, {
+                    text: `✏️ *ANTI-EDIT*\n👤 Sender: @${senderName}\n💬 Chat: ${chatName}\n🕒 Time: ${timestamp}\n📝 Original: ${originalContent}\n✏️ New: ${newContent}`,
+                    mentions: [sender]
+                });
             }
         }
 

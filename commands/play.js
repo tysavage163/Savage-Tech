@@ -6,7 +6,7 @@ const yts = require('yt-search');
 module.exports = {
     name: 'play',
     category: 'download',
-    description: 'Download and play audio from YouTube (song name or URL)',
+    description: 'Download audio from YouTube (song name or URL)',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         const query = args.join(' ');
@@ -14,7 +14,7 @@ module.exports = {
             return sock.sendMessage(from, { text: '🎵 Usage: .play <song name or YouTube URL>' }, { quoted: msg });
         }
 
-        await sock.sendMessage(from, { text: '⏳ Searching for audio...' }, { quoted: msg });
+        await sock.sendMessage(from, { text: '🔍 Searching for audio...' }, { quoted: msg });
 
         try {
             let videoUrl = query;
@@ -36,18 +36,34 @@ module.exports = {
             const duration = info.duration.timestamp || 'Unknown';
             const views = info.views?.toLocaleString() || 'Unknown';
             const author = info.author?.name || 'Unknown';
+            const thumbnail = info.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
-            const caption = `*AUDIO DOWNLOADER 🎵*
+            let fileSizeMB = null;
+
+            const apiUrl = `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`;
+            const headResponse = await axios.head(apiUrl).catch(() => null);
+            if (headResponse && headResponse.headers['content-length']) {
+                fileSizeMB = (parseInt(headResponse.headers['content-length']) / (1024 * 1024)).toFixed(2);
+            }
+
+            if (fileSizeMB && parseFloat(fileSizeMB) > 16) {
+                return sock.sendMessage(from, { text: `❌ Audio too large (${fileSizeMB} MB). Max 16 MB allowed.` }, { quoted: msg });
+            }
+
+            const caption = `🎵 *AUDIO DOWNLOADER*
 - *Title:* ${title}
 - *Duration:* ${duration}
 - *Views:* ${views}
 - *Author:* ${author}
+- *Size:* ${fileSizeMB ? `${fileSizeMB} MB` : 'Unknown'}
 - *Status:* Downloading...
 - *Powered by Savage-Tech*`;
 
-            await sock.sendMessage(from, { text: caption }, { quoted: msg });
+            await sock.sendMessage(from, { 
+                image: { url: thumbnail },
+                caption: caption
+            }, { quoted: msg });
 
-            const apiUrl = `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`;
             const response = await axios({
                 method: 'get',
                 url: apiUrl,
@@ -63,10 +79,17 @@ module.exports = {
             response.data.pipe(writer);
 
             writer.on('finish', async () => {
+                const stats = fs.statSync(tempFile);
+                const actualSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+                if (stats.size > 16 * 1024 * 1024) {
+                    fs.unlinkSync(tempFile);
+                    return sock.sendMessage(from, { text: `❌ Audio too large (${actualSizeMB} MB). Max 16 MB.` }, { quoted: msg });
+                }
                 await sock.sendMessage(from, {
                     audio: { url: tempFile },
                     mimetype: 'audio/mpeg',
-                    fileName: `${title}.mp3`
+                    fileName: `${title.replace(/[^a-z0-9]/gi, '_')}.mp3`,
+                    ptt: false
                 }, { quoted: msg });
                 fs.unlinkSync(tempFile);
             });

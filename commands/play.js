@@ -44,11 +44,11 @@ module.exports = {
             }, { quoted: msg });
 
             const endpoints = [
-                { url: `https://apis.xwolf.space/download/yta2?url=${encodeURIComponent(videoUrl)}`, type: 'json' },
-                { url: `https://apis.xwolf.space/download/yta?url=${encodeURIComponent(videoUrl)}`, type: 'json' },
-                { url: `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`, type: 'direct' },
-                { url: `https://apis.xwolf.space/download/audio?url=${encodeURIComponent(videoUrl)}`, type: 'direct' },
-                { url: `https://apis.xwolf.space/download/dlmp3?url=${encodeURIComponent(videoUrl)}`, type: 'direct' }
+                `https://apis.xwolf.space/download/yta2?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/yta?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/audio?url=${encodeURIComponent(videoUrl)}`,
+                `https://apis.xwolf.space/download/dlmp3?url=${encodeURIComponent(videoUrl)}`
             ];
 
             let audioBuffer = null;
@@ -57,38 +57,41 @@ module.exports = {
                 try {
                     const response = await axios({
                         method: 'get',
-                        url: endpoint.url,
+                        url: endpoint,
                         timeout: 15000,
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-                            'Accept': 'application/json, audio/mpeg, */*'
-                        },
-                        responseType: endpoint.type === 'direct' ? 'arraybuffer' : 'json'
+                        headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36' },
+                        responseType: 'json'
                     });
 
-                    let buffer = null;
-                    if (endpoint.type === 'direct') {
-                        buffer = Buffer.from(response.data);
-                        if (buffer.length > 50000 && (response.headers['content-type']?.includes('audio') || buffer.slice(0, 3).toString() === 'ID3')) {
+                    let audioUrl = null;
+                    if (response.data.downloaded_at) {
+                        audioUrl = response.data.downloaded_at;
+                    } else if (response.data.result?.url) {
+                        audioUrl = response.data.result.url;
+                    } else if (response.data.url) {
+                        audioUrl = response.data.url;
+                    } else if (response.data.download_url) {
+                        audioUrl = response.data.download_url;
+                    } else if (response.data.link) {
+                        audioUrl = response.data.link;
+                    }
+
+                    if (audioUrl && typeof audioUrl === 'string') {
+                        const audioRes = await axios({
+                            method: 'get',
+                            url: audioUrl,
+                            responseType: 'arraybuffer',
+                            timeout: 30000,
+                            headers: { 'User-Agent': 'Mozilla/5.0' }
+                        });
+                        const buffer = Buffer.from(audioRes.data);
+                        if (buffer.length > 50000) {
                             audioBuffer = buffer;
                             break;
                         }
-                    } else {
-                        const audioUrl = response.data?.result?.url || response.data?.url || response.data?.download_url || response.data?.link;
-                        if (audioUrl && typeof audioUrl === 'string') {
-                            const audioRes = await axios({
-                                method: 'get',
-                                url: audioUrl,
-                                responseType: 'arraybuffer',
-                                timeout: 30000,
-                                headers: { 'User-Agent': 'Mozilla/5.0' }
-                            });
-                            buffer = Buffer.from(audioRes.data);
-                            if (buffer.length > 50000) {
-                                audioBuffer = buffer;
-                                break;
-                            }
-                        }
+                    } else if (response.data && Buffer.isBuffer(response.data) && response.data.length > 50000) {
+                        audioBuffer = response.data;
+                        break;
                     }
                 } catch (e) {
                     continue;

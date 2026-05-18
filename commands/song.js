@@ -1,22 +1,49 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const yts = require('yt-search');
 
 module.exports = {
     name: 'song',
     category: 'audio',
-    description: 'Download audio by song name',
+    description: 'Download MP3 from YouTube (URL or song name)',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         const query = args.join(' ');
         if (!query) {
-            return sock.sendMessage(from, { text: '🎵 Usage: .song <song name>' }, { quoted: msg });
+            return sock.sendMessage(from, { text: '🎵 Usage: .song <song name or YouTube URL>' }, { quoted: msg });
         }
 
-        await sock.sendMessage(from, { text: '🔍 Searching for song...' }, { quoted: msg });
+        await sock.sendMessage(from, { text: '🔍 Searching for audio...' }, { quoted: msg });
 
         try {
-            const endpoint = `https://apis.xwolf.space/download/mp3?q=${encodeURIComponent(query)}`;
+            let videoUrl = query;
+            if (!query.includes('youtube.com') && !query.includes('youtu.be')) {
+                const searchResults = await yts(query);
+                if (!searchResults.videos.length) {
+                    return sock.sendMessage(from, { text: '❌ No results found.' }, { quoted: msg });
+                }
+                videoUrl = searchResults.videos[0].url;
+            }
+
+            const videoId = videoUrl.split('v=')[1]?.split('&')[0] || videoUrl.split('youtu.be/')[1]?.split('?')[0];
+            if (!videoId) {
+                return sock.sendMessage(from, { text: '❌ Invalid YouTube URL.' }, { quoted: msg });
+            }
+
+            const info = await yts({ videoId });
+            const title = info.title || 'Unknown Title';
+            const duration = info.duration.timestamp || 'Unknown';
+            const views = info.views?.toLocaleString() || 'Unknown';
+            const author = info.author?.name || 'Unknown';
+            const thumbnail = info.thumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+
+            await sock.sendMessage(from, {
+                image: { url: thumbnail },
+                caption: `🎵 *SONG DOWNLOADER*\n♡ *Title:* ${title}\n♡ *Duration:* ${duration}\n♡ *Views:* ${views}\n♡ *Author:* ${author}\n♡ *Status:* Downloading...\n\n_⚡ Powered by Savage-Tech_`
+            }, { quoted: msg });
+
+            const endpoint = `https://apis.xwolf.space/download/mp3?url=${encodeURIComponent(videoUrl)}`;
             const response = await axios({
                 method: 'get',
                 url: endpoint,
@@ -25,11 +52,8 @@ module.exports = {
             });
 
             let audioUrl = response.data.downloadUrl || response.data.downloaded_at || response.data.url || response.data.result?.url || response.data.link;
-            let title = response.data.title || query;
-            let thumbnail = response.data.thumbnail || response.data.thumb || '';
-
             if (!audioUrl) {
-                return sock.sendMessage(from, { text: '❌ No audio URL found for that song.' }, { quoted: msg });
+                return sock.sendMessage(from, { text: '❌ No audio URL in API response.' }, { quoted: msg });
             }
 
             const audioRes = await axios({
@@ -52,19 +76,8 @@ module.exports = {
 
             const tempDir = path.join(__dirname, '../temp');
             if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-            const tempFile = path.join(tempDir, `song_${Date.now()}.mp3`);
+            const tempFile = path.join(tempDir, `${videoId}.mp3`);
             fs.writeFileSync(tempFile, audioBuffer);
-
-            const caption = `🎵 *SONG DOWNLOADER*\n♡ *Title:* ${title}\n♡ *Size:* ${fileSizeMB} MB\n\n_⚡ Powered by Savage-Tech_`;
-
-            if (thumbnail) {
-                await sock.sendMessage(from, {
-                    image: { url: thumbnail },
-                    caption: caption
-                }, { quoted: msg });
-            } else {
-                await sock.sendMessage(from, { text: caption }, { quoted: msg });
-            }
 
             await sock.sendMessage(from, {
                 audio: { url: tempFile },
@@ -76,7 +89,7 @@ module.exports = {
             fs.unlinkSync(tempFile);
         } catch (error) {
             console.error('Song error:', error);
-            await sock.sendMessage(from, { text: '❌ Failed to download song. Try another name or use .play with a YouTube URL.' }, { quoted: msg });
+            await sock.sendMessage(from, { text: '❌ Failed to download song. Try another name or URL.' }, { quoted: msg });
         }
     }
 };

@@ -1,7 +1,7 @@
 module.exports = {
     name: 'groupsettings',
     category: 'group',
-    description: 'Show all settings for current group',
+    description: 'Show current group settings',
     async execute(sock, msg, args) {
         const from = msg.key.remoteJid;
         if (!from.endsWith('@g.us')) {
@@ -14,28 +14,28 @@ module.exports = {
             groupName = meta.subject;
         } catch (e) {}
 
-        if (!global.groupSettings) global.groupSettings = {};
-        if (!global.groupSettings[from]) global.groupSettings[from] = {};
+        const antiLink = global.antiLinkConfig?.[from]?.enabled ? '✅ ON' : '❌ OFF';
+        const antiLinkAction = global.antiLinkConfig?.[from]?.action || 'delete';
+        const antiTag = global.antiTagConfig?.[from]?.enabled ? '✅ ON' : '❌ OFF';
+        const antiTagAdmin = global.antiTagAdminConfig?.[from]?.enabled ? '✅ ON' : '❌ OFF';
+        const antiMention = global.antiGroupMention?.[from] ? '✅ ON' : '❌ OFF';
+        const antiLeave = global.antiLeave?.[from] ? '✅ ON' : '❌ OFF';
+        const welcome = global.welcomeEnabled?.[from] ? '✅ ON' : '❌ OFF';
+        const goodbye = global.goodbyeEnabled?.[from] ? '✅ ON' : '❌ OFF';
+        const badWord = global.badWordEnabled?.[from] ? '✅ ON' : '❌ OFF';
+        const badWordList = global.badWords?.[from] ? Array.from(global.badWords[from]).slice(0, 5).join(', ') : 'None';
+        if (global.badWords?.[from]?.size > 5) badWordList += '...';
 
-        const settings = global.groupSettings[from];
-        const keys = Object.keys(settings);
+        const settings = `⚙️ *GROUP SETTINGS*\n📛 *${groupName}*\n🆔 ${from}\n\n` +
+            `┌───¤  *ANTI-LINK*\n│  Status: ${antiLink}\n│  Action: ${antiLinkAction}\n│\n` +
+            `├───¤  *ANTI-TAG (members)*\n│  Status: ${antiTag}\n│\n` +
+            `├───¤  *ANTI-TAG (admins)*\n│  Status: ${antiTagAdmin}\n│\n` +
+            `├───¤  *ANTI-GROUP MENTION*\n│  Status: ${antiMention}\n│\n` +
+            `├───¤  *ANTI-LEAVE*\n│  Status: ${antiLeave}\n│\n` +
+            `├───¤  *WELCOME/GODBYE*\n│  Welcome: ${welcome}\n│  Goodbye: ${goodbye}\n│\n` +
+            `├───¤  *BAD WORD FILTER*\n│  Status: ${badWord}\n│  Words: ${badWordList}\n│\n` +
+            `└───¤\n\n_⚡ Powered by Savage-Tech_`;
 
-        let output = `⚙️ *GROUP SETTINGS*\n📛 *${groupName}*\n🆔 ${from}\n\n`;
-        if (keys.length === 0) {
-            output += `_No custom settings configured for this group._\n\nUse commands like:\n.antilink on, .welcome on, .badword add word\netc. to set them.`;
-        } else {
-            output += `┌───¤  *ACTIVE SETTINGS*\n`;
-            for (const key of keys) {
-                let value = settings[key];
-                if (typeof value === 'object') {
-                    value = JSON.stringify(value);
-                }
-                output += `│  🔹 ${key}: ${value}\n`;
-            }
-            output += `└───¤\n\n`;
-        }
-        output += `_⚡ Powered by Savage-Tech_`;
-
-        await sock.sendMessage(from, { text: output }, { quoted: msg });
+        await sock.sendMessage(from, { text: settings }, { quoted: msg });
     }
 };

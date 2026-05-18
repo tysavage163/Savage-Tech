@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const yts = require('yt-search');
-const ytdl = require('ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 
 module.exports = {
     name: 'play',
@@ -44,28 +44,24 @@ module.exports = {
             }, { quoted: msg });
 
             const stream = ytdl(videoUrl, { 
-                filter: 'audioonly', 
-                quality: 'lowestaudio' 
+                filter: 'audioonly',
+                quality: 'lowestaudio'
             });
 
             const chunks = [];
+            let size = 0;
             for await (const chunk of stream) {
                 chunks.push(chunk);
-                if (Buffer.concat(chunks).length > 15 * 1024 * 1024) {
+                size += chunk.length;
+                if (size > 16 * 1024 * 1024) {
                     stream.destroy();
-                    return sock.sendMessage(from, { text: '❌ Audio too large (over 16 MB). Try a shorter song.' }, { quoted: msg });
+                    return sock.sendMessage(from, { text: '❌ Audio too large (over 16 MB).' }, { quoted: msg });
                 }
             }
 
             const audioBuffer = Buffer.concat(chunks);
-            const fileSizeMB = (audioBuffer.length / (1024 * 1024)).toFixed(2);
-
             if (audioBuffer.length === 0) {
                 return sock.sendMessage(from, { text: '❌ Failed to download audio.' }, { quoted: msg });
-            }
-
-            if (audioBuffer.length > 16 * 1024 * 1024) {
-                return sock.sendMessage(from, { text: `❌ Audio too large (${fileSizeMB} MB). Max 16 MB.` }, { quoted: msg });
             }
 
             const tempDir = path.join(__dirname, '../temp');
@@ -83,7 +79,10 @@ module.exports = {
             fs.unlinkSync(tempFile);
         } catch (error) {
             console.error('Play error:', error);
-            await sock.sendMessage(from, { text: '❌ Failed to process request. Make sure ytdl-core is installed.' }, { quoted: msg });
+            let errorMsg = '❌ Failed to download. ';
+            if (error.message.includes('extract')) errorMsg += 'YouTube signature issue. Try updating the bot.';
+            else errorMsg += error.message;
+            await sock.sendMessage(from, { text: errorMsg }, { quoted: msg });
         }
     }
 };

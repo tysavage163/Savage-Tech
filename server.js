@@ -10,6 +10,7 @@ const url = require('url');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const WebSocket = require('ws');
 const PORT = process.env.PORT || 3000;
 
 const {
@@ -123,6 +124,98 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
             res.end(JSON.stringify({ error: "Failed to get pairing code: " + err.message }));
         }
+        return;
+    }
+
+    if (pathname === '/terminal') {
+        const terminalHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Savage-Tech Terminal</title>
+    <style>
+        body { background: #0a0c12; color: #0f0; font-family: monospace; margin: 0; padding: 20px; }
+        #terminal {
+            background: #000;
+            border: 1px solid #2a5f3e;
+            height: 70vh;
+            overflow-y: auto;
+            padding: 10px;
+            white-space: pre-wrap;
+            font-size: 14px;
+        }
+        .input-line { display: flex; margin-top: 10px; }
+        .input-line span { color: #0f0; }
+        #command-input {
+            background: #000;
+            border: none;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 14px;
+            flex: 1;
+            outline: none;
+        }
+        .log-info { color: #0af; }
+        .log-error { color: #f44; }
+        .log-success { color: #4f4; }
+        .log-message { color: #ffa500; }
+    </style>
+</head>
+<body>
+<div id="terminal">> Welcome to Savage-Tech Terminal\\n> Connecting...</div>
+<div class="input-line"><span>$&nbsp;</span><input id="command-input" type="text" autofocus></div>
+<script>
+    const terminal = document.getElementById('terminal');
+    const input = document.getElementById('command-input');
+    let ws = null;
+
+    function append(text, className = '') {
+        const line = document.createElement('div');
+        line.textContent = text;
+        if (className) line.className = className;
+        terminal.appendChild(line);
+        terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function connectWebSocket() {
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(protocol + '//' + location.host + '/ws');
+        ws.onopen = () => {
+            append('> Terminal connected.', 'log-success');
+            append('> Type "help" for commands.', 'log-info');
+        };
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'log') {
+                append(data.message, data.level === 'error' ? 'log-error' : (data.level === 'success' ? 'log-success' : 'log-info'));
+            } else if (data.type === 'message') {
+                append('[MSG] ' + data.from + ': ' + data.text, 'log-message');
+            }
+        };
+        ws.onclose = () => {
+            append('> Disconnected. Reconnecting in 3s...', 'log-error');
+            setTimeout(connectWebSocket, 3000);
+        };
+        ws.onerror = () => { append('> WebSocket error', 'log-error'); };
+    }
+
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && ws && ws.readyState === WebSocket.OPEN) {
+            const cmd = input.value.trim();
+            if (cmd) {
+                ws.send(cmd);
+                append('> ' + cmd, 'log-info');
+                input.value = '';
+            }
+        }
+    });
+
+    connectWebSocket();
+</script>
+</body>
+</html>`;
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(terminalHtml);
         return;
     }
 
@@ -314,7 +407,74 @@ const server = http.createServer(async (req, res) => {
     res.end(html);
 });
 
-// CRITICAL FIX: Listen on all interfaces (0.0.0.0) – required for Koyeb
+const wss = new WebSocket.Server({ server });
+const wsClients = new Set();
+
+wss.on('connection', (ws) => {
+    wsClients.add(ws);
+    ws.send(JSON.stringify({ type: 'log', message: 'Connected to Savage-Tech terminal', level: 'success' }));
+
+    ws.on('message', async (message) => {
+        const cmd = message.toString().trim();
+        if (cmd === 'help') {
+            ws.send(JSON.stringify({ type: 'log', message: 'Commands: pair <number> | session <base64> | status | restart', level: 'info' }));
+        } else if (cmd.startsWith('pair ')) {
+            const number = cmd.split(' ')[1];
+            if (!number) {
+                ws.send(JSON.stringify({ type: 'log', message: 'Usage: pair <phone number>', level: 'error' }));
+                return;
+            }
+            ws.send(JSON.stringify({ type: 'log', message: `Requesting pairing code for ${number}...`, level: 'info' }));
+            try {
+                const sock = await getPairingSocket();
+                const code = await sock.requestPairingCode(number);
+                ws.send(JSON.stringify({ type: 'log', message: `Pairing code: ${code}. Enter it on your WhatsApp device.`, level: 'success' }));
+            } catch (err) {
+                ws.send(JSON.stringify({ type: 'log', message: `Pairing failed: ${err.message}`, level: 'error' }));
+            }
+        } else if (cmd.startsWith('session ')) {
+            const sessionB64 = cmd.split(' ')[1];
+            if (!sessionB64) {
+                ws.send(JSON.stringify({ type: 'log', message: 'Usage: session <base64_session_id>', level: 'error' }));
+                return;
+            }
+            try {
+                const credsJson = Buffer.from(sessionB64, 'base64').toString('utf-8');
+                const sessionDir = path.join(__dirname, 'session');
+                if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir);
+                fs.writeFileSync(path.join(sessionDir, 'creds.json'), credsJson);
+                ws.send(JSON.stringify({ type: 'log', message: 'Session saved. Restarting bot...', level: 'success' }));
+                setTimeout(() => process.exit(0), 500);
+            } catch (err) {
+                ws.send(JSON.stringify({ type: 'log', message: `Invalid session: ${err.message}`, level: 'error' }));
+            }
+        } else if (cmd === 'status') {
+            const uptime = process.uptime();
+            ws.send(JSON.stringify({ type: 'log', message: `Uptime: ${Math.floor(uptime)}s | Bot ${global.sock?.user ? 'connected' : 'disconnected'}`, level: 'info' }));
+        } else if (cmd === 'restart') {
+            ws.send(JSON.stringify({ type: 'log', message: 'Restarting...', level: 'info' }));
+            setTimeout(() => process.exit(0), 500);
+        } else {
+            ws.send(JSON.stringify({ type: 'log', message: `Unknown command: ${cmd}. Type help`, level: 'error' }));
+        }
+    });
+
+    ws.on('close', () => wsClients.delete(ws));
+});
+
+global.broadcastLog = (message, level = 'info') => {
+    const data = JSON.stringify({ type: 'log', message, level });
+    wsClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) client.send(data);
+    });
+};
+global.broadcastMessage = (from, text) => {
+    const data = JSON.stringify({ type: 'message', from, text });
+    wsClients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) client.send(data);
+    });
+};
+
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Web server running on port ${PORT} (0.0.0.0)`);
 });

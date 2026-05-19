@@ -397,17 +397,67 @@ async function startSavage() {
             global.broadcastMessage(senderName, text);
         }
 
-        // --- NEW: Log incoming messages to panel console ---
+        // ========== CYPHER-X STYLE CONSOLE LOGGING ==========
         if (!msg.key.fromMe && msg.key.remoteJid !== 'status@broadcast') {
-            const sender = msg.key.participant || msg.key.remoteJid;
-            const senderName = msg.pushName || sender.split('@')[0];
-            const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "[media]";
-            if (text) {
-                console.log(`[MSG] ${senderName}: ${text.substring(0, 200)}`);
-            } else {
-                console.log(`[MSG] ${senderName}: [media or unsupported]`);
+            // Determine message type
+            let msgType = 'conversation';
+            const msgObj = msg.message;
+            if (msgObj?.extendedTextMessage) msgType = 'extendedTextMessage';
+            else if (msgObj?.imageMessage) msgType = 'imageMessage';
+            else if (msgObj?.videoMessage) msgType = 'videoMessage';
+            else if (msgObj?.audioMessage) msgType = 'audioMessage';
+            else if (msgObj?.stickerMessage) msgType = 'stickerMessage';
+            else if (msgObj?.documentMessage) msgType = 'documentMessage';
+            else if (msgObj?.protocolMessage) msgType = 'protocolMessage';
+            
+            // Message time
+            const msgTimestamp = msg.messageTimestamp;
+            const msgDate = new Date(msgTimestamp * 1000);
+            const msgTimeStr = msgDate.toLocaleString(undefined, {
+                weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false, timeZoneName: 'short'
+            });
+            
+            // Speed calculation
+            const nowSec = Date.now() / 1000;
+            let spentSec = (nowSec - msgTimestamp).toFixed(2);
+            let speedRating = '';
+            const spentNum = parseFloat(spentSec);
+            if (spentNum < 1) speedRating = '| VERY FAST';
+            else if (spentNum < 2) speedRating = '| FAST';
+            else if (spentNum < 5) speedRating = '| MODERATE';
+            else if (spentNum < 10) speedRating = '| SLOW';
+            else speedRating = '| VERY SLOW';
+            
+            // Sender ID (full JID)
+            const senderJid = msg.key.participant || msg.key.remoteJid;
+            // Sender name
+            const senderName = msg.pushName || senderJid.split('@')[0];
+            // Chat ID (the conversation JID)
+            const chatId = msg.key.remoteJid;
+            
+            // Message content
+            let messageText = msgObj?.conversation || msgObj?.extendedTextMessage?.text || '';
+            if (!messageText) {
+                if (msgObj?.imageMessage) messageText = '📷 Image';
+                else if (msgObj?.videoMessage) messageText = '🎥 Video';
+                else if (msgObj?.audioMessage) messageText = '🎵 Audio';
+                else if (msgObj?.stickerMessage) messageText = '💠 Sticker';
+                else if (msgObj?.documentMessage) messageText = '📄 Document';
+                else messageText = '[unsupported]';
             }
+            
+            // Build the log lines exactly like Cypher-X
+            console.log(`\n» Message Type: ${msgType}`);
+            console.log(`» Message Time: ${msgTimeStr}`);
+            console.log(`» Speed: ${spentSec}s ${speedRating}`);
+            console.log(`» Sender: ${senderJid.split('@')[0]}`);
+            console.log(`» Name: ${senderName}`);
+            console.log(`» Chat ID: ${chatId}`);
+            console.log(`» Message: ${messageText.substring(0, 300)}`);
+            console.log('    └── SAVAGE-TECH ⬇️');
         }
+        // ========== END LOGGING ==========
 
         if (global.autoRead === true && !msg.key.fromMe) {
             try {

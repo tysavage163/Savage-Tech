@@ -9,11 +9,7 @@ if (!fs.existsSync(envPath)) {
     const defaultEnv = `# SAVAGE-TECH ENVIRONMENT VARIABLES
 PORT=3000
 
-# =======================================================
-# Paste your base64 session ID on the next line.
-# Delete this instruction line and replace it with the string.
-# Example: SESSION_ID=abcdefg123456...
-# =======================================================
+# Paste your session ID below
 SESSION_ID=
 `;
     fs.writeFileSync(envPath, defaultEnv);

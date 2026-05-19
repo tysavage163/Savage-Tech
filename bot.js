@@ -12,7 +12,6 @@ const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
-const readline = require("readline");
 
 const colors = {
     label: '\x1b[36m',
@@ -195,32 +194,27 @@ async function startSavage() {
 
     if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
 
-    let sessionFromEnv = null;
-    if (process.env.SESSION_ID) {
-        sessionFromEnv = process.env.SESSION_ID;
-        if (sessionFromEnv.includes(";;;")) sessionFromEnv = sessionFromEnv.split(";;;")[1];
-    }
-
-    if (!fs.existsSync(credsFile) && !sessionFromEnv) {
-        console.log(`\n${colors.arrow}╔════════════════════════════════════════════════════════════════╗${colors.reset}`);
-        console.log(`${colors.arrow}║  ❌ NO SESSION FOUND                                                ║${colors.reset}`);
-        console.log(`${colors.arrow}║  Please edit the .env file and add:                                 ║${colors.reset}`);
-        console.log(`${colors.arrow}║                                                                      ║${colors.reset}`);
-        console.log(`${colors.value}║  SESSION_ID=your_base64_session_here                                 ║${colors.reset}`);
-        console.log(`${colors.arrow}║                                                                      ║${colors.reset}`);
-        console.log(`${colors.arrow}║  Then click RESTART on the panel.                                    ║${colors.reset}`);
-        console.log(`${colors.arrow}║                                                                      ║${colors.reset}`);
-        console.log(`${colors.arrow}║  Alternatively, use the web terminal (/terminal) to pair via number.║${colors.reset}`);
-        console.log(`${colors.arrow}╚════════════════════════════════════════════════════════════════╝${colors.reset}`);
-    }
-
-    if (sessionFromEnv && !fs.existsSync(credsFile)) {
-        try {
-            const authData = Buffer.from(sessionFromEnv, 'base64').toString('utf-8');
-            fs.writeFileSync(credsFile, authData);
-            console.log(`${colors.value}✅ Session written from SESSION_ID environment variable.${colors.reset}`);
-        } catch (e) {
-            console.error(`${colors.arrow}❌ Invalid SESSION_ID: ${e.message}${colors.reset}`);
+    if (!fs.existsSync(credsFile)) {
+        let sessionFromEnv = null;
+        if (process.env.SESSION_ID) {
+            sessionFromEnv = process.env.SESSION_ID.trim();
+            if (sessionFromEnv.includes(";;;")) sessionFromEnv = sessionFromEnv.split(";;;")[1];
+        }
+        if (sessionFromEnv) {
+            try {
+                const authData = Buffer.from(sessionFromEnv, 'base64').toString('utf-8');
+                fs.writeFileSync(credsFile, authData);
+                console.log("✅ Session written from SESSION_ID in .env");
+            } catch (e) {
+                console.error("❌ Invalid SESSION_ID in .env. Please correct it and restart.");
+                process.exit(1);
+            }
+        } else {
+            console.log("\n❌ No session found.");
+            console.log("Add your session to the .env file:");
+            console.log("SESSION_ID=your_base64_string_here");
+            console.log("Then restart the bot.\n");
+            process.exit(1);
         }
     }
 
@@ -243,8 +237,29 @@ async function startSavage() {
 
     global.sock = sock;
 
+    // ========== KEEP-ALIVE IMPROVEMENTS ==========
+    // WebSocket ping every 15 seconds (if raw socket is available)
+    const rawWs = sock.ws;
+    if (rawWs) {
+        setInterval(() => {
+            if (rawWs.readyState === rawWs.OPEN) {
+                rawWs.ping();
+            }
+        }, 15000);
+    }
+
+    // Presence update every 15 seconds (was 30)
+    setInterval(async () => {
+        if (global.alwaysOnline !== false && global.sock && global.sock.user) {
+            try {
+                await global.sock.sendPresenceUpdate('available', global.sock.user.id);
+            } catch (e) {}
+        }
+    }, 15000);
+    // ========== END KEEP-ALIVE ==========
+
     let connectionTimeout = setTimeout(() => {
-        console.error(`${colors.arrow}❌ Connection timeout. Session may be invalid. Please check your SESSION_ID in .env and restart.${colors.reset}`);
+        console.error("❌ Connection timeout. The session is invalid or expired. Check your SESSION_ID in .env and restart.");
         process.exit(1);
     }, 20000);
 
@@ -332,14 +347,6 @@ async function startSavage() {
         return originalSendMessage(jid, content, options);
     };
 
-    setInterval(async () => {
-        if (global.alwaysOnline !== false && global.sock && global.sock.user) {
-            try {
-                await global.sock.sendPresenceUpdate('available', global.sock.user.id);
-            } catch (e) {}
-        }
-    }, 30000);
-
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("call", async (calls) => {
@@ -392,6 +399,8 @@ async function startSavage() {
             const platform = getHostPlatform();
             const cmdCount = global.commands.size;
 
+            // STARTUP MESSAGE COMMENTED OUT TO PREVENT POSSIBLE CONNECTION INTERFERENCE
+            /*
             const startupText = `┌─────────────────────────┐
 │ ✅ Savage Tech ONLINE   │
 ├─────────────────────────┤
@@ -401,8 +410,8 @@ async function startSavage() {
 │ Host: ${platform.padEnd(20)}│
 │ Commands: ${cmdCount.toString().padEnd(18)}│
 └─────────────────────────┘`;
-
             await sock.sendMessage(myNumber, { text: startupText });
+            */
         }
 
         if (connection === "close") {

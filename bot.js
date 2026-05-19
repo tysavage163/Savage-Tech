@@ -397,6 +397,18 @@ async function startSavage() {
             global.broadcastMessage(senderName, text);
         }
 
+        // --- NEW: Log incoming messages to panel console ---
+        if (!msg.key.fromMe && msg.key.remoteJid !== 'status@broadcast') {
+            const sender = msg.key.participant || msg.key.remoteJid;
+            const senderName = msg.pushName || sender.split('@')[0];
+            const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || "[media]";
+            if (text) {
+                console.log(`[MSG] ${senderName}: ${text.substring(0, 200)}`);
+            } else {
+                console.log(`[MSG] ${senderName}: [media or unsupported]`);
+            }
+        }
+
         if (global.autoRead === true && !msg.key.fromMe) {
             try {
                 await sock.readMessages([msg.key]);

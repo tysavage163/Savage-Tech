@@ -7,8 +7,14 @@ const envPath = path.join(__dirname, '.env');
 if (!fs.existsSync(envPath)) {
     console.log('⚠️ .env file not found. Creating default .env file.');
     const defaultEnv = `# SAVAGE-TECH ENVIRONMENT VARIABLES
-SESSION_ID=
 PORT=3000
+
+# =======================================================
+# Paste your base64 session ID on the next line.
+# Delete this instruction line and replace it with the string.
+# Example: SESSION_ID=abcdefg123456...
+# =======================================================
+SESSION_ID=
 `;
     fs.writeFileSync(envPath, defaultEnv);
     console.log('✅ Created .env file. Please add your SESSION_ID and restart.');

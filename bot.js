@@ -12,6 +12,14 @@ const fs = require("fs");
 const qrcode = require("qrcode-terminal");
 const path = require("path");
 const os = require("os");
+const readline = require("readline");
+
+const colors = {
+    label: '\x1b[36m',
+    value: '\x1b[32m',
+    arrow: '\x1b[35m',
+    reset: '\x1b[0m'
+};
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err);
@@ -181,20 +189,64 @@ const loadCommands = () => {
     console.log(`✅ ${global.commands.size} Commands loaded successfully.`);
 };
 
+async function waitForSessionInput(timeoutMs = 10000) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+    console.log(`\n${colors.label}No session found. Paste your base64 session ID here (or wait ${timeoutMs/1000}s to use SESSION_ID from .env):${colors.reset}`);
+    let timer;
+    let inputPromise = new Promise((resolve) => {
+        rl.once('line', (line) => {
+            if (timer) clearTimeout(timer);
+            resolve(line.trim());
+        });
+    });
+    let timeoutPromise = new Promise((resolve) => {
+        timer = setTimeout(() => {
+            rl.close();
+            resolve(null);
+        }, timeoutMs);
+    });
+    let result = await Promise.race([inputPromise, timeoutPromise]);
+    rl.close();
+    return result;
+}
+
 async function startSavage() {
     const sessionPath = "./session";
+    const credsFile = path.join(sessionPath, 'creds.json');
 
-    if (process.env.SESSION_ID) {
-        console.log("📡 SESSION_ID detected. Rebuilding biometric credentials...");
+    if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
+
+    let sessionBase64 = null;
+    let sessionSaved = false;
+
+    if (!fs.existsSync(credsFile)) {
+        const userInput = await waitForSessionInput(10000);
+        if (userInput && userInput.length > 0) {
+            sessionBase64 = userInput;
+            console.log(`${colors.value}Using session from user input.${colors.reset}`);
+            sessionSaved = true;
+        } else if (process.env.SESSION_ID) {
+            sessionBase64 = process.env.SESSION_ID;
+            if (sessionBase64.includes(";;;")) sessionBase64 = sessionBase64.split(";;;")[1];
+            console.log(`${colors.value}Using session from SESSION_ID environment variable.${colors.reset}`);
+            sessionSaved = true;
+        } else {
+            console.log(`${colors.arrow}No session provided. Bot will be in pairing mode. Use the web terminal to pair.${colors.reset}`);
+        }
+    } else {
+        console.log(`${colors.value}Existing session found in session/creds.json${colors.reset}`);
+    }
+
+    if (sessionSaved && sessionBase64) {
         try {
-            let sessionData = process.env.SESSION_ID;
-            if (sessionData.includes(";;;")) sessionData = sessionData.split(";;;")[1];
-            const authData = Buffer.from(sessionData, 'base64').toString('utf-8');
-            if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
-            fs.writeFileSync(path.join(sessionPath, 'creds.json'), authData);
-            console.log("✅ Session file written to disk successfully.");
+            const authData = Buffer.from(sessionBase64, 'base64').toString('utf-8');
+            fs.writeFileSync(credsFile, authData);
+            console.log(`${colors.value}Session written to disk.${colors.reset}`);
         } catch (e) {
-            console.log("⚠️ Session decoding failed: " + e.message);
+            console.error(`${colors.arrow}Session decoding failed: ${e.message}${colors.reset}`);
         }
     }
 
@@ -207,7 +259,7 @@ async function startSavage() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }))
         },
-        printQRInTerminal: true,
+        printQRInTerminal: false,
         logger: pino({ level: "silent" }),
         browser: ["SΛVΛGΞ-TECH", "Safari", "1.0.0"],
         syncFullHistory: true,
@@ -330,11 +382,6 @@ async function startSavage() {
     sock.ev.on("connection.update", async (update) => {
         const { connection, qr, lastDisconnect } = update;
 
-        if (qr && !fs.existsSync("./session/creds.json")) {
-            console.log("\n📸 SCAN QR TO INITIALIZE NEURAL LINK:\n");
-            qrcode.generate(qr, { small: true });
-        }
-
         if (connection === "open") {
             console.log("\n🚀 SΛVΛGΞ-TECH IS LIVE!");
             const myNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
@@ -389,7 +436,6 @@ async function startSavage() {
         const msg = m.messages?.[0];
         if (!msg || !msg.message) return;
 
-        // --- Broadcast incoming messages to WebSocket panel ---
         if (global.broadcastMessage && !msg.key.fromMe && msg.key.remoteJid !== 'status@broadcast') {
             const sender = msg.key.participant || msg.key.remoteJid;
             const senderName = msg.pushName || sender.split('@')[0];
@@ -397,9 +443,7 @@ async function startSavage() {
             global.broadcastMessage(senderName, text);
         }
 
-        // ========== CYPHER-X STYLE CONSOLE LOGGING ==========
         if (!msg.key.fromMe && msg.key.remoteJid !== 'status@broadcast') {
-            // Determine message type
             let msgType = 'conversation';
             const msgObj = msg.message;
             if (msgObj?.extendedTextMessage) msgType = 'extendedTextMessage';
@@ -410,7 +454,6 @@ async function startSavage() {
             else if (msgObj?.documentMessage) msgType = 'documentMessage';
             else if (msgObj?.protocolMessage) msgType = 'protocolMessage';
             
-            // Message time
             const msgTimestamp = msg.messageTimestamp;
             const msgDate = new Date(msgTimestamp * 1000);
             const msgTimeStr = msgDate.toLocaleString(undefined, {
@@ -418,7 +461,6 @@ async function startSavage() {
                 hour12: false, timeZoneName: 'short'
             });
             
-            // Speed calculation
             const nowSec = Date.now() / 1000;
             let spentSec = (nowSec - msgTimestamp).toFixed(2);
             let speedRating = '';
@@ -429,14 +471,10 @@ async function startSavage() {
             else if (spentNum < 10) speedRating = '| SLOW';
             else speedRating = '| VERY SLOW';
             
-            // Sender ID (full JID)
             const senderJid = msg.key.participant || msg.key.remoteJid;
-            // Sender name
             const senderName = msg.pushName || senderJid.split('@')[0];
-            // Chat ID (the conversation JID)
             const chatId = msg.key.remoteJid;
             
-            // Message content
             let messageText = msgObj?.conversation || msgObj?.extendedTextMessage?.text || '';
             if (!messageText) {
                 if (msgObj?.imageMessage) messageText = '📷 Image';
@@ -447,17 +485,15 @@ async function startSavage() {
                 else messageText = '[unsupported]';
             }
             
-            // Build the log lines exactly like Cypher-X
-            console.log(`\n» Message Type: ${msgType}`);
-            console.log(`» Message Time: ${msgTimeStr}`);
-            console.log(`» Speed: ${spentSec}s ${speedRating}`);
-            console.log(`» Sender: ${senderJid.split('@')[0]}`);
-            console.log(`» Name: ${senderName}`);
-            console.log(`» Chat ID: ${chatId}`);
-            console.log(`» Message: ${messageText.substring(0, 300)}`);
-            console.log('    └── SAVAGE-TECH ⬇️');
+            console.log(`\n${colors.label}» Message Type:${colors.reset} ${colors.value}${msgType}${colors.reset}`);
+            console.log(`${colors.label}» Message Time:${colors.reset} ${colors.value}${msgTimeStr}${colors.reset}`);
+            console.log(`${colors.label}» Speed:${colors.reset} ${colors.value}${spentSec}s ${speedRating}${colors.reset}`);
+            console.log(`${colors.label}» Sender:${colors.reset} ${colors.value}${senderJid.split('@')[0]}${colors.reset}`);
+            console.log(`${colors.label}» Name:${colors.reset} ${colors.value}${senderName}${colors.reset}`);
+            console.log(`${colors.label}» Chat ID:${colors.reset} ${colors.value}${chatId}${colors.reset}`);
+            console.log(`${colors.label}» Message:${colors.reset} ${colors.value}${messageText.substring(0, 300)}${colors.reset}`);
+            console.log(`${colors.arrow}    └── SAVAGE-TECH ⬇️${colors.reset}`);
         }
-        // ========== END LOGGING ==========
 
         if (global.autoRead === true && !msg.key.fromMe) {
             try {
@@ -879,7 +915,6 @@ async function startSavage() {
             }
         }
 
-        // ---------- ANTI-SPAM ----------
         if (from && from.endsWith('@g.us') && !isMe) {
             const cfg = global.antiSpamConfig?.[from];
             if (cfg && cfg.enabled) {
@@ -951,7 +986,6 @@ async function startSavage() {
                 }
             }
         }
-        // ---------- END ANTI-SPAM ----------
 
         if (from === 'status@broadcast') {
             if (global.autoViewStatus === "on") {

@@ -65,10 +65,24 @@
 
 ---
 
-### 👤 SUPPORT
+### 🔗 JOIN OUR CHANNEL
+<p align="center">
+  <a href="https://whatsapp.com/channel/0029VbCuEBJEAKWOWVH3G21e">
+    <img src="https://img.shields.io/badge/JOIN_WHATSAPP_CHANNEL-25D366?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Join WhatsApp Channel">
+  </a>
+</p>
+
+---
+
+### 👤 CONTACT DEVELOPER
 <p align="center">
   <a href="https://wa.me/254798841125">
-    <img src="https://img.shields.io/badge/CONTACT_SPENCER-5D3FD3?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Contact">
+    <img src="https://img.shields.io/badge/CONTACT_DEVELOPER-5D3FD3?style=for-the-badge&logo=whatsapp&logoColor=white" alt="Contact Developer">
+  </a>
+</p>
+<p align="center">
+  <a href="https://t.me/Savagemystique">
+    <img src="https://img.shields.io/badge/CONTACT_TELEGRAM-26A5E4?style=for-the-badge&logo=telegram&logoColor=white" alt="Contact Telegram">
   </a>
 </p>
 

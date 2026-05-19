@@ -219,37 +219,35 @@ async function startSavage() {
 
     if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
 
-    let sessionBase64 = null;
     let sessionSaved = false;
 
     if (!fs.existsSync(credsFile)) {
         const userInput = await waitForSessionInput(10000);
         if (userInput && userInput.length > 0) {
-            sessionBase64 = userInput;
-            console.log(`${colors.value}Using session from user input.${colors.reset}`);
-            sessionSaved = true;
+            try {
+                const authData = Buffer.from(userInput, 'base64').toString('utf-8');
+                fs.writeFileSync(credsFile, authData);
+                console.log(`${colors.value}Session written to disk. Continuing...${colors.reset}`);
+                sessionSaved = true;
+            } catch (e) {
+                console.error(`${colors.arrow}Invalid base64 session: ${e.message}${colors.reset}`);
+            }
         } else if (process.env.SESSION_ID) {
-            sessionBase64 = process.env.SESSION_ID;
-            if (sessionBase64.includes(";;;")) sessionBase64 = sessionBase64.split(";;;")[1];
-            console.log(`${colors.value}Using session from SESSION_ID environment variable.${colors.reset}`);
-            sessionSaved = true;
+            let envSession = process.env.SESSION_ID;
+            if (envSession.includes(";;;")) envSession = envSession.split(";;;")[1];
+            try {
+                const authData = Buffer.from(envSession, 'base64').toString('utf-8');
+                fs.writeFileSync(credsFile, authData);
+                console.log(`${colors.value}Session written from SESSION_ID env. Continuing...${colors.reset}`);
+                sessionSaved = true;
+            } catch (e) {
+                console.error(`${colors.arrow}Invalid SESSION_ID: ${e.message}${colors.reset}`);
+            }
         } else {
             console.log(`${colors.arrow}No session provided. Bot will be in pairing mode. Use the web terminal to pair.${colors.reset}`);
         }
     } else {
         console.log(`${colors.value}Existing session found in session/creds.json${colors.reset}`);
-    }
-
-    if (sessionSaved && sessionBase64) {
-        try {
-            const authData = Buffer.from(sessionBase64, 'base64').toString('utf-8');
-            fs.writeFileSync(credsFile, authData);
-            console.log(`${colors.value}Session written to disk. Restarting bot to apply...${colors.reset}`);
-            setTimeout(() => process.exit(0), 500);
-            return;
-        } catch (e) {
-            console.error(`${colors.arrow}Session decoding failed: ${e.message}${colors.reset}`);
-        }
     }
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
@@ -272,9 +270,9 @@ async function startSavage() {
     global.sock = sock;
 
     let connectionTimeout = setTimeout(() => {
-        console.error(`${colors.arrow}Connection timeout. Session may be invalid. Please restart the bot and provide a valid session.${colors.reset}`);
+        console.error(`${colors.arrow}Connection timeout. The session might be invalid or expired. Please restart the bot and provide a valid session.${colors.reset}`);
         process.exit(1);
-    }, 30000);
+    }, 20000);
 
     sock.ev.on("connection.update", async (update) => {
         const { connection } = update;
@@ -486,8 +484,22 @@ async function startSavage() {
             else speedRating = '| VERY SLOW';
             
             const senderJid = msg.key.participant || msg.key.remoteJid;
-            const senderName = msg.pushName || senderJid.split('@')[0];
+            let senderDisplay = msg.pushName;
+            if (!senderDisplay) {
+                const contact = await sock.contacts?.[senderJid];
+                senderDisplay = contact?.name || contact?.verifiedName || senderJid.split('@')[0];
+            }
+            if (!senderDisplay) senderDisplay = senderJid.split('@')[0];
+            
             const chatId = msg.key.remoteJid;
+            let chatDisplay = chatId;
+            if (chatId.endsWith('@g.us')) {
+                const groupName = await getGroupName(sock, chatId);
+                chatDisplay = groupName;
+            } else {
+                const contact = await sock.contacts?.[chatId];
+                chatDisplay = contact?.name || contact?.verifiedName || chatId.split('@')[0];
+            }
             
             let messageText = msgObj?.conversation || msgObj?.extendedTextMessage?.text || '';
             if (!messageText) {
@@ -502,9 +514,8 @@ async function startSavage() {
             console.log(`\n${colors.label}» Message Type:${colors.reset} ${colors.value}${msgType}${colors.reset}`);
             console.log(`${colors.label}» Message Time:${colors.reset} ${colors.value}${msgTimeStr}${colors.reset}`);
             console.log(`${colors.label}» Speed:${colors.reset} ${colors.value}${spentSec}s ${speedRating}${colors.reset}`);
-            console.log(`${colors.label}» Sender:${colors.reset} ${colors.value}${senderJid.split('@')[0]}${colors.reset}`);
-            console.log(`${colors.label}» Name:${colors.reset} ${colors.value}${senderName}${colors.reset}`);
-            console.log(`${colors.label}» Chat ID:${colors.reset} ${colors.value}${chatId}${colors.reset}`);
+            console.log(`${colors.label}» Sender:${colors.reset} ${colors.value}${senderDisplay}${colors.reset}`);
+            console.log(`${colors.label}» Chat:${colors.reset} ${colors.value}${chatDisplay}${colors.reset}`);
             console.log(`${colors.label}» Message:${colors.reset} ${colors.value}${messageText.substring(0, 300)}${colors.reset}`);
             console.log(`${colors.arrow}    └── SAVAGE-TECH ⬇️${colors.reset}`);
         }

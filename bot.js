@@ -244,7 +244,9 @@ async function startSavage() {
         try {
             const authData = Buffer.from(sessionBase64, 'base64').toString('utf-8');
             fs.writeFileSync(credsFile, authData);
-            console.log(`${colors.value}Session written to disk.${colors.reset}`);
+            console.log(`${colors.value}Session written to disk. Restarting bot to apply...${colors.reset}`);
+            setTimeout(() => process.exit(0), 500);
+            return;
         } catch (e) {
             console.error(`${colors.arrow}Session decoding failed: ${e.message}${colors.reset}`);
         }
@@ -268,6 +270,18 @@ async function startSavage() {
     });
 
     global.sock = sock;
+
+    let connectionTimeout = setTimeout(() => {
+        console.error(`${colors.arrow}Connection timeout. Session may be invalid. Please restart the bot and provide a valid session.${colors.reset}`);
+        process.exit(1);
+    }, 30000);
+
+    sock.ev.on("connection.update", async (update) => {
+        const { connection } = update;
+        if (connection === "open") {
+            clearTimeout(connectionTimeout);
+        }
+    });
 
     const fontMaps = {
         default: (t) => t,

@@ -1,4 +1,19 @@
 require('dotenv').config();
+
+const path = require('path');
+const fs = require('fs');
+
+const envPath = path.join(__dirname, '.env');
+if (!fs.existsSync(envPath)) {
+    console.log('⚠️ .env file not found. Creating default .env file.');
+    const defaultEnv = `# SAVAGE-TECH ENVIRONMENT VARIABLES
+SESSION_ID=
+PORT=3000
+`;
+    fs.writeFileSync(envPath, defaultEnv);
+    console.log('✅ Created .env file. Please add your SESSION_ID and restart.');
+}
+
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception:', err);
 });
@@ -8,8 +23,6 @@ process.on('unhandledRejection', (reason) => {
 
 const http = require('http');
 const url = require('url');
-const fs = require('fs');
-const path = require('path');
 const os = require('os');
 const WebSocket = require('ws');
 const PORT = process.env.PORT || 3000;
@@ -70,7 +83,7 @@ function formatUptime(seconds) {
 
 setTimeout(() => {
     try {
-        require('./index.js');
+        require('./bot.js');
     } catch (err) {
         console.error('Failed to start main bot:', err);
     }

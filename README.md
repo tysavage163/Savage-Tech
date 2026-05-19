@@ -35,6 +35,12 @@
   </a>
 </p>
 
+<p align="center">
+  <a href="https://bot-hosting.net">
+    <img src="https://img.shields.io/badge/DEPLOY_ON_BOT‑HOSTING.NET-FF69B4?style=for-the-badge&logo=server&logoColor=white" alt="Bot-Hosting.net Deploy">
+  </a>
+</p>
+
 ---
 
 ### 🔑 SESSION PAIRING

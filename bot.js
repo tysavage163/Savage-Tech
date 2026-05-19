@@ -189,65 +189,39 @@ const loadCommands = () => {
     console.log(`✅ ${global.commands.size} Commands loaded successfully.`);
 };
 
-async function waitForSessionInput(timeoutMs = 10000) {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-    console.log(`\n${colors.label}No session found. Paste your base64 session ID here (or wait ${timeoutMs/1000}s to use SESSION_ID from .env):${colors.reset}`);
-    let timer;
-    let inputPromise = new Promise((resolve) => {
-        rl.once('line', (line) => {
-            if (timer) clearTimeout(timer);
-            resolve(line.trim());
-        });
-    });
-    let timeoutPromise = new Promise((resolve) => {
-        timer = setTimeout(() => {
-            rl.close();
-            resolve(null);
-        }, timeoutMs);
-    });
-    let result = await Promise.race([inputPromise, timeoutPromise]);
-    rl.close();
-    return result;
-}
-
 async function startSavage() {
     const sessionPath = "./session";
     const credsFile = path.join(sessionPath, 'creds.json');
 
     if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
 
-    let sessionSaved = false;
+    let sessionFromEnv = null;
+    if (process.env.SESSION_ID) {
+        sessionFromEnv = process.env.SESSION_ID;
+        if (sessionFromEnv.includes(";;;")) sessionFromEnv = sessionFromEnv.split(";;;")[1];
+    }
 
-    if (!fs.existsSync(credsFile)) {
-        const userInput = await waitForSessionInput(10000);
-        if (userInput && userInput.length > 0) {
-            try {
-                const authData = Buffer.from(userInput, 'base64').toString('utf-8');
-                fs.writeFileSync(credsFile, authData);
-                console.log(`${colors.value}Session written to disk. Continuing...${colors.reset}`);
-                sessionSaved = true;
-            } catch (e) {
-                console.error(`${colors.arrow}Invalid base64 session: ${e.message}${colors.reset}`);
-            }
-        } else if (process.env.SESSION_ID) {
-            let envSession = process.env.SESSION_ID;
-            if (envSession.includes(";;;")) envSession = envSession.split(";;;")[1];
-            try {
-                const authData = Buffer.from(envSession, 'base64').toString('utf-8');
-                fs.writeFileSync(credsFile, authData);
-                console.log(`${colors.value}Session written from SESSION_ID env. Continuing...${colors.reset}`);
-                sessionSaved = true;
-            } catch (e) {
-                console.error(`${colors.arrow}Invalid SESSION_ID: ${e.message}${colors.reset}`);
-            }
-        } else {
-            console.log(`${colors.arrow}No session provided. Bot will be in pairing mode. Use the web terminal to pair.${colors.reset}`);
+    if (!fs.existsSync(credsFile) && !sessionFromEnv) {
+        console.log(`\n${colors.arrow}╔════════════════════════════════════════════════════════════════╗${colors.reset}`);
+        console.log(`${colors.arrow}║  ❌ NO SESSION FOUND                                                ║${colors.reset}`);
+        console.log(`${colors.arrow}║  Please edit the .env file and add:                                 ║${colors.reset}`);
+        console.log(`${colors.arrow}║                                                                      ║${colors.reset}`);
+        console.log(`${colors.value}║  SESSION_ID=your_base64_session_here                                 ║${colors.reset}`);
+        console.log(`${colors.arrow}║                                                                      ║${colors.reset}`);
+        console.log(`${colors.arrow}║  Then click RESTART on the panel.                                    ║${colors.reset}`);
+        console.log(`${colors.arrow}║                                                                      ║${colors.reset}`);
+        console.log(`${colors.arrow}║  Alternatively, use the web terminal (/terminal) to pair via number.║${colors.reset}`);
+        console.log(`${colors.arrow}╚════════════════════════════════════════════════════════════════╝${colors.reset}`);
+    }
+
+    if (sessionFromEnv && !fs.existsSync(credsFile)) {
+        try {
+            const authData = Buffer.from(sessionFromEnv, 'base64').toString('utf-8');
+            fs.writeFileSync(credsFile, authData);
+            console.log(`${colors.value}✅ Session written from SESSION_ID environment variable.${colors.reset}`);
+        } catch (e) {
+            console.error(`${colors.arrow}❌ Invalid SESSION_ID: ${e.message}${colors.reset}`);
         }
-    } else {
-        console.log(`${colors.value}Existing session found in session/creds.json${colors.reset}`);
     }
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
@@ -270,7 +244,7 @@ async function startSavage() {
     global.sock = sock;
 
     let connectionTimeout = setTimeout(() => {
-        console.error(`${colors.arrow}Connection timeout. The session might be invalid or expired. Please restart the bot and provide a valid session.${colors.reset}`);
+        console.error(`${colors.arrow}❌ Connection timeout. Session may be invalid. Please check your SESSION_ID in .env and restart.${colors.reset}`);
         process.exit(1);
     }, 20000);
 

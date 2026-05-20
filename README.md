@@ -103,5 +103,5 @@
 ---
 
 <p align="center">
-<a href="https://github.com/tysavage163/Savage-Tech"><img src="https://readme-typing-svg.herokuapp.com?font=Courier+New&weight=800&size=42&pause=1500&color=FF69B4&center=true&vCenter=true&width=900&lines=Programs+must+be+written+for+people+to+read;and+only+incidentally+for+machines+to+execute" alt="Typing SVG" /></a>
+<a href="https://github.com/tysavage163/Savage-Tech"><img src="https://readme-typing-svg.herokuapp.com?font=Courier+New&weight=800&size=28&pause=1500&color=FF69B4&center=true&vCenter=true&width=800&lines=Keep+it+simple,+make+it+powerful." alt="Typing SVG" /></a>
 </p>

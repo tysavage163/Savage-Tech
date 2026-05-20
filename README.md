@@ -43,6 +43,19 @@
 
 ---
 
+> **📌 Important Deployment Note for Panel Users (e.g., Pterodactyl, CTGP, etc.)**  
+> When deploying on a game panel or similar environment, the bot will attempt to create the `.env` file automatically upon first start.  
+> **Follow these two simple steps:**  
+> 1. **Start the bot once.** It will generate a blank `.env` file and then **stop gracefully** (this is expected).  
+> 2. **Open the `.env` file** (located in the bot's root directory) and paste your session ID like this:  
+>    `SESSION_ID=your_base64_session_here`  
+>    *You can obtain a session ID from the pairing buttons below.*  
+> 3. **Restart the bot.** It will now read the session and connect to WhatsApp.  
+> 
+> *If you skip step 2, the bot will keep stopping after each start because it waits for a valid session. No worries – just follow the two steps and you're good to go!* ✅
+
+---
+
 ### 🔑 SESSION PAIRING
 <p align="center">
   <a href="https://shrill-ronnica-savagetech-ea481bff.koyeb.app/">

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/tysavage163/Savage-Tech"><img src="https://readme-typing-svg.herokuapp.com?font=Courier+New&weight=800&size=30&pause=1000&color=A020F0&center=true&vCenter=true&width=600&lines=a+baileys+multidevice+WhatsApp+bot;Created+by+Spencer;inspired+by+Meryl;a+masterpiece+in+creation" alt="Typing SVG" /></a>
+<a href="https://github.com/tysavage163/Savage-Tech"><img src="https://readme-typing-svg.herokuapp.com?font=Courier+New&weight=800&size=30&pause=1000&color=A020F0&center=true&vCenter=true&width=900&lines=a+Baileys+multi‑device+WhatsApp+bot;Created+by+Spencer;inspired+by+Meryl;Now+deployable+on+all+platforms;pair...;deploy...;enjoy...;a+masterpiece+in+creation" alt="Typing SVG" /></a>
 </p>
 
 ---

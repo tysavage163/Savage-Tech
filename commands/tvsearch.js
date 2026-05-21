@@ -27,15 +27,15 @@ module.exports = {
       }
       text += `🔍 Use .tvshowinfo <id> for details (e.g., .tvshowinfo 169 for Breaking Bad)`;
 
-      // Try to send poster from first result
+      // Image handling – API returns direct URL string, not an object
       const first = shows[0];
       let imageBuffer = null;
-      if (first.image && first.image.medium) {
-        const imgUrl = first.image.medium;
-        console.log(`Attempting to download poster from: ${imgUrl}`);
+      const imageUrl = first.image && typeof first.image === 'string' ? first.image : (first.image?.medium || null);
+      
+      if (imageUrl) {
+        console.log(`Downloading poster from: ${imageUrl}`);
         try {
-          // Use 'arraybuffer' response type and set a timeout
-          const imgRes = await axios.get(imgUrl, {
+          const imgRes = await axios.get(imageUrl, {
             responseType: 'arraybuffer',
             timeout: 10000,
             headers: { 'User-Agent': 'Mozilla/5.0' }
@@ -46,7 +46,7 @@ module.exports = {
           console.log(`Poster download failed: ${imgErr.message}`);
         }
       } else {
-        console.log('No image URL found in first result');
+        console.log('No image URL found in first result. First result keys:', Object.keys(first));
       }
 
       if (imageBuffer) {

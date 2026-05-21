@@ -11,7 +11,7 @@
     "@distube/ytdl-core": "^4.16.12",
     "@google/generative-ai": "^0.24.1",
     "@vitalets/google-translate-api": "^9.2.1",
-    "@whiskeysockets/baileys": "^6.7.21",
+    "@whiskeysockets/baileys": "^7.0.0-rc12",
     "axios": "^1.15.2",
     "dotenv": "^17.4.2",
     "form-data": "^4.0.5",

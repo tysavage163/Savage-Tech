@@ -98,15 +98,16 @@ module.exports = {
             const ethicalMenu = getCategorizedMenu('ethical hacking', 'ETHICAL HACKING');
             const sportsMenu = getCategorizedMenu('sports', 'SPORTS MENU');
             const mediaMenu = getCategorizedMenu('media', '🎬 MOVIES & TV SHOWS');
+            const foodMenu = getCategorizedMenu('food', '🍽️ FOOD & DRINKS');
 
-            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'download', 'audio', 'engine', 'Audio Effects', 'Audio', 'financial data', 'search menu', 'anime', 'ethical hacking', 'sports', 'media'];
+            const definedCats = ['owner', 'group', 'ai', 'fun', 'tools', 'download', 'audio', 'engine', 'Audio Effects', 'Audio', 'financial data', 'search menu', 'anime', 'ethical hacking', 'sports', 'media', 'food'];
 
             const otherMenu = Array.from(global.commands.values())
                 .filter(cmd => !definedCats.includes(cmd.category))
                 .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !definedCats.includes(c.category)).category, 'OTHER MODULES') : "";
 
             const footer = `> The future belongs to the ones crazy enough to build it.`;
-            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + mediaMenu + otherMenu + footer;
+            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + mediaMenu + foodMenu + otherMenu + footer;
 
             let imageUrl = null;
             if (global.menuImages && global.menuImages.length > 0) {

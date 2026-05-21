@@ -14,7 +14,7 @@ module.exports = {
       const data = res.data;
 
       if (!data.success || !data.results || data.results.length === 0) {
-        return sock.sendMessage(from, { text: `❌ No results found: ${data.error || 'Unknown error'}` });
+        return sock.sendMessage(from, { text: `❌ No results found` });
       }
 
       const shows = data.results.slice(0, 5);
@@ -25,22 +25,36 @@ module.exports = {
         const genres = s.genres && s.genres.length ? s.genres.join(', ') : '-';
         text += `🔹 *${s.name}* (${year})\n   ⭐ Rating: ${rating}\n   📺 Status: ${s.status}\n   🎭 Genres: ${genres}\n\n`;
       }
-      text += `🔍 Use .tvshowinfo <id> for details (ID shown in the API response). To get ID, use the show's TVMaze ID – for Breaking Bad it's 169.`;
+      text += `🔍 Use .tvshowinfo <id> for details (e.g., .tvshowinfo 169 for Breaking Bad)`;
 
-      // Send poster from first result
-      let imageBuffer = null;
+      // Try to send poster from first result
       const first = shows[0];
+      let imageBuffer = null;
       if (first.image && first.image.medium) {
+        const imgUrl = first.image.medium;
+        console.log(`Attempting to download poster from: ${imgUrl}`);
         try {
-          const imgRes = await axios.get(first.image.medium, { responseType: 'arraybuffer' });
+          // Use 'arraybuffer' response type and set a timeout
+          const imgRes = await axios.get(imgUrl, {
+            responseType: 'arraybuffer',
+            timeout: 10000,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+          });
           imageBuffer = Buffer.from(imgRes.data);
+          console.log(`Poster downloaded, size: ${imageBuffer.length} bytes`);
         } catch (imgErr) {
-          console.log('Poster download failed:', imgErr.message);
+          console.log(`Poster download failed: ${imgErr.message}`);
         }
+      } else {
+        console.log('No image URL found in first result');
       }
 
       if (imageBuffer) {
-        await sock.sendMessage(from, { image: imageBuffer, caption: text }, { quoted: msg });
+        await sock.sendMessage(from, {
+          image: imageBuffer,
+          caption: text,
+          mimetype: 'image/jpeg'
+        }, { quoted: msg });
       } else {
         await sock.sendMessage(from, { text: text }, { quoted: msg });
       }

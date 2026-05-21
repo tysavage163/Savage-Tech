@@ -10,28 +10,15 @@ module.exports = {
     if (!id) return sock.sendMessage(from, { text: '❌ Usage: .tvshowinfo <TVMaze numeric ID>' });
     if (isNaN(id)) return sock.sendMessage(from, { text: '❌ ID must be a number. Use .tvsearch to find the correct numeric ID.' });
 
-    // Try WolfAPIs first (fallback to direct TVMaze if fails)
-    let s = null;
-    let usingFallback = false;
+    let s;
     try {
-      const res = await axios.get(`https://apis.xwolf.space/api/tvshow/info?id=${id}`, { timeout: 8000 });
-      if (res.data.success && res.data.result) {
-        s = res.data.result;
-      } else {
-        throw new Error(res.data.error || 'No result');
-      }
-    } catch (wolfErr) {
-      console.log('WolfAPIs failed, trying direct TVMaze...');
-      try {
-        const directRes = await axios.get(`https://api.tvmaze.com/shows/${id}`, { timeout: 8000 });
-        s = directRes.data;
-        usingFallback = true;
-      } catch (directErr) {
-        return sock.sendMessage(from, { text: `❌ Show not found. ID ${id} does not exist.` });
-      }
+      const directRes = await axios.get(`https://api.tvmaze.com/shows/${id}`, { timeout: 8000 });
+      s = directRes.data;
+    } catch (err) {
+      return sock.sendMessage(from, { text: `❌ Show not found. ID ${id} does not exist.` });
     }
 
-    const text = `📺 *TV SHOW DETAILS*${usingFallback ? ' (via TVMaze)' : ''}\n\n` +
+    const text = `📺 *TV SHOW DETAILS*\n\n` +
       `*Name:* ${s.name}\n` +
       `*Type:* ${s.type || 'N/A'}\n` +
       `*Status:* ${s.status || 'N/A'}\n` +
@@ -43,7 +30,7 @@ module.exports = {
       `*Network:* ${s.network?.name || s.webChannel?.name || 'N/A'}\n`;
 
     const summary = s.summary ? s.summary.replace(/<[^>]*>/g, '').substring(0, 300) : '';
-    const finalText = summary ? text + `*Summary:* ${summary}...\n\n` + `🔗 *Episodes:* .tvepisodes ${s.id}` : text + `\n🔗 *Episodes:* .tvepisodes ${s.id}`;
+    const finalText = summary ? text + `*Summary:* ${summary}...\n\n🔗 *Episodes:* .tvepisodes ${s.id}` : text + `\n🔗 *Episodes:* .tvepisodes ${s.id}`;
 
     let imageBuffer = null;
     const imageUrl = s.image?.original || s.image?.medium || (typeof s.image === 'string' ? s.image : null);

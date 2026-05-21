@@ -1,30 +1,32 @@
 const axios = require('axios');
-const https = require('https');
-const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 module.exports = {
   name: 'instagram',
   category: 'download',
-  description: 'Download Instagram media (API may be unstable)',
+  description: 'Download Instagram media',
   async execute(sock, msg, args) {
     const url = args[0];
     if (!url) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .instagram <URL>' });
-
-    const senderName = msg.pushName || 'User';
-    const senderJid = msg.key.participant || msg.key.remoteJid;
-    const mention = [senderJid];
-
+    
     try {
       const apiUrl = `https://apis.xwolf.space/api/download/instagram?url=${encodeURIComponent(url)}`;
-      const res = await axios.get(apiUrl, { httpsAgent });
+      const res = await axios.get(apiUrl);
+      console.log('Full API response:', JSON.stringify(res.data, null, 2)); // LOG IT
+      
       if (!res.data.success) {
-        // Show the actual error from the API
-        const errorMsg = res.data.error || res.data.details || 'Unknown error';
-        return sock.sendMessage(msg.key.remoteJid, { text: `❌ Instagram download failed:\n${errorMsg}\n\nTry again later or use a different platform.`, mentions: mention });
+        return sock.sendMessage(msg.key.remoteJid, { text: `❌ API error: ${res.data.error || res.data.message || 'Unknown'}` });
       }
-      // If success, extract download URL (code omitted for brevity)
-      sock.sendMessage(msg.key.remoteJid, { text: '✅ Download successful! (Code to handle media not included here – contact dev).' });
+      
+      // If success, extract media URL(s) and send
+      const mediaUrl = res.data.url || res.data.video || res.data.media;
+      if (!mediaUrl) {
+        return sock.sendMessage(msg.key.remoteJid, { text: '❌ No media URL found in API response.' });
+      }
+      
+      await sock.sendMessage(msg.key.remoteJid, { video: { url: mediaUrl }, caption: '📸 Downloaded from Instagram' });
+      
     } catch (err) {
+      console.error(err);
       sock.sendMessage(msg.key.remoteJid, { text: `❌ Network error: ${err.message}` });
     }
   }

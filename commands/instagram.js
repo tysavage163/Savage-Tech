@@ -7,27 +7,30 @@ module.exports = {
   async execute(sock, msg, args) {
     const url = args[0];
     if (!url) return sock.sendMessage(msg.key.remoteJid, { text: '❓ Usage: .instagram <URL>' });
-    
-    try {
-      const apiUrl = `https://apis.xwolf.space/api/download/instagram?url=${encodeURIComponent(url)}`;
-      const res = await axios.get(apiUrl);
-      console.log('Full API response:', JSON.stringify(res.data, null, 2)); // LOG IT
-      
-      if (!res.data.success) {
-        return sock.sendMessage(msg.key.remoteJid, { text: `❌ API error: ${res.data.error || res.data.message || 'Unknown'}` });
+
+    const apis = [
+      `https://apis.xwolf.space/api/download/instagram?url=${encodeURIComponent(url)}`,
+      `https://api.ryzendesu.vip/api/downloader/ig?url=${encodeURIComponent(url)}`,
+      `https://instasave.xyz/api?url=${encodeURIComponent(url)}`
+    ];
+
+    for (const api of apis) {
+      try {
+        const res = await axios.get(api);
+        let mediaUrl = null;
+        if (res.data.success && res.data.url) mediaUrl = res.data.url;
+        else if (res.data.url) mediaUrl = res.data.url;
+        else if (res.data.result && res.data.result.url) mediaUrl = res.data.result.url;
+        else if (res.data.media) mediaUrl = res.data.media;
+        
+        if (mediaUrl) {
+          await sock.sendMessage(msg.key.remoteJid, { video: { url: mediaUrl }, caption: '📸 Downloaded from Instagram' });
+          return;
+        }
+      } catch (err) {
+        console.log(`API failed: ${api}`, err.message);
       }
-      
-      // If success, extract media URL(s) and send
-      const mediaUrl = res.data.url || res.data.video || res.data.media;
-      if (!mediaUrl) {
-        return sock.sendMessage(msg.key.remoteJid, { text: '❌ No media URL found in API response.' });
-      }
-      
-      await sock.sendMessage(msg.key.remoteJid, { video: { url: mediaUrl }, caption: '📸 Downloaded from Instagram' });
-      
-    } catch (err) {
-      console.error(err);
-      sock.sendMessage(msg.key.remoteJid, { text: `❌ Network error: ${err.message}` });
     }
+    sock.sendMessage(msg.key.remoteJid, { text: '❌ All download APIs failed. Instagram may be blocking them. Try again later or use a different platform.' });
   }
 };

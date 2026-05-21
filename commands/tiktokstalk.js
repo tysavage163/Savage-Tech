@@ -3,7 +3,7 @@ const axios = require('axios');
 module.exports = {
   name: 'tiktokstalk',
   category: 'search menu',
-  description: 'Lookup TikTok user profile info',
+  description: 'Lookup TikTok user profile info with photo',
   async execute(sock, msg, args) {
     const from = msg.key.remoteJid;
     const username = args[0];
@@ -11,31 +11,56 @@ module.exports = {
 
     try {
       const res = await axios.get(`https://apis.xwolf.space/api/stalk/tiktok?username=${encodeURIComponent(username)}`);
-      console.log('TikTok API response:', JSON.stringify(res.data, null, 2)); // Log full response
       const data = res.data;
-      
-      // Check different possible success indicators and data paths
-      let user = null;
-      if (data.success && data.result) user = data.result;
-      else if (data.status === true && data.data) user = data.data;
-      else if (data.user) user = data.user;
-      else if (data) user = data; // fallback
-      
-      if (user && (user.uniqueId || user.username)) {
-        const text = `🎵 *TikTok Stalk*\n\n` +
-          `📛 Username: ${user.uniqueId || user.username}\n` +
-          `👤 Name: ${user.nickname || user.name || '-'}\n` +
-          `✔️ Verified: ${user.verified ? 'Yes' : 'No'}\n` +
-          `👥 Followers: ${user.followerCount || user.followers || 0}\n` +
-          `👣 Following: ${user.followingCount || user.following || 0}\n` +
-          `❤️ Hearts: ${user.heartCount || user.hearts || 0}\n` +
-          `🎬 Videos: ${user.videoCount || user.videos || 0}\n` +
-          `🔗 Profile: https://tiktok.com/@${user.uniqueId || user.username}`;
-        await sock.sendMessage(from, { text });
+
+      if (data.success) {
+        const user = {
+          username: data.username,
+          nickname: data.nickname || '-',
+          bio: data.bio || '-',
+          avatar: data.avatar,
+          verified: data.verified,
+          private: data.privateAccount,
+          followers: data.followers?.toLocaleString() || '0',
+          following: data.following?.toLocaleString() || '0',
+          likes: data.likes?.toLocaleString() || '0',
+          videos: data.videos?.toLocaleString() || '0',
+          profileUrl: data.profileUrl || `https://tiktok.com/@${data.username}`
+        };
+
+        const caption = `🎵 *TIKTOK STALK* 🎵\n\n` +
+          `👤 *User:* ${user.nickname}\n` +
+          `📛 *Username:* @${user.username}\n` +
+          `📝 *Bio:* ${user.bio.substring(0, 150)}${user.bio.length > 150 ? '...' : ''}\n` +
+          `🔒 *Private:* ${user.private ? 'Yes' : 'No'}\n` +
+          `✔️ *Verified:* ${user.verified ? 'Yes' : 'No'}\n\n` +
+          `👥 *Followers:* ${user.followers}\n` +
+          `👣 *Following:* ${user.following}\n` +
+          `❤️ *Total Likes:* ${user.likes}\n` +
+          `🎬 *Videos:* ${user.videos}\n\n` +
+          `🔗 *Profile:* ${user.profileUrl}`;
+
+        let imageBuffer = null;
+        if (user.avatar) {
+          try {
+            const imgRes = await axios.get(user.avatar, { responseType: 'arraybuffer' });
+            imageBuffer = Buffer.from(imgRes.data);
+          } catch (imgErr) {
+            console.log('Avatar download failed:', imgErr.message);
+          }
+        }
+
+        if (imageBuffer) {
+          await sock.sendMessage(from, {
+            image: imageBuffer,
+            caption: caption,
+            mentions: []
+          }, { quoted: msg });
+        } else {
+          await sock.sendMessage(from, { text: caption }, { quoted: msg });
+        }
       } else {
-        // Send the actual error from API
-        let errMsg = data.error || data.message || 'User not found';
-        await sock.sendMessage(from, { text: `❌ TikTok lookup failed: ${errMsg}` });
+        await sock.sendMessage(from, { text: `❌ TikTok lookup failed: ${data.error || 'User not found'}` });
       }
     } catch (err) {
       console.error(err);

@@ -9,8 +9,8 @@ function detectHost() {
   if (process.env.VERCEL) return 'Vercel';
   if (process.env.REPLIT_DB_URL) return 'Replit';
   if (process.env.COOLIFY) return 'Coolify';
-  if (process.env.SERVER_ID || process.env.PTERODACTYL) return 'Pterodactyl Panel';
-  if (fs.existsSync('/home/container') || process.env.USER === 'container') return 'Bot-Hosting.net / Pterodactyl';
+  if (process.env.SERVER_ID || process.env.PTERODACTYL) return 'Panel';
+  if (fs.existsSync('/home/container') || process.env.USER === 'container') return 'Panel';
   if (os.platform() === 'linux') {
     if (process.env.PREFIX === '/data/data/com.termux/usr' || fs.existsSync('/data/data/com.termux')) return 'Termux (Android)';
     return 'Linux VPS';

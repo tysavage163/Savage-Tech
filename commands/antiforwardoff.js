@@ -3,12 +3,12 @@ module.exports = {
     category: 'group',
     execute: async (sock, msg, args, { isMe }) => {
         const from = msg.key.remoteJid;
-        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only.' });
+        if (!from.endsWith('@g.us')) return sock.sendMessage(from, { text: '❌ Group only.' }, { quoted: msg });
         const isAdmin = await global.checkAdmin(sock, from, msg.key.participant || msg.key.remoteJid);
-        if (!isAdmin && !isMe) return sock.sendMessage(from, { text: '❌ Admin only.' });
+        if (!isAdmin && !isMe) return sock.sendMessage(from, { text: '❌ Admin only.' }, { quoted: msg });
 
         if (!global.antiForwardConfig) global.antiForwardConfig = {};
         global.antiForwardConfig[from] = { enabled: false };
-        await sock.sendMessage(from, { text: '❌ Anti‑forward disabled.' });
+        await sock.sendMessage(from, { text: '❌ Anti‑forward disabled.' }, { quoted: msg });
     }
 };

@@ -11,32 +11,34 @@ module.exports = {
 
     try {
       const res = await axios.get(`https://apis.xwolf.space/api/pokemon/info?name=${encodeURIComponent(name)}`);
+      console.log('Full API response:', JSON.stringify(res.data, null, 2));
+      
       const data = res.data;
       if (!data.success) return sock.sendMessage(from, { text: `❌ Pokemon "${name}" not found.` });
 
-      const p = data.data;
-      const types = p.types?.join(', ') || 'N/A';
-      const abilities = p.abilities?.join(', ') || 'N/A';
-      const stats = p.stats || {};
+      // Try different possible data structures
+      const p = data.data || data.result || data;
+      
       const text = `⚡ *POKEMON INFO*\n\n` +
-        `*Name:* ${p.name}\n` +
-        `*ID:* #${p.id}\n` +
-        `*Type:* ${types}\n` +
-        `*Height:* ${p.height / 10} m\n` +
-        `*Weight:* ${p.weight / 10} kg\n` +
-        `*Abilities:* ${abilities}\n` +
+        `*Name:* ${p.name || p.pokemon_name || '?'}\n` +
+        `*ID:* ${p.id || p.pokedex_number || '?'}\n` +
+        `*Type:* ${Array.isArray(p.types) ? p.types.join(', ') : (p.type || 'N/A')}\n` +
+        `*Height:* ${p.height ? p.height / 10 : (p.height_m || '?')} m\n` +
+        `*Weight:* ${p.weight ? p.weight / 10 : (p.weight_kg || '?')} kg\n` +
+        `*Abilities:* ${Array.isArray(p.abilities) ? p.abilities.join(', ') : (p.ability || 'N/A')}\n` +
         `*Stats:*\n` +
-        `  ❤️ HP: ${stats.hp || '?'}\n` +
-        `  ⚔️ Attack: ${stats.attack || '?'}\n` +
-        `  🛡️ Defense: ${stats.defense || '?'}\n` +
-        `  ✨ Special Attack: ${stats.specialAttack || '?'}\n` +
-        `  🪄 Special Defense: ${stats.specialDefense || '?'}\n` +
-        `  💨 Speed: ${stats.speed || '?'}`;
+        `  ❤️ HP: ${p.hp || p.stats?.hp || '?'}\n` +
+        `  ⚔️ Attack: ${p.attack || p.stats?.attack || '?'}\n` +
+        `  🛡️ Defense: ${p.defense || p.stats?.defense || '?'}\n` +
+        `  ✨ Sp. Attack: ${p.special_attack || p.stats?.special_attack || '?'}\n` +
+        `  🪄 Sp. Defense: ${p.special_defense || p.stats?.special_defense || '?'}\n` +
+        `  💨 Speed: ${p.speed || p.stats?.speed || '?'}`;
 
       let imageBuffer = null;
-      if (p.image) {
+      const imageUrl = p.image || p.sprite || p.artwork;
+      if (imageUrl) {
         try {
-          const imgRes = await axios.get(p.image, { responseType: 'arraybuffer', timeout: 10000 });
+          const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 10000 });
           imageBuffer = Buffer.from(imgRes.data);
         } catch (e) {}
       }

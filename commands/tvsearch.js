@@ -2,7 +2,7 @@ const axios = require('axios');
 
 module.exports = {
   name: 'tvsearch',
-  category: 'search menu',
+  category: 'media',
   description: 'Search TV shows by name (TVMaze) with poster',
   async execute(sock, msg, args) {
     const from = msg.key.remoteJid;
@@ -14,7 +14,7 @@ module.exports = {
       const data = res.data;
 
       if (!data.success || !data.results || data.results.length === 0) {
-        return sock.sendMessage(from, { text: `❌ No results found` });
+        return sock.sendMessage(from, { text: '❌ No results found' });
       }
 
       const shows = data.results.slice(0, 5);
@@ -27,13 +27,11 @@ module.exports = {
       }
       text += `🔍 Use .tvshowinfo <id> for details (e.g., .tvshowinfo 169 for Breaking Bad)`;
 
-      // Image handling – API returns direct URL string, not an object
       const first = shows[0];
       let imageBuffer = null;
       const imageUrl = first.image && typeof first.image === 'string' ? first.image : (first.image?.medium || null);
-      
+
       if (imageUrl) {
-        console.log(`Downloading poster from: ${imageUrl}`);
         try {
           const imgRes = await axios.get(imageUrl, {
             responseType: 'arraybuffer',
@@ -41,12 +39,7 @@ module.exports = {
             headers: { 'User-Agent': 'Mozilla/5.0' }
           });
           imageBuffer = Buffer.from(imgRes.data);
-          console.log(`Poster downloaded, size: ${imageBuffer.length} bytes`);
-        } catch (imgErr) {
-          console.log(`Poster download failed: ${imgErr.message}`);
-        }
-      } else {
-        console.log('No image URL found in first result. First result keys:', Object.keys(first));
+        } catch (imgErr) {}
       }
 
       if (imageBuffer) {

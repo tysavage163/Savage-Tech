@@ -3,18 +3,21 @@ const axios = require('axios');
 module.exports = {
   name: 'tvshowinfo',
   category: 'media',
-  description: 'Get full TV show details including cast and episode count by TVMaze ID',
+  description: 'Get full TV show details including cast and episode count by TVMaze ID (use .tvsearch to find ID)',
   async execute(sock, msg, args) {
     const from = msg.key.remoteJid;
     const id = args[0];
-    if (!id) return sock.sendMessage(from, { text: '❌ Usage: .tvshowinfo <TVMaze ID>' });
+    if (!id) return sock.sendMessage(from, { text: '❌ Usage: .tvshowinfo <TVMaze numeric ID>' });
+    if (isNaN(id)) return sock.sendMessage(from, { text: '❌ ID must be a number. Use .tvsearch to find the correct numeric ID.' });
 
     try {
       const res = await axios.get(`https://apis.xwolf.space/api/tvshow/info?id=${id}`);
       const data = res.data;
-      if (!data.success) {
-        return sock.sendMessage(from, { text: `❌ Info failed: ${data.error || 'ID not found'}` });
+
+      if (!data.success || !data.result) {
+        return sock.sendMessage(from, { text: `❌ Info failed: ${data.error || 'Show not found. Check ID.'}` });
       }
+
       const s = data.result;
       let text = `📺 *TV SHOW DETAILS*\n\n`;
       text += `*Name:* ${s.name}\n`;
@@ -38,16 +41,21 @@ module.exports = {
         try {
           const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 10000, headers: { 'User-Agent': 'Mozilla/5.0' } });
           imageBuffer = Buffer.from(imgRes.data);
-        } catch (imgErr) {}
+        } catch (imgErr) { /* fallback to text only */ }
       }
+
       if (imageBuffer) {
         await sock.sendMessage(from, { image: imageBuffer, caption: text, mimetype: 'image/jpeg' }, { quoted: msg });
       } else {
-        await sock.sendMessage(from, { text: text }, { quoted: msg });
+        await sock.sendMessage(from, { text }, { quoted: msg });
       }
     } catch (err) {
       console.error(err);
-      await sock.sendMessage(from, { text: '❌ Network error.' });
+      if (err.response && err.response.status === 500) {
+        await sock.sendMessage(from, { text: '❌ API error: Invalid ID or the server is temporarily unavailable. Use .tvsearch to find a valid numeric ID.' });
+      } else {
+        await sock.sendMessage(from, { text: '❌ Network error or API unavailable.' });
+      }
     }
   }
 };

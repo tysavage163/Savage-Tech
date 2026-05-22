@@ -3,7 +3,7 @@ const axios = require('axios');
 module.exports = {
   name: 'cocktailbyingredient',
   category: 'food',
-  description: 'Find cocktails that use a specific ingredient (e.g., .cocktailbyingredient lime)',
+  description: 'Find cocktails that use a specific ingredient',
   async execute(sock, msg, args) {
     const from = msg.key.remoteJid;
     const ingredient = args.join(' ');
@@ -16,15 +16,25 @@ module.exports = {
         return sock.sendMessage(from, { text: `❌ No cocktails found with ingredient "${ingredient}".` }, { quoted: msg });
       }
 
+      // Log first drink to console (if you can access later)
+      console.log('First drink sample:', JSON.stringify(data.drinks[0]));
+
+      // Try multiple possible field names
       const drinks = data.drinks.slice(0, 10);
       let text = `🍸 *COCKTAILS WITH ${ingredient.toUpperCase()}*\n\n`;
       for (const d of drinks) {
-        text += `🔹 ${d.strDrink}\n`;
+        let name = d.strDrink || d.name || d.drink || 'Unknown';
+        text += `🔹 ${name}\n`;
       }
+
+      // Also send the raw first item as a message to debug (remove after fixing)
+      const sample = drinks[0];
+      const sampleText = `DEBUG: First drink keys: ${Object.keys(sample).join(', ')}`;
+      await sock.sendMessage(from, { text: sampleText }, { quoted: msg });
 
       let imageBuffer = null;
       const firstDrink = drinks[0];
-      const imageUrl = firstDrink.strDrinkThumb;
+      const imageUrl = firstDrink.strDrinkThumb || firstDrink.image || firstDrink.thumb;
       if (imageUrl) {
         try {
           const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 8000 });
@@ -39,7 +49,7 @@ module.exports = {
       }
     } catch (err) {
       console.error(err);
-      await sock.sendMessage(from, { text: `❌ API error. Could not fetch cocktails with "${ingredient}".` }, { quoted: msg });
+      await sock.sendMessage(from, { text: `❌ API error: ${err.message}` }, { quoted: msg });
     }
   }
 };

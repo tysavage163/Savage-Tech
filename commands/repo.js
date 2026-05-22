@@ -2,18 +2,21 @@ const axios = require('axios');
 
 module.exports = {
     name: 'repo',
-    category: 'owner',
+    category: 'engine',
     description: 'Shows the bot\'s GitHub repository information',
-    async execute(sock, msg, args, { isArchitect, isMe }) {
+    async execute(sock, msg) {
         const from = msg.key.remoteJid;
+
         const repoOwner = 'tysavage163';
         const repoName = 'Savage-Tech';
+        const GITHUB_TOKEN = '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';
         const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}`;
 
         try {
             const { data } = await axios.get(apiUrl, {
                 headers: {
-                    'User-Agent': 'Savage-Tech-Bot'
+                    'User-Agent': 'Savage-Tech-Bot',
+                    'Authorization': `token ${GITHUB_TOKEN}`
                 }
             });
             const stars = data.stargazers_count.toLocaleString();
@@ -27,7 +30,6 @@ module.exports = {
             const repoFull = data.full_name;
             const ownerName = data.owner.login;
             
-            const senderName = msg.pushName || 'User';
             const senderJid = msg.key.participant || msg.key.remoteJid;
             const mention = [senderJid];
             const mentionText = `@${senderJid.split('@')[0]}`;
@@ -54,18 +56,16 @@ module.exports = {
                 image: { url: avatarUrl },
                 caption: caption,
                 mentions: mention
-            });
+            }, { quoted: msg });
         } catch (error) {
             console.error('Repo command error:', error);
             let errorMsg = '❌ Failed to fetch repository data.';
             if (error.response && error.response.status === 403) {
-                errorMsg = '❌ GitHub API rate limit exceeded. Please try again later.';
+                errorMsg = '❌ GitHub API rate limit exceeded. The hardcoded token may have expired or been revoked.';
             } else if (error.response && error.response.status === 404) {
                 errorMsg = '❌ Repository not found.';
             }
-            await sock.sendMessage(from, {
-                text: errorMsg
-            });
+            await sock.sendMessage(from, { text: errorMsg }, { quoted: msg });
         }
     }
 };

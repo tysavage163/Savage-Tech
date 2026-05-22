@@ -3,7 +3,7 @@ const axios = require('axios');
 module.exports = {
   name: 'quranverse',
   category: 'religion',
-  description: 'Get a Quran verse by surah and ayah number with audio',
+  description: 'Get a Quran verse by surah and ayah number (e.g., .quranverse 2 255)',
   async execute(sock, msg, args) {
     const from = msg.key.remoteJid;
     const surah = args[0];
@@ -24,16 +24,12 @@ module.exports = {
         try {
           const audioRes = await axios.get(data.audio, { responseType: 'arraybuffer', timeout: 15000 });
           audioBuffer = Buffer.from(audioRes.data);
-        } catch (audioErr) {
-          console.error('Audio download failed:', audioErr.message);
-        }
+        } catch (audioErr) {}
       }
 
+      await sock.sendMessage(from, { text }, { quoted: msg });
       if (audioBuffer) {
-        await sock.sendMessage(from, { text }, { quoted: msg });
         await sock.sendMessage(from, { audio: audioBuffer, mimetype: 'audio/mpeg', ptt: false }, { quoted: msg });
-      } else {
-        await sock.sendMessage(from, { text: text + '\n\n❌ Audio unavailable.' }, { quoted: msg });
       }
     } catch (err) {
       console.error(err);

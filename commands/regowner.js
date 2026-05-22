@@ -11,7 +11,7 @@ module.exports = {
         const senderNumber = sender.split('@')[0].split(':')[0];
         const botNumberClean = botNumber.split('@')[0].split(':')[0];
         if (senderNumber !== botNumberClean && !isMe) {
-            return sock.sendMessage(from, { text: "❌ Only the bot owner can register." });
+            return sock.sendMessage(from, { text: "❌ Only the bot owner can register." }, { quoted: msg });
         }
         global.ownerJid = sender;
         const ownerFile = path.join(__dirname, '..', 'owner.json');
@@ -27,10 +27,20 @@ module.exports = {
             "Ownership recorded. The bot bends to your will.",
             "You've been given the crown. Don't lose it.",
             "Security clearance granted. All channels open.",
-            "Welcome to the admin zone. Handle with chaos."
+            "Welcome to the admin zone. Handle with chaos.",
+            "The throne is yours. May your reign be legendary.",
+            "Ownership set. You are the architect of this digital realm.",
+            "The bot now recognizes you as its sovereign.",
+            "Admin privileges unlocked. Proceed with responsibility.",
+            "You are now the supreme commander of Savage Tech.",
+            "The system bows to you. Command wisely.",
+            "Ownership transferred. Your will is law.",
+            "Welcome to the inner circle. You now control the core.",
+            "The keys to the kingdom are yours. Use them well.",
+            "You've been marked as the ultimate authority. No limits."
         ];
         const quote = accessQuotes[Math.floor(Math.random() * accessQuotes.length)];
         
-        await sock.sendMessage(from, { text: `✅ ${quote}\n\n_⚡ Powered by Savage Tech_` });
+        await sock.sendMessage(from, { text: `✅ ${quote}\n\n_⚡ Powered by Savage Tech_` }, { quoted: msg });
     }
 };

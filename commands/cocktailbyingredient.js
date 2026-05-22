@@ -16,25 +16,18 @@ module.exports = {
         return sock.sendMessage(from, { text: `❌ No cocktails found with ingredient "${ingredient}".` }, { quoted: msg });
       }
 
-      // Log first drink to console (if you can access later)
-      console.log('First drink sample:', JSON.stringify(data.drinks[0]));
+      const firstDrink = data.drinks[0];
+      await sock.sendMessage(from, { text: `DEBUG: First drink = ${JSON.stringify(firstDrink)}` }, { quoted: msg });
 
-      // Try multiple possible field names
       const drinks = data.drinks.slice(0, 10);
       let text = `🍸 *COCKTAILS WITH ${ingredient.toUpperCase()}*\n\n`;
       for (const d of drinks) {
-        let name = d.strDrink || d.name || d.drink || 'Unknown';
+        const name = d.strDrink || d.name || 'Unknown';
         text += `🔹 ${name}\n`;
       }
 
-      // Also send the raw first item as a message to debug (remove after fixing)
-      const sample = drinks[0];
-      const sampleText = `DEBUG: First drink keys: ${Object.keys(sample).join(', ')}`;
-      await sock.sendMessage(from, { text: sampleText }, { quoted: msg });
-
       let imageBuffer = null;
-      const firstDrink = drinks[0];
-      const imageUrl = firstDrink.strDrinkThumb || firstDrink.image || firstDrink.thumb;
+      const imageUrl = firstDrink.strDrinkThumb;
       if (imageUrl) {
         try {
           const imgRes = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 8000 });

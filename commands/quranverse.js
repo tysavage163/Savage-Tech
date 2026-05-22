@@ -3,7 +3,7 @@ const axios = require('axios');
 module.exports = {
   name: 'quranverse',
   category: 'religion',
-  description: 'Get a Quran verse by surah and ayah number (e.g., .quranverse 2 255)',
+  description: 'Get a Quran verse by surah and ayah number with audio',
   async execute(sock, msg, args) {
     const from = msg.key.remoteJid;
     const surah = args[0];
@@ -17,10 +17,24 @@ module.exports = {
 
       const text = `📖 *${data.reference}* (${data.surah.englishName})\n\n` +
         `🇸🇦 *Arabic:* ${data.arabic}\n\n` +
-        `🇬🇧 *Translation (${data.translator}):* ${data.translation}\n\n` +
-        `🎧 *Audio:* ${data.audio}`;
+        `🇬🇧 *Translation (${data.translator}):* ${data.translation}`;
 
-      await sock.sendMessage(from, { text }, { quoted: msg });
+      let audioBuffer = null;
+      if (data.audio) {
+        try {
+          const audioRes = await axios.get(data.audio, { responseType: 'arraybuffer', timeout: 15000 });
+          audioBuffer = Buffer.from(audioRes.data);
+        } catch (audioErr) {
+          console.error('Audio download failed:', audioErr.message);
+        }
+      }
+
+      if (audioBuffer) {
+        await sock.sendMessage(from, { text }, { quoted: msg });
+        await sock.sendMessage(from, { audio: audioBuffer, mimetype: 'audio/mpeg', ptt: false }, { quoted: msg });
+      } else {
+        await sock.sendMessage(from, { text: text + '\n\n❌ Audio unavailable.' }, { quoted: msg });
+      }
     } catch (err) {
       console.error(err);
       await sock.sendMessage(from, { text: '❌ API error. Check surah/ayah numbers.' }, { quoted: msg });

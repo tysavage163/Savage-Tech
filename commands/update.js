@@ -20,12 +20,15 @@ module.exports = {
 
         const GITHUB_REPO = 'tysavage163/Savage-Tech';
         const BRANCH = 'main';
+        const GITHUB_TOKEN = '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';
+        const headers = { Authorization: `token ${GITHUB_TOKEN}` };
+
         const API_URL = `https://api.github.com/repos/${GITHUB_REPO}/commits/${BRANCH}`;
 
         await sock.sendMessage(from, { text: '🔄 Checking for updates from GitHub...' }, { quoted: msg });
 
         try {
-            const commitRes = await axios.get(API_URL);
+            const commitRes = await axios.get(API_URL, { headers });
             const latestCommit = commitRes.data.sha;
             let currentCommit = null;
             const versionFile = path.join(__dirname, '..', '.version');
@@ -38,7 +41,7 @@ module.exports = {
                 return;
             }
 
-            const diffRes = await axios.get(`https://api.github.com/repos/${GITHUB_REPO}/commits/${latestCommit}`);
+            const diffRes = await axios.get(`https://api.github.com/repos/${GITHUB_REPO}/commits/${latestCommit}`, { headers });
             const changedFiles = diffRes.data.files.map(f => f.filename);
             const filesToUpdate = changedFiles.filter(f => 
                 f === 'bot.js' || 
@@ -59,7 +62,7 @@ module.exports = {
                 const filePath = path.join(__dirname, '..', file);
                 const dir = path.dirname(filePath);
                 if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-                const res = await axios.get(rawBase + file, { responseType: 'arraybuffer' });
+                const res = await axios.get(rawBase + file, { responseType: 'arraybuffer', headers });
                 fs.writeFileSync(filePath, Buffer.from(res.data));
             }
 
@@ -88,7 +91,11 @@ module.exports = {
 
         } catch (err) {
             console.error(err);
-            await sock.sendMessage(from, { text: `❌ Update failed: ${err.message}` }, { quoted: msg });
+            if (err.response && err.response.status === 403) {
+                await sock.sendMessage(from, { text: '❌ GitHub API rate limit exceeded. The hardcoded token may have expired or been revoked.' }, { quoted: msg });
+            } else {
+                await sock.sendMessage(from, { text: `❌ Update failed: ${err.message}` }, { quoted: msg });
+            }
         }
     }
 };

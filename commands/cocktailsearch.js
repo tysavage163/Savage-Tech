@@ -7,13 +7,12 @@ module.exports = {
   async execute(sock, msg, args) {
     const from = msg.key.remoteJid;
     const query = args.join(' ');
-    if (!query) return sock.sendMessage(from, { text: '❌ Usage: .cocktailsearch <name>' }, { quoted: msg });
+    if (!query) return sock.sendMessage(from, { text: '❌ Usage: .cocktailsearch <name> (e.g., .cocktailsearch margarita)' }, { quoted: msg });
 
     let drink = null;
     let imageUrl = null;
 
     try {
-      // Try WolfAPIs endpoint first
       const res = await axios.get(`https://apis.xwolf.space/api/food/cocktail/search?name=${encodeURIComponent(query)}`);
       const data = res.data;
       if (data.success && data.drinks && data.drinks.length) {
@@ -26,7 +25,6 @@ module.exports = {
         throw new Error('No drink found');
       }
     } catch (err) {
-      // Fallback to direct TheCocktailDB API
       try {
         const fallbackRes = await axios.get(`https://www.thecocktaildb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`);
         if (fallbackRes.data.drinks && fallbackRes.data.drinks.length) {
@@ -36,8 +34,7 @@ module.exports = {
           return sock.sendMessage(from, { text: `❌ No cocktails found for "${query}".` }, { quoted: msg });
         }
       } catch (fallbackErr) {
-        console.error(fallbackErr);
-        return sock.sendMessage(from, { text: '❌ API error. Could not fetch cocktail data.' }, { quoted: msg });
+        return sock.sendMessage(from, { text: '❌ API error.' }, { quoted: msg });
       }
     }
 

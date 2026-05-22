@@ -43,7 +43,7 @@ module.exports = {
                 const filtered = Array.from(global.commands.values())
                     .filter(cmd => cmd.category === catName);
                 if (filtered.length === 0) return ""; 
-                return `┌───¤  * ${title} *\n${filtered.map(cmd => `┃  ♤ ${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
+                return `┌───¤  ${title}\n${filtered.map(cmd => `┃  ♤ ${cmd.name}`).join('\n')}\n┕━━━━━━━━━━━━━━━╼\n\n`;
             };
 
             const senderName = msg.pushName || 'User';

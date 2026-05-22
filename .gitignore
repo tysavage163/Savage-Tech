@@ -13,3 +13,4 @@ session/
 creds.json
 *.log
 
+owner.json

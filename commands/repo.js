@@ -9,7 +9,7 @@ module.exports = {
 
         const repoOwner = 'tysavage163';
         const repoName = 'Savage-Tech';
-        const GITHUB_TOKEN = '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';
+        const GITHUB_TOKEN = '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';
         const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}`;
 
         try {
@@ -60,7 +60,9 @@ module.exports = {
         } catch (error) {
             console.error('Repo command error:', error);
             let errorMsg = '❌ Failed to fetch repository data.';
-            if (error.response && error.response.status === 403) {
+            if (error.response && error.response.status === 401) {
+                errorMsg = '❌ GitHub token invalid or expired. Update the token in the command file.';
+            } else if (error.response && error.response.status === 403) {
                 errorMsg = '❌ GitHub API rate limit exceeded. The token may have expired or been revoked.';
             } else if (error.response && error.response.status === 404) {
                 errorMsg = '❌ Repository not found.';

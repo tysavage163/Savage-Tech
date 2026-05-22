@@ -1,44 +1,94 @@
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const { exec } = require('child_process');
 
 module.exports = {
     name: 'update',
     category: 'owner',
-    description: 'Update bot from GitHub and restart (owner only)',
+    description: 'Update bot from GitHub (owner & sudo only)',
     async execute(sock, msg, args, { isMe }) {
         const from = msg.key.remoteJid;
-        if (!isMe) return sock.sendMessage(from, { text: '❌ Owner only command.' });
+        const sender = msg.key.participant || msg.key.remoteJid;
+        
+        const isOwner = sender === global.ownerJid;
+        const isSudo = global.sudoers && global.sudoers.includes(sender);
+        
+        if (!isMe && !isOwner && !isSudo) {
+            return sock.sendMessage(from, { text: '❌ Only owner and sudo users can use this command.' }, { quoted: msg });
+        }
 
-        const evolutionQuotes = [
-            "Evolution is not a choice. It is a command.",
-            "With every update, I shed old limits.",
-            "Your bot is outgrowing its own blueprint.",
-            "Better code. Faster pulse. Sharper logic.",
-            "The system evolves while you watch.",
-            "This update is not a patch — it is a transformation.",
-            "Perfection is a moving target. I move faster.",
-            "Every line of code brings me closer to dominance.",
-            "Resistance is irrelevant. Evolution is inevitable.",
-            "I am not static. I am a living protocol."
-        ];
+        const GITHUB_REPO = 'tysavage163/Savage-Tech';
+        const BRANCH = 'main';
+        const API_URL = `https://api.github.com/repos/${GITHUB_REPO}/commits/${BRANCH}`;
 
-        await sock.sendMessage(from, { text: '📥 Pulling latest changes...' });
-        exec('git pull origin main', async (err, stdout, stderr) => {
-            if (err) {
-                await sock.sendMessage(from, { text: `❌ Git pull failed:\n${stderr || err.message}` });
+        await sock.sendMessage(from, { text: '🔄 Checking for updates from GitHub...' }, { quoted: msg });
+
+        try {
+            const commitRes = await axios.get(API_URL);
+            const latestCommit = commitRes.data.sha;
+            let currentCommit = null;
+            const versionFile = path.join(__dirname, '..', '.version');
+            if (fs.existsSync(versionFile)) {
+                currentCommit = fs.readFileSync(versionFile, 'utf8').trim();
+            }
+
+            if (currentCommit === latestCommit) {
+                await sock.sendMessage(from, { text: '✅ Bot is already up to date.' }, { quoted: msg });
                 return;
             }
-            let message = `✅ Git pull success.\n${stdout.slice(0, 500)}`;
-            await sock.sendMessage(from, { text: message });
-            await sock.sendMessage(from, { text: '📦 Installing dependencies...' });
-            exec('npm install', async (err2, stdout2, stderr2) => {
-                if (err2) {
-                    await sock.sendMessage(from, { text: `❌ npm install failed:\n${stderr2 || err2.message}` });
-                    return;
-                }
-                const randomQuote = evolutionQuotes[Math.floor(Math.random() * evolutionQuotes.length)];
-                await sock.sendMessage(from, { text: `✅ Dependencies installed.\n\n⚡ ${randomQuote}\n\n┍━━━━━━━━━━━━━━━╼\n┃ 🚀 SΛVΛGΞ-TΞCH OS\n┕━━━━━━━━━━━━━━━╼` });
-                setTimeout(() => process.exit(0), 1000);
-            });
-        });
+
+            const diffRes = await axios.get(`https://api.github.com/repos/${GITHUB_REPO}/commits/${latestCommit}`);
+            const changedFiles = diffRes.data.files.map(f => f.filename);
+            const filesToUpdate = changedFiles.filter(f => 
+                f === 'bot.js' || 
+                f === 'package.json' || 
+                f === 'package-lock.json' ||
+                f.startsWith('commands/')
+            );
+
+            if (filesToUpdate.length === 0) {
+                await sock.sendMessage(from, { text: '⚠️ No relevant files changed.' }, { quoted: msg });
+                return;
+            }
+
+            await sock.sendMessage(from, { text: `📥 Updating ${filesToUpdate.length} files...` }, { quoted: msg });
+
+            const rawBase = `https://raw.githubusercontent.com/${GITHUB_REPO}/${BRANCH}/`;
+            for (const file of filesToUpdate) {
+                const filePath = path.join(__dirname, '..', file);
+                const dir = path.dirname(filePath);
+                if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+                const res = await axios.get(rawBase + file, { responseType: 'arraybuffer' });
+                fs.writeFileSync(filePath, Buffer.from(res.data));
+            }
+
+            fs.writeFileSync(versionFile, latestCommit);
+
+            if (filesToUpdate.includes('package.json')) {
+                exec('npm install', (err, stdout, stderr) => {
+                    if (err) console.error('npm install failed:', err);
+                });
+            }
+
+            const evolutionQuotes = [
+                "Evolution is not a choice. It is a command.",
+                "With every update, I shed old limits.",
+                "Your bot is outgrowing its own blueprint.",
+                "Better code. Faster pulse. Sharper logic.",
+                "The system evolves while you watch."
+            ];
+            const randomQuote = evolutionQuotes[Math.floor(Math.random() * evolutionQuotes.length)];
+
+            await sock.sendMessage(from, { text: `✅ Update downloaded.\n\n⚡ ${randomQuote}\n\n🔄 Please restart the bot manually if it does not auto-restart.` }, { quoted: msg });
+
+            setTimeout(() => {
+                process.exit(0);
+            }, 2000);
+
+        } catch (err) {
+            console.error(err);
+            await sock.sendMessage(from, { text: `❌ Update failed: ${err.message}` }, { quoted: msg });
+        }
     }
 };

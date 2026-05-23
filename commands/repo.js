@@ -6,7 +6,7 @@ module.exports = {
   description: 'Shows the bot\'s GitHub repository information',
   async execute(sock, msg) {
     const from = msg.key.remoteJid;
-    const GITHUB_TOKEN = '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';
+    const GITHUB_TOKEN = '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';
     const apiUrl = 'https://api.github.com/repos/tysavage163/Savage-Tech';
 
     try {

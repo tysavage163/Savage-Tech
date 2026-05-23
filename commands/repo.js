@@ -7,19 +7,15 @@ module.exports = {
   async execute(sock, msg) {
     const from = msg.key.remoteJid;
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-    if (!GITHUB_TOKEN) {
-      return sock.sendMessage(from, { text: '❌ GITHUB_TOKEN environment variable not set.' }, { quoted: msg });
-    }
+    const headers = GITHUB_TOKEN ? {
+      'User-Agent': 'Savage-Tech-Bot',
+      'Authorization': `token ${GITHUB_TOKEN}`
+    } : { 'User-Agent': 'Savage-Tech-Bot' };
 
     const apiUrl = 'https://api.github.com/repos/tysavage163/Savage-Tech';
 
     try {
-      const { data } = await axios.get(apiUrl, {
-        headers: {
-          'User-Agent': 'Savage-Tech-Bot',
-          'Authorization': `token ${GITHUB_TOKEN}`
-        }
-      });
+      const { data } = await axios.get(apiUrl, { headers });
       const stars = data.stargazers_count.toLocaleString();
       const forks = data.forks_count.toLocaleString();
       const watchers = data.watchers_count.toLocaleString();
@@ -57,8 +53,8 @@ module.exports = {
     } catch (error) {
       console.error('Repo command error:', error);
       let errorMsg = '❌ Failed to fetch repository data.';
-      if (error.response && error.response.status === 401) {
-        errorMsg = '❌ GitHub token invalid or expired. Update the token in your environment variables.';
+      if (error.response && error.response.status === 403 && !GITHUB_TOKEN) {
+        errorMsg = '❌ GitHub API rate limit exceeded (unauthenticated). Set GITHUB_TOKEN environment variable for higher limits.';
       } else if (error.response && error.response.status === 403) {
         errorMsg = '❌ GitHub API rate limit exceeded. The token may have expired or been revoked.';
       } else if (error.response && error.response.status === 404) {

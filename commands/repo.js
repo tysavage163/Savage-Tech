@@ -6,7 +6,11 @@ module.exports = {
   description: 'Shows the bot\'s GitHub repository information',
   async execute(sock, msg) {
     const from = msg.key.remoteJid;
-    const GITHUB_TOKEN = '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';
+    const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+    if (!GITHUB_TOKEN) {
+      return sock.sendMessage(from, { text: '❌ GITHUB_TOKEN environment variable not set.' }, { quoted: msg });
+    }
+
     const apiUrl = 'https://api.github.com/repos/tysavage163/Savage-Tech';
 
     try {
@@ -54,7 +58,7 @@ module.exports = {
       console.error('Repo command error:', error);
       let errorMsg = '❌ Failed to fetch repository data.';
       if (error.response && error.response.status === 401) {
-        errorMsg = '❌ GitHub token invalid or expired. Update the token in the command file.';
+        errorMsg = '❌ GitHub token invalid or expired. Update the token in your environment variables.';
       } else if (error.response && error.response.status === 403) {
         errorMsg = '❌ GitHub API rate limit exceeded. The token may have expired or been revoked.';
       } else if (error.response && error.response.status === 404) {

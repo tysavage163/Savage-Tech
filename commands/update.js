@@ -20,7 +20,7 @@ module.exports = {
 
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
     if (!GITHUB_TOKEN) {
-      return sock.sendMessage(from, { text: '❌ GITHUB_TOKEN environment variable not set.' }, { quoted: msg });
+      return sock.sendMessage(from, { text: '❌ GITHUB_TOKEN environment variable not set. Please set it in your environment (Render or .env).' }, { quoted: msg });
     }
 
     const GITHUB_REPO = 'tysavage163/Savage-Tech';

@@ -59,12 +59,12 @@
 ### 🔑 SESSION PAIRING
 <p align="center">
   <a href="https://shrill-ronnica-savagetech-ea481bff.koyeb.app/">
-    <img src="https://img.shields.io/badge/PAIR_CODE_1-FF8C00?style=for-the-badge&logo=connection&logoColor=white" alt="Pair 1">
+    <img src="https://img.shields.io/badge/PAIR_CODE_1-2C3E50?style=for-the-badge&logo=connection&logoColor=white" alt="Pair 1">
   </a>
 </p>
 <p align="center">
-  <a href="https://savage-tech-pair.onrender.com">
-    <img src="https://img.shields.io/badge/PAIR_CODE_2-FF8C00?style=for-the-badge&logo=connection&logoColor=white" alt="Pair 2">
+  <a href="https://savage-tech-pair-zgom.onrender.com">
+    <img src="https://img.shields.io/badge/PAIR_CODE_2-2C3E50?style=for-the-badge&logo=connection&logoColor=white" alt="Pair 2">
   </a>
 </p>
 

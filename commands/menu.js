@@ -22,6 +22,29 @@ function getHostPlatform() {
     return 'Unknown / Local';
 }
 
+function applyMenuStyle(rawMenu, style) {
+    if (!style || style === 'original') return rawMenu;
+    const lines = rawMenu.split('\n');
+    switch (style) {
+        case 'dim':
+            return lines.map(line => '> ' + line).join('\n');
+        case 'minimal':
+            return lines.map(line => line.replace(/^[┌┃┕]───¤\s*\*\s*|\s*\*$/, '').replace(/♤/g, '•')).join('\n');
+        case 'compact':
+            return lines.filter(line => !line.match(/^[┌┃┕]───¤/)).join('\n');
+        case 'bullet':
+            return rawMenu.replace(/♤/g, '•');
+        case 'mono':
+            return '```\n' + rawMenu + '\n```';
+        case 'boldhead':
+            return rawMenu;
+        case 'noicon':
+            return rawMenu.replace(/♤ /g, '  ').replace(/┃  ♤ /g, '┃    ');
+        default:
+            return rawMenu;
+    }
+}
+
 module.exports = {
     name: 'menu',
     category: 'engine',
@@ -107,7 +130,10 @@ module.exports = {
                 .length > 0 ? getCategorizedMenu(Array.from(global.commands.values()).find(c => !definedCats.includes(c.category)).category, 'OTHER MODULES') : "";
 
             const footer = `> The future belongs to the ones crazy enough to build it.`;
-            const fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + mediaMenu + foodMenu + otherMenu + footer;
+            let fullMenu = header + ownerMenu + groupMenu + aiMenu + funMenu + toolsMenu + downloadMenu + audioMenu + audioEffectsMenu + spotifyMenu + financialMenu + searchMenu + animeMenu + ethicalMenu + sportsMenu + engineMenu + mediaMenu + foodMenu + otherMenu + footer;
+
+            const style = global.menuStyle || 'original';
+            fullMenu = applyMenuStyle(fullMenu, style);
 
             let imageUrl = null;
             if (global.menuImages && global.menuImages.length > 0) {

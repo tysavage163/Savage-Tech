@@ -1,0 +1,21 @@
+{
+  "prefix": ".",
+  "worktype": "public",
+  "antiDeleteEnabled": false,
+  "antiEditEnabled": false,
+  "antideleteMode": "on",
+  "autoViewStatus": "on",
+  "autoTyping": "off",
+  "autoRead": false,
+  "alwaysOnline": true,
+  "botFont": null,
+  "menuStyle": "original",
+  "menuImages": [],
+  "menuImageIndex": 0,
+  "anticall": {
+    "mode": "off",
+    "msg": "❌ Calls are not accepted."
+  },
+  "groups": {},
+  "warnings": {}
+}

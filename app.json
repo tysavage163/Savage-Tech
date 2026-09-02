@@ -1,0 +1,18 @@
+{
+  "name": "Savage-Tech WhatsApp Bot",
+  "description": "Advanced WhatsApp bot with anti‑link, economy, anime, games, and more",
+  "repository": "https://github.com/tysavage163/Savage-Tech",
+  "logo": "https://files.catbox.moe/7ipa9d.jpg",
+  "keywords": ["whatsapp", "bot", "baileys", "savage"],
+  "env": {
+    "SESSION_ID": {
+      "description": "Your WhatsApp session ID (base64 encoded creds.json)",
+      "required": true
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+}

@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const zlib = require('zlib');
+const WebSocket = require('ws');
 
 const PROXY_URL = global.PROXY_URL;
 
@@ -53,7 +54,9 @@ const DEFAULT_SETTINGS = {
     autoReactStatusEmoji: '❤️',
     autoReactStatusMode: 'fixed',
     autoReact: 'off',
-    autoReactEmoji: '❤️'
+    autoReactEmoji: '❤️',
+    // Dashboard command controls: absent/true means enabled; false disables execution.
+    commandStates: {}
 };
 
 const SETTINGS_SCHEMA_VERSION = 2;
@@ -80,6 +83,7 @@ function applyMigrations(s) {
 function normalizeSettings(s) {
     if (!s.groups || typeof s.groups !== 'object') s.groups = {};
     if (!s.warnings || typeof s.warnings !== 'object') s.warnings = {};
+    if (!s.commandStates || typeof s.commandStates !== 'object' || Array.isArray(s.commandStates)) s.commandStates = {};
     return s;
 }
 
@@ -92,8 +96,11 @@ let dirtyVersion = 0;
 let diskTimer = null;
 let dbTimer = null;
 let fastPullTimer = null;
-let heartbeatTimer = null;
 let initialized = false;
+let neuralSocket = null;
+let neuralReconnectTimer = null;
+let neuralReconnectDelay = 5000;
+let neuralStopped = false;
 let retryDelay = 60000;
 const MAX_RETRY_DELAY = 15 * 60 * 1000;
 
@@ -300,25 +307,17 @@ async function fetchSettingsFromProxy() {
 }
 
 async function pushSettingsToProxy() {
-    if (!apiKey) return;
+    if (!apiKey) return false;
     try {
-        await axios.post(`${PROXY_URL}/settings`, { settings }, {
+        const response = await axios.post(`${PROXY_URL}/settings`, { settings }, {
             headers: { 'x-api-key': apiKey },
             timeout: 15000
         });
+        return response.data?.success !== false;
     } catch (err) {
         console.error(`${TAG} ${C.error}❌ Nexus uplink failed: ${err.message}${C.reset}`);
+        return false;
     }
-}
-
-async function sendHeartbeat() {
-    if (!apiKey) return;
-    try {
-        await axios.post(`${PROXY_URL}/heartbeat`, {}, {
-            headers: { 'x-api-key': apiKey },
-            timeout: 10000
-        });
-    } catch (err) {}
 }
 
 async function fetchUsersFromProxy() {
@@ -349,7 +348,9 @@ async function pushUsersToProxy(ownerJid, sudoUsers) {
 
 async function updatePushName(pushName) {
     if (!pushName || typeof pushName !== 'string' || !pushName.trim()) return false;
-    pushName = pushName.trim();
+    pushName = pushName.trim().slice(0, 100);
+    // Never publish a phone number/JID as the bot's display name.
+    if (/^\+?[0-9][0-9\s().-]*$/.test(pushName) || /^[0-9]+@(s\.whatsapp\.net|lid)$/.test(pushName)) return false;
     settings._lastPushName = pushName;
     markDirty();
 
@@ -497,6 +498,54 @@ async function checkPendingPull() {
     return false;
 }
 
+function reportNeuralResult(jobId, status, message) {
+    if (!jobId || !apiKey) return;
+    if (neuralSocket && neuralSocket.readyState === WebSocket.OPEN) {
+        neuralSocket.send(JSON.stringify({ type: 'sync-result', jobId, status, message }));
+        return;
+    }
+    axios.post(`${PROXY_URL}/api/v1/bots/${encodeURIComponent(botId)}/sync-result`, { jobId, status, message }, { headers: { 'x-api-key': apiKey }, timeout: 8000 }).catch(() => {});
+}
+async function handleNeuralCommand(message) {
+    const { action, payload = {} } = message || {};
+    const jobId = payload.jobId;
+    try {
+        if (action === 'NEURAL_PULL') {
+            const applied = await checkPendingPull();
+            reportNeuralResult(jobId, applied ? 'applied' : 'failed', applied ? 'Remote settings applied' : 'No pending settings were available or settings could not be applied');
+        } else if (action === 'NEURAL_SYNC') {
+            const ok = await forceSync();
+            reportNeuralResult(jobId, ok ? 'applied' : 'failed', ok ? 'Current bot settings pushed to proxy' : 'Settings push failed');
+        } else {
+            reportNeuralResult(jobId, 'failed', 'Unsupported command');
+        }
+    } catch (error) {
+        reportNeuralResult(jobId, 'failed', error.message || 'Command failed');
+    }
+}
+function connectNeuralSocket() {
+    if (neuralStopped || !initialized || !apiKey || neuralSocket) return;
+    const base = PROXY_URL.replace(/^http/i, 'ws').replace(/\/$/, '');
+    const url = `${base}/neural?key=${encodeURIComponent(apiKey)}`;
+    let ws;
+    try { ws = new WebSocket(url, { handshakeTimeout: 12000, perMessageDeflate: false }); }
+    catch (e) { scheduleNeuralReconnect(); return; }
+    neuralSocket = ws;
+    ws.on('open', () => { neuralReconnectDelay = 5000; console.log(`${TAG} ${C.success}🧠 Neural control channel connected${C.reset}`); });
+    ws.on('message', raw => {
+        try { const msg = JSON.parse(raw.toString()); if (msg.type === 'command') handleNeuralCommand(msg); }
+        catch (e) { console.warn(`${TAG} Invalid neural command: ${e.message}`); }
+    });
+    ws.on('close', () => { if (neuralSocket === ws) neuralSocket = null; scheduleNeuralReconnect(); });
+    ws.on('error', () => { try { ws.close(); } catch (e) {} });
+}
+function scheduleNeuralReconnect() {
+    if (neuralStopped || neuralReconnectTimer || !initialized) return;
+    const jitter = Math.floor(Math.random() * 2000);
+    neuralReconnectTimer = setTimeout(() => { neuralReconnectTimer = null; connectNeuralSocket(); }, neuralReconnectDelay + jitter);
+    neuralReconnectDelay = Math.min(neuralReconnectDelay * 2, 5 * 60 * 1000);
+}
+
 async function initDatabase() {
     botId = await detectBotId();
     if (!sessionId) sessionId = process.env.SESSION_ID || null;
@@ -554,9 +603,9 @@ async function initDatabase() {
 
         startDiskFlusher();
         startDbSyncer();
-        startHeartbeat();
         initialized = true;
         retryDelay = 60000;
+        connectNeuralSocket();
     } catch (err) {
         console.error(`${TAG} ${C.error}❌ Nexus offline: ${err.message}${C.reset}`);
         console.log(`${TAG} ${C.warn}👻 Ghost mode — running from vault${C.reset}`);
@@ -567,26 +616,35 @@ async function initDatabase() {
 }
 
 async function syncToDb() {
-    if (!initialized || !apiKey) return;
-    if (!dirty) return;
+    if (!initialized || !apiKey || !dirty) return false;
 
     const snapshotVersion = dirtyVersion;
+    const previousSync = settings._lastSync;
     try {
+        const pushed = await pushSettingsToProxy();
+        if (!pushed) {
+            settings._lastSync = previousSync;
+            return false;
+        }
         settings._lastSync = Date.now();
         saveToDisk();
-        await pushSettingsToProxy();
-        if (dirtyVersion === snapshotVersion) {
-            dirty = false;
-        }
+        if (dirtyVersion === snapshotVersion) dirty = false;
+        return true;
     } catch (err) {
+        settings._lastSync = previousSync;
         console.error(`${TAG} ${C.error}❌ Uplink failed: ${err.message}${C.reset}`);
+        return false;
     }
 }
 
 async function forceSync() {
+    // The neural command handler must receive the real uplink result.
+    // Previously this function discarded syncToDb()'s boolean result, so
+    // successful individual NEURAL_SYNC jobs were incorrectly acknowledged
+    // as failed (undefined is treated as false).
     dirty = true;
     dirtyVersion++;
-    await syncToDb();
+    return await syncToDb();
 }
 
 function startDiskFlusher() {
@@ -600,7 +658,8 @@ function startDbSyncer() {
     if (dbTimer) clearInterval(dbTimer);
     if (fastPullTimer) clearInterval(fastPullTimer);
 
-    const SYNC_INTERVAL_MS = 3 * 60 * 60 * 1000;
+    // Settings push/pull cadence: every four hours.
+    const SYNC_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
     fastPullTimer = setInterval(async () => {
         try { await checkPendingPull(); } catch (e) {}
@@ -609,13 +668,6 @@ function startDbSyncer() {
     dbTimer = setInterval(async () => {
         await syncToDb();
     }, SYNC_INTERVAL_MS);
-}
-
-function startHeartbeat() {
-    if (heartbeatTimer) clearInterval(heartbeatTimer);
-    heartbeatTimer = setInterval(() => {
-        sendHeartbeat();
-    }, 48 * 60 * 60 * 1000);
 }
 
 function markDirty() {
@@ -793,10 +845,12 @@ async function setBotIdFromWhatsApp(whatsappJid) {
 }
 
 async function gracefulShutdown() {
+    neuralStopped = true;
+    if (neuralReconnectTimer) clearTimeout(neuralReconnectTimer);
+    if (neuralSocket) { try { neuralSocket.close(1000, 'Bot shutting down'); } catch (e) {} neuralSocket = null; }
     if (diskTimer) clearInterval(diskTimer);
     if (dbTimer) clearInterval(dbTimer);
     if (fastPullTimer) clearInterval(fastPullTimer);
-    if (heartbeatTimer) clearInterval(heartbeatTimer);
     saveToDisk();
     await syncToDb();
 }
